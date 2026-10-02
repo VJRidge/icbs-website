@@ -19,11 +19,14 @@ export default function PublicPage({
   document,
   fallback,
   post,
+  chrome = false,
 }: {
   title: string
   document: unknown
   fallback: ReactNode
   post?: PostMeta
+  /** Site header above kit landings (off for /free so the kit hero stays the top bar). */
+  chrome?: boolean
 }) {
   if (!isStudioDocument(document)) return <>{fallback}</>
   return (
@@ -35,7 +38,7 @@ export default function PublicPage({
       }
     >
       {isKitOnly(document) ? (
-        <KitLandingView title={title} document={document} />
+        <KitLandingView title={title} document={document} chrome={chrome} />
       ) : (
         <StudioPageView title={title} document={document} post={post} />
       )}

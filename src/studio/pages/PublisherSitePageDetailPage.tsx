@@ -97,7 +97,11 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
               <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
               {post ? (
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-medium text-slate-600">
-                  {post.author ? <span>By {post.author}</span> : null}
+                  {post.author ? (
+                    <span>
+                      By <a href="/about" className="font-semibold text-brand-blue hover:underline">{post.author}</a>
+                    </span>
+                  ) : null}
                   {post.author && postDate ? <span aria-hidden>·</span> : null}
                   {postDate ? <time dateTime={post.publishedAt ?? undefined}>{postDate}</time> : null}
                   {post.categories?.map((c) => (

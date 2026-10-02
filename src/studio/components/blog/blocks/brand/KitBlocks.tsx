@@ -119,20 +119,22 @@ function KitHero({ block }: { block: BlogBlock }) {
   return (
     <div className="green">
       <div className="wrap">
-        <div className="nav">
-          {str(d, 'tag') ? (
-            <span className="k tag">
-              <Txt d={d} k="tag" />
-            </span>
-          ) : (
-            <span />
-          )}
-          {str(d, 'tagline') ? (
-            <span className="k">
-              <Txt d={d} k="tagline" />
-            </span>
-          ) : null}
-        </div>
+        {d.showNav !== false ? (
+          <div className="nav">
+            {str(d, 'tag') ? (
+              <span className="k tag">
+                <Txt d={d} k="tag" />
+              </span>
+            ) : (
+              <span />
+            )}
+            {str(d, 'tagline') ? (
+              <span className="k">
+                <Txt d={d} k="tagline" />
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="hero">
           <div className="cov">
             {cover ? <Img src={cover} alt={str(d, 'coverAlt')} width={640} height={828} field="coverUrl" onPick={setField('coverUrl')} /> : null}

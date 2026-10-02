@@ -50,6 +50,8 @@ export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slo
       </main>
     )
   }
-  if (state === 'cms' && doc) return <PublicPage title={title} document={doc} fallback={<Free />} />
+  if (state === 'cms' && doc) {
+    return <PublicPage title={title} document={doc} fallback={<Free />} chrome={slot !== 'kit_content_id'} />
+  }
   return <Free />
 }

@@ -23,7 +23,8 @@ export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: 
         .maybeSingle()
       if (gone) return
       if (isStudioDocument(data?.published_document)) {
-        setNode(<PublicPage title={data.title} document={data.published_document} fallback={fallback} />)
+        document.title = `${data.title} \u00b7 I Call BS`
+        setNode(<PublicPage title={data.title} document={data.published_document} fallback={fallback} chrome />)
       }
       setReady(true)
     })()
