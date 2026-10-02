@@ -12,14 +12,16 @@ export default function Footer() {
   return (
     <footer className="foot green">
       <span>{chrome.footerCredit}</span>
-      <SiteSocial social={chrome.social} />
-      <span className="foot-links">
-        {chrome.footer.map((item) => (
-          <a key={item.id} href={item.href}>
-            {item.label}
-          </a>
-        ))}
-      </span>
+      <div className="foot-end">
+        <SiteSocial social={chrome.social} />
+        <span className="foot-links">
+          {chrome.footer.map((item) => (
+            <a key={item.id} href={item.href}>
+              {item.label}
+            </a>
+          ))}
+        </span>
+      </div>
     </footer>
   )
 }

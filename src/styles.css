@@ -95,7 +95,7 @@
 .site-header .nav { padding-left: 56px; padding-right: 56px; }
 .site-brand { display: flex; align-items: center; gap: 16px; text-decoration: none; min-width: 0; }
 .site-logo { height: 28px; width: auto; }
-.site-header-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 14px 22px; }
+.site-header-end { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .site-header-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 22px; }
 .site-header-links a { font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; text-decoration: none; color: var(--cr); }
 .site-header-links a:hover, .site-header-links a[aria-current="page"] { color: var(--y); }
@@ -109,10 +109,12 @@
 .foot { display: flex; justify-content: space-between; align-items: center; gap: 16px 28px; flex-wrap: wrap; padding: 28px 96px; border-top: 1px solid rgba(244,239,227,.2); font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--mute); }
 .foot-links a { margin-left: 24px; text-decoration: none; }
 .foot-links a:hover { text-decoration: underline; }
-.social { display: flex; gap: 8px; align-items: center; }
-.social a, .social span { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid currentColor; color: inherit; text-decoration: none; }
-.social a:hover { color: var(--y); border-color: var(--y); }
-.social span.social-ph { border-style: dashed; opacity: 0.72; }
+.foot-end { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.foot-end .foot-links a:first-child { margin-left: 0; }
+.social { display: flex; gap: 18px; align-items: center; color: var(--y); }
+.social a, .social span { display: inline-flex; align-items: center; justify-content: center; color: var(--y); text-decoration: none; }
+.social a:hover { color: var(--cr); }
+.social span.social-ph { opacity: 1; }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; text-align: left; }
 .compare-col { background: #fff; color: var(--ink); border-top: 3px solid var(--ink); padding: 28px 28px 22px; }
 .compare-col h3 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 36px; line-height: 40px; margin: 8px 0 10px; color: var(--ink); }
