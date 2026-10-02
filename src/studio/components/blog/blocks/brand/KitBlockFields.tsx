@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { ArrowDown, ArrowUp, Images, Plus, Trash2 } from 'lucide-react';
 import { useBlogEditorStore } from '../../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../../lib/blog/blogBlockTypes';
 import { useBlogAdminMediaLibrary } from '../../../../contexts/BlogAdminMediaLibraryContext';
 import FileUpload from '../../../FileUpload';
+import { scrollToKitField, subscribeKitField, takePendingKitField } from './kitFieldFocus';
 
 type Row = Record<string, string>;
 type Update = (patch: Record<string, unknown>) => void;
@@ -21,7 +23,7 @@ function Text({ data, k, label, update, multiline, hint }: {
 }) {
   const value = typeof data[k] === 'string' ? (data[k] as string) : '';
   return (
-    <label className="block">
+    <label className="block" data-kit-field={k}>
       <span className={labelCls}>{label}</span>
       {multiline ? (
         <textarea value={value} rows={4} onChange={(e) => update({ [k]: e.target.value })} className={`${inputCls} resize-y`} />
@@ -78,10 +80,10 @@ function Toggle({ data, k, label, update, defaultOn }: {
   );
 }
 
-function ImageField({ value, onChange, label }: { value: string; onChange: (url: string) => void; label: string }) {
+function ImageField({ value, onChange, label, field }: { value: string; onChange: (url: string) => void; label: string; field: string }) {
   const { openMediaLibrary } = useBlogAdminMediaLibrary();
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-kit-field={field}>
       <span className={labelCls}>{label}</span>
       <div className="flex flex-wrap items-center gap-2">
         <FileUpload variant="compact" bucket="media-public" type="image" accept="image/*" value={value} onChange={onChange} />
@@ -125,6 +127,7 @@ function RowList({ data, k, update, fields, addLabel, blank }: {
               .map((f) => (
                 <input
                   key={f.key}
+                  data-kit-field={`${k}.${i}.${f.key}`}
                   value={row[f.key] ?? ''}
                   placeholder={f.label}
                   aria-label={f.label}
@@ -142,6 +145,7 @@ function RowList({ data, k, update, fields, addLabel, blank }: {
             .map((f) => (
               <ImageField
                 key={f.key}
+                field={`${k}.${i}.${f.key}`}
                 label={f.label}
                 value={row[f.key] ?? ''}
                 onChange={(url) => {
@@ -191,7 +195,28 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 
 const HIGHLIGHT_HINT = 'Shown with the yellow highlighter.';
 
+/** Scrolls to (and flashes) the field matching whatever was clicked on the canvas. */
 export default function KitBlockFields({ block }: { block: BlogBlock }) {
+  const blockId = block.id;
+
+  useEffect(() => {
+    const pending = takePendingKitField(blockId);
+    if (pending) requestAnimationFrame(() => scrollToKitField(blockId, pending));
+    return subscribeKitField((t) => {
+      if (t.blockId !== blockId) return;
+      takePendingKitField(blockId);
+      scrollToKitField(blockId, t.field);
+    });
+  }, [blockId]);
+
+  return (
+    <div data-kit-fields-for={blockId}>
+      <KitBlockFieldsInner block={block} />
+    </div>
+  );
+}
+
+function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const d = block.data;
   const update: Update = (patch) => updateBlock(block.id, patch);
@@ -211,7 +236,7 @@ export default function KitBlockFields({ block }: { block: BlogBlock }) {
             <Text data={d} k="subhead" label="Subhead" update={update} multiline />
           </Group>
           <Group title="Cover">
-            <ImageField label="Cover image" value={String(d.coverUrl ?? '')} onChange={(url) => update({ coverUrl: url })} />
+            <ImageField label="Cover image" field="coverUrl" value={String(d.coverUrl ?? '')} onChange={(url) => update({ coverUrl: url })} />
             <Text data={d} k="coverAlt" label="Alt text" update={update} />
           </Group>
           <Group title="Signup form">

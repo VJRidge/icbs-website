@@ -9,6 +9,8 @@ export type KitEditApi = {
   setField: (key: string, value: string) => void;
   setRowField: (list: string, index: number, field: string, value: string) => void;
   pickImage: (onPick: (url: string) => void) => void;
+  /** Scroll the left panel to a field: `key`, or `list.index.key` for list rows. */
+  reveal: (field: string) => void;
 };
 
 export const KitEditContext = createContext<KitEditApi | null>(null);
@@ -29,7 +31,7 @@ function tone(data: Record<string, unknown>, fallback: KitTone): KitTone {
 }
 
 /** Plain-text inline editor. Uses textContent (innerText would bake in CSS text-transform). */
-function InlineText({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function InlineText({ value, onChange, onFocus }: { value: string; onChange: (v: string) => void; onFocus?: () => void }) {
   const ref = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
@@ -54,6 +56,7 @@ function InlineText({ value, onChange }: { value: string; onChange: (v: string) 
       spellCheck
       title="Click to edit"
       onKeyDown={onKeyDown}
+      onFocus={onFocus}
       onInput={(e) => onChange((e.currentTarget.textContent ?? '').replace(/\u00a0/g, ' '))}
     />
   );
@@ -65,10 +68,17 @@ function Txt({ d, k, row }: { d: Record<string, unknown>; k: string; row?: [stri
   const value = row ? (rows(d, row[0])[row[1]]?.[k] ?? '') : str(d, k);
   if (!edit) return <>{value}</>;
   const onChange = row ? (v: string) => edit.setRowField(row[0], row[1], k, v) : (v: string) => edit.setField(k, v);
-  return <InlineText value={value} onChange={onChange} />;
+  const field = row ? `${row[0]}.${row[1]}.${k}` : k;
+  return <InlineText value={value} onChange={onChange} onFocus={() => edit.reveal(field)} />;
 }
 
-function Img({ src, alt, onPick, ...rest }: { src: string; alt: string; onPick: (url: string) => void } & React.ImgHTMLAttributes<HTMLImageElement>) {
+function Img({
+  src,
+  alt,
+  onPick,
+  field,
+  ...rest
+}: { src: string; alt: string; onPick: (url: string) => void; field: string } & React.ImgHTMLAttributes<HTMLImageElement>) {
   const edit = useContext(KitEditContext);
   if (!edit) return <img src={src} alt={alt} {...rest} />;
   return (
@@ -78,7 +88,10 @@ function Img({ src, alt, onPick, ...rest }: { src: string; alt: string; onPick: 
       {...rest}
       className={[rest.className, 'kit-editable-img'].filter(Boolean).join(' ')}
       title="Click to replace image"
-      onClick={() => edit.pickImage(onPick)}
+      onClick={() => {
+        edit.reveal(field);
+        edit.pickImage(onPick);
+      }}
     />
   );
 }
@@ -122,7 +135,7 @@ function KitHero({ block }: { block: BlogBlock }) {
         </div>
         <div className="hero">
           <div className="cov">
-            {cover ? <Img src={cover} alt={str(d, 'coverAlt')} width={640} height={828} onPick={setField('coverUrl')} /> : null}
+            {cover ? <Img src={cover} alt={str(d, 'coverAlt')} width={640} height={828} field="coverUrl" onPick={setField('coverUrl')} /> : null}
           </div>
           <div>
             <h1 className="an">
@@ -240,6 +253,7 @@ function KitGallery({ block }: { block: BlogBlock }) {
                 src={im.url}
                 alt={im.alt ?? ''}
                 loading="lazy"
+                field={`images.${i}.url`}
                 onPick={(url) => edit?.setRowField('images', i, 'url', url)}
               />
             ))}
@@ -308,7 +322,7 @@ function KitText({ block }: { block: BlogBlock }) {
         ) : null}
         {paragraphs.map(({ p, i }) => (
           <p key={i} className="lede" style={centerStyle}>
-            {edit ? <InlineText value={p} onChange={(v) => setParagraph(i, v)} /> : p}
+            {edit ? <InlineText value={p} onChange={(v) => setParagraph(i, v)} onFocus={() => edit.reveal('body')} /> : p}
           </p>
         ))}
         {str(d, 'highlight') ? (

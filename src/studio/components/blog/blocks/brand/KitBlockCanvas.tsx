@@ -3,6 +3,7 @@ import type { BlogBlock } from '../../../../lib/blog/blogBlockTypes';
 import { useBlogEditorStore } from '../../../../lib/blog/useBlogEditorStore';
 import { useBlogAdminMediaLibrary } from '../../../../contexts/BlogAdminMediaLibraryContext';
 import { KitBlockView, KitEditContext, type KitEditApi } from './KitBlocks';
+import { revealKitField } from './kitFieldFocus';
 
 const DESKTOP_WIDTH = 1280;
 
@@ -57,6 +58,7 @@ function EditableKitBlock({ block }: { block: BlogBlock }) {
         updateBlock(blockRef.current.id, { [list]: next });
       },
       pickImage: (onPick) => openMediaLibrary(onPick),
+      reveal: (field) => revealKitField({ blockId: blockRef.current.id, field }),
     }),
     [updateBlock, openMediaLibrary],
   );
