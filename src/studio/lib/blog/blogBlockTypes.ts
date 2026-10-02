@@ -298,7 +298,9 @@ export const BLOG_BLOCK_DEFAULTS = {
     subhead:
       'No fairy tales. No thirty-minute miracles. The myth-busting, the mindset, and just enough of the toolkit to prove it’s real.',
     showForm: true,
+    showNav: true,
     buttonLabel: 'Send me the free kit',
+    buttonHref: '',
     receipts: [
       { value: '221', label: 'Chat sessions' },
       { value: '3,302', label: 'Prompts I typed' },
@@ -352,6 +354,7 @@ export const BLOG_BLOCK_DEFAULTS = {
     centered: false,
     buttonLabel: '',
     buttonHref: '',
+    anchor: '',
   },
   kit_signup: {
     tone: 'green' as KitTone,

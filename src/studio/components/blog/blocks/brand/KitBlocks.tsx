@@ -155,6 +155,16 @@ function KitHero({ block }: { block: BlogBlock }) {
               </p>
             ) : null}
             {d.showForm !== false ? <KitForm id={block.id} label={str(d, 'buttonLabel')} /> : null}
+            {d.showForm === false && str(d, 'buttonHref') && str(d, 'buttonLabel') ? (
+              <a
+                className="btn"
+                href={str(d, 'buttonHref')}
+                style={{ maxWidth: 440 }}
+                onClick={edit ? (e) => e.preventDefault() : undefined}
+              >
+                <Txt d={d} k="buttonLabel" />
+              </a>
+            ) : null}
           </div>
         </div>
         {receipts.length ? (
@@ -314,7 +324,7 @@ function KitText({ block }: { block: BlogBlock }) {
   };
   const centerStyle = centered ? { marginInline: 'auto' } : undefined;
   return (
-    <section className={`sec ${t}`}>
+    <section className={`sec ${t}`} id={str(d, 'anchor') || undefined}>
       <div className={centered ? 'wrap center' : 'wrap'}>
         <SectionLabel d={d} t={t} centered={centered} />
         {str(d, 'heading') ? (

@@ -18,6 +18,7 @@ export const DEFAULT_SITE_CHROME: SiteChrome = {
   logoUrl: '',
   footerCredit: '© 2026 V. Jimale Ridgeway',
   header: [
+    { id: 'book', label: 'The book', href: '/' },
     { id: 'kit', label: 'Free Starter Kit', href: '/free' },
     { id: 'blog', label: 'Blog', href: '/blog' },
     { id: 'about', label: 'About', href: '/about' },

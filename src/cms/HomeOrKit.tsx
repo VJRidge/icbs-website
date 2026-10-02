@@ -27,10 +27,12 @@ export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slo
       }
       const { data: page } = await sb
         .from('contents')
-        .select('title, published_document, status')
+        .select('title, seo_title, published_document, status')
         .eq('id', id)
         .maybeSingle()
       if (!gone && page?.status === 'published' && page.published_document) {
+        const tab = (page.seo_title || page.title || '').trim() || page.title
+        document.title = `${tab}`
         setTitle(page.title)
         setDoc(page.published_document)
         setState('cms')

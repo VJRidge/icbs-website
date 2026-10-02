@@ -242,6 +242,7 @@ Studio data rules (migration `20261003_studio_editor.sql`):
 | 2026-10-02 | Site chrome: header/footer identity + header/footer menus (`/admin/appearance`, `/admin/menus`) |
 | 2026-10-02 | About page (`/about`) + About in header/footer; post byline links to it |
 | 2026-10-02 | CMS soon items live: Templates, SEO & redirects, Users & roles, Settings |
+| 2026-10-02 | Sales page at `/` (studio landing `book`); kit stays at `/free` |
 
 ---
 

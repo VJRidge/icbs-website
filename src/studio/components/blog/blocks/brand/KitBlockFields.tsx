@@ -226,6 +226,7 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
       return (
         <div className="space-y-4">
           <Group title="Top bar">
+            <Toggle data={d} k="showNav" label="Show inner kit nav" update={update} defaultOn />
             <Text data={d} k="tag" label="Tag" update={update} />
             <Text data={d} k="tagline" label="Tagline" update={update} />
           </Group>
@@ -242,6 +243,7 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
           <Group title="Signup form">
             <Toggle data={d} k="showForm" label="Show signup form" update={update} defaultOn />
             <Text data={d} k="buttonLabel" label="Button label" update={update} />
+            <Text data={d} k="buttonHref" label="Button link (when form is off)" update={update} hint="e.g. #buy or a Stripe URL" />
           </Group>
           <Group title="Receipts strip">
             <RowList
@@ -336,6 +338,7 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
           <Group title="Button (optional)">
             <Text data={d} k="buttonLabel" label="Label" update={update} />
             <Text data={d} k="buttonHref" label="Link" update={update} hint="e.g. /free or https://…" />
+            <Text data={d} k="anchor" label="Section id" update={update} hint="e.g. buy — links can jump here with #buy" />
           </Group>
         </div>
       );

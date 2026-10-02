@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import Footer from '../components/Footer'
+import { BOOK_CTA_LABEL, BOOK_SALES_PATH } from '../lib/bookOffer'
 
 const KIT_PDF = '/downloads/I-Call-BS-Free-Starter-Kit.pdf'
-// Set this to the Stripe Checkout link (or the sales page) once it exists.
-const BOOK_URL = '/'
 
 // Wording from the kit's "Where to Go from Here" page.
 const INCLUDES = [
@@ -61,8 +60,8 @@ export default function FreeThanks() {
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <a className="btn" href={BOOK_URL}>
-              Get the full guide — $17
+            <a className="btn" href={BOOK_SALES_PATH}>
+              {BOOK_CTA_LABEL}
             </a>
           </div>
         </div>

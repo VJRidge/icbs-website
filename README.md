@@ -44,15 +44,15 @@ anon key only.
 
 - [ ] Write the privacy, terms and refunds pages
 - [ ] Review the email 1 wording in `api/_emails.ts`
-- [ ] Set `BOOK_URL` in `FreeThanks.tsx` to the sales page or Stripe Checkout link
+- [x] Sales page at `/` (thanks-page book button points here). Stripe Checkout still to do.
 - [ ] Confirm the sending address in `EMAIL_FROM` (currently hello@vettajimale.tech)
 
 ## CMS (in progress)
 
 Staff studio at `/admin`. Plan and phases: [`docs/cms/IMPLEMENTATION.md`](docs/cms/IMPLEMENTATION.md).
-The public kit funnel stays hardcoded until a published CMS homepage is assigned.
+`/` is the book sales landing when `settings.homepage_content_id` is set. `/free` stays the kit.
 
 ## Not built yet
 
-Sales page (`/`), Stripe Checkout + webhook (`buyer` tag), purchase thank-you (`/thanks`),
+Stripe Checkout + webhook (`buyer` tag), purchase thank-you (`/thanks`),
 link-in-bio page (`/start`), welcome emails 2–6 (scheduled job).

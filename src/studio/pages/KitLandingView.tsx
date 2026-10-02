@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Footer from '../../components/Footer';
 import SiteHeader from '../../components/SiteHeader';
 import { KitBlockView } from '../components/blog/blocks/brand/KitBlocks';
@@ -14,6 +15,16 @@ export default function KitLandingView({
   chrome?: boolean;
 }) {
   const blocks = (Array.isArray(document.blocks) ? document.blocks : []) as BlogBlock[];
+
+  useEffect(() => {
+    const id = window.location.hash.replace(/^#/, '');
+    if (!id) return;
+    const go = () => window.document.getElementById(id)?.scrollIntoView();
+    go();
+    const timers = [80, 400, 900].map((ms) => window.setTimeout(go, ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [document]);
+
   return (
     <main>
       {chrome ? <SiteHeader /> : null}
