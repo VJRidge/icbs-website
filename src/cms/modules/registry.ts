@@ -1,6 +1,6 @@
 import type { BuilderNode } from '../document'
 
-export type FieldKind = 'text' | 'textarea' | 'select' | 'url'
+export type FieldKind = 'text' | 'textarea' | 'select' | 'url' | 'html'
 
 export type ModuleField = {
   key: string
@@ -13,107 +13,75 @@ export type ModuleDef = {
   type: string
   label: string
   hint: string
-  category: 'Layout' | 'Content' | 'Media' | 'Lead gen'
-  canHaveChildren?: boolean
+  category: 'Text' | 'Media' | 'Layout' | 'Marketing'
   defaults: Record<string, unknown>
   fields: ModuleField[]
 }
 
 export const MODULES: ModuleDef[] = [
   {
-    type: 'section',
-    label: 'Section',
-    hint: 'Full-width band. Drop modules inside it.',
-    category: 'Layout',
-    canHaveChildren: true,
-    defaults: { tone: 'cream' },
+    type: 'paragraph',
+    label: 'Paragraph',
+    hint: 'Write in the canvas. Format with the toolbar.',
+    category: 'Text',
+    defaults: { html: '', align: 'left', color: '' },
     fields: [
       {
-        key: 'tone',
-        label: 'Background',
+        key: 'align',
+        label: 'Align',
         kind: 'select',
         options: [
-          { value: 'cream', label: 'Cream' },
-          { value: 'green', label: 'Cover green' },
-          { value: 'white', label: 'White' },
+          { value: 'left', label: 'Left' },
+          { value: 'center', label: 'Center' },
+          { value: 'right', label: 'Right' },
         ],
       },
+      { key: 'color', label: 'Text color', kind: 'text' },
     ],
   },
   {
     type: 'heading',
     label: 'Heading',
-    hint: 'Page title or section title.',
-    category: 'Content',
-    defaults: { eyebrow: 'Section', text: 'New heading', level: 'h2' },
+    hint: 'Section heading in the article.',
+    category: 'Text',
+    defaults: { text: '', level: 'h2' },
     fields: [
-      { key: 'eyebrow', label: 'Eyebrow', kind: 'text' },
-      { key: 'text', label: 'Heading', kind: 'text' },
       {
         key: 'level',
         label: 'Level',
         kind: 'select',
         options: [
-          { value: 'h1', label: 'H1' },
-          { value: 'h2', label: 'H2' },
+          { value: 'h2', label: 'Heading 2' },
+          { value: 'h3', label: 'Heading 3' },
         ],
       },
     ],
   },
   {
-    type: 'text',
-    label: 'Text',
-    hint: 'Paragraphs. Blank lines make new paragraphs.',
-    category: 'Content',
-    defaults: { text: 'Write the copy for this block.' },
-    fields: [{ key: 'text', label: 'Body', kind: 'textarea' }],
-  },
-  {
     type: 'quote',
     label: 'Quote',
-    hint: 'Pull quote with optional citation.',
-    category: 'Content',
-    defaults: { text: 'A line worth repeating.', cite: '' },
+    hint: 'Pull quote.',
+    category: 'Text',
+    defaults: { text: '', cite: '' },
     fields: [
       { key: 'text', label: 'Quote', kind: 'textarea' },
       { key: 'cite', label: 'Citation', kind: 'text' },
     ],
   },
   {
-    type: 'button',
-    label: 'Button',
-    hint: 'Link styled as the kit button.',
-    category: 'Content',
-    defaults: { label: 'Get the kit', href: '/free' },
-    fields: [
-      { key: 'label', label: 'Label', kind: 'text' },
-      { key: 'href', label: 'Link', kind: 'url' },
-    ],
-  },
-  {
-    type: 'cta',
-    label: 'Call to action',
-    hint: 'Heading, short copy, and a button.',
-    category: 'Content',
-    defaults: {
-      heading: 'Ready when you are.',
-      text: 'Get the free starter kit. No fairy tales.',
-      buttonLabel: 'Send me the kit',
-      buttonHref: '/free',
-    },
-    fields: [
-      { key: 'heading', label: 'Heading', kind: 'text' },
-      { key: 'text', label: 'Copy', kind: 'textarea' },
-      { key: 'buttonLabel', label: 'Button label', kind: 'text' },
-      { key: 'buttonHref', label: 'Button link', kind: 'url' },
-    ],
+    type: 'callout',
+    label: 'Callout',
+    hint: 'Highlighted note.',
+    category: 'Text',
+    defaults: { text: '' },
+    fields: [{ key: 'text', label: 'Note', kind: 'textarea' }],
   },
   {
     type: 'image',
     label: 'Image',
-    hint: 'Paste a public image URL. Media library comes next.',
+    hint: 'From the media library or a URL.',
     category: 'Media',
-    defaults: { src: '/img/kit-cover.png', alt: 'I Call BS kit cover' },
+    defaults: { src: '', alt: '' },
     fields: [
       { key: 'src', label: 'Image URL', kind: 'url' },
       { key: 'alt', label: 'Alt text', kind: 'text' },
@@ -132,29 +100,65 @@ export const MODULES: ModuleDef[] = [
     label: 'Spacer',
     hint: 'Vertical gap.',
     category: 'Layout',
-    defaults: { height: '48' },
+    defaults: { height: '32' },
     fields: [
       {
         key: 'height',
-        label: 'Height (px)',
+        label: 'Height',
         kind: 'select',
         options: [
-          { value: '24', label: '24' },
-          { value: '48', label: '48' },
-          { value: '88', label: '88' },
+          { value: '16', label: 'Small' },
+          { value: '32', label: 'Medium' },
+          { value: '64', label: 'Large' },
         ],
       },
     ],
   },
   {
+    type: 'button',
+    label: 'Button',
+    hint: 'A link styled as a button.',
+    category: 'Marketing',
+    defaults: { label: 'Get the kit', href: '/free' },
+    fields: [
+      { key: 'label', label: 'Label', kind: 'text' },
+      { key: 'href', label: 'Link', kind: 'url' },
+    ],
+  },
+  {
+    type: 'cta',
+    label: 'Call to action',
+    hint: 'Heading, copy, and a button.',
+    category: 'Marketing',
+    defaults: {
+      heading: '',
+      text: '',
+      buttonLabel: 'Send me the kit',
+      buttonHref: '/free',
+    },
+    fields: [
+      { key: 'heading', label: 'Heading', kind: 'text' },
+      { key: 'text', label: 'Copy', kind: 'textarea' },
+      { key: 'buttonLabel', label: 'Button label', kind: 'text' },
+      { key: 'buttonHref', label: 'Button link', kind: 'url' },
+    ],
+  },
+  {
     type: 'kitSignup',
     label: 'Kit signup',
-    hint: 'The live lead form. Submissions still go to the kit email.',
-    category: 'Lead gen',
+    hint: 'The live lead form.',
+    category: 'Marketing',
     defaults: {},
     fields: [],
   },
 ]
+
+export const PICKER_CATEGORIES: Record<ModuleDef['category'], string[]> = {
+  Text: ['paragraph', 'heading', 'quote', 'callout'],
+  Media: ['image'],
+  Layout: ['divider', 'spacer'],
+  Marketing: ['button', 'cta', 'kitSignup'],
+}
 
 export function getModule(type: string) {
   return MODULES.find((m) => m.type === type)
@@ -168,6 +172,5 @@ export function createModuleNode(type: string): BuilderNode {
     type: def.type,
     moduleVersion: 1,
     props: { ...def.defaults },
-    children: def.canHaveChildren ? [] : undefined,
   }
 }

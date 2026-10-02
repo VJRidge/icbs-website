@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { RenderNode } from '../../cms/render/RenderDocument'
-import { MODULES, createModuleNode, getModule } from '../../cms/modules/registry'
+import { useEffect, useRef, useState } from 'react'
+import {
+  createModuleNode,
+  getModule,
+} from '../../cms/modules/registry'
 import {
   duplicateNode,
   findNode,
-  findParent,
   insertNode,
   moveNode,
   removeNode,
@@ -12,208 +13,248 @@ import {
   type BuilderDocument,
   type BuilderNode,
 } from '../../cms/document'
-
-const CATS = ['Layout', 'Content', 'Media', 'Lead gen'] as const
-
-function flatten(nodes: BuilderNode[], depth = 0): { node: BuilderNode; depth: number }[] {
-  const out: { node: BuilderNode; depth: number }[] = []
-  for (const node of nodes) {
-    out.push({ node, depth })
-    if (node.children) out.push(...flatten(node.children, depth + 1))
-  }
-  return out
-}
+import BlockPicker from './BlockPicker'
+import FormatToolbar from './FormatToolbar'
+import MediaPicker from './MediaPicker'
 
 export default function PageBuilder({
   document,
   onChange,
+  selectedId,
+  onSelect,
 }: {
   document: BuilderDocument
   onChange: (doc: BuilderDocument) => void
+  selectedId: string | null
+  onSelect: (id: string | null) => void
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [picker, setPicker] = useState<string | null | false>(false)
   const selected = selectedId ? findNode(document.nodes, selectedId) : null
-  const def = selected ? getModule(selected.type) : undefined
-  const structure = useMemo(() => flatten(document.nodes), [document.nodes])
 
-  function setNodes(nodes: BuilderNode[], keepId?: string | null) {
+  function setNodes(nodes: BuilderNode[], keep?: string | null) {
     onChange({ ...document, nodes })
-    if (keepId !== undefined) setSelectedId(keepId)
+    if (keep !== undefined) onSelect(keep)
   }
 
-  function addModule(type: string) {
+  function addType(type: string, afterId: string | null) {
     const node = createModuleNode(type)
-    const sel = selectedId ? findNode(document.nodes, selectedId) : null
-    if (type === 'section') {
-      setNodes(insertNode(document.nodes, null, node, selected?.type === 'section' ? selected.id : null), node.id)
-      return
-    }
-    if (sel?.type === 'section') {
-      setNodes(insertNode(document.nodes, sel.id, node), node.id)
-      return
-    }
-    const parent = selectedId ? findParent(document.nodes, selectedId) : null
-    if (parent?.type === 'section') {
-      setNodes(insertNode(document.nodes, parent.id, node, selectedId), node.id)
-      return
-    }
-    if (document.nodes.length === 0 || !sel) {
-      const section = createModuleNode('section')
-      section.children = [node]
-      setNodes([...document.nodes, section], node.id)
-      return
-    }
-    setNodes(insertNode(document.nodes, null, node, selectedId), node.id)
+    setNodes(insertNode(document.nodes, null, node, afterId), node.id)
+  }
+
+  function runFormat(cmd: string, value?: string) {
+    window.document.execCommand(cmd, false, value)
+    const el = window.document.querySelector(`[data-block="${selectedId}"] .doc-edit`) as HTMLElement | null
+    if (el && selectedId) setNodes(updateNodeProps(document.nodes, selectedId, { html: el.innerHTML }))
   }
 
   return (
-    <div className="bb">
-      <aside className="bb-lib" aria-label="Modules">
-        <h2>Modules</h2>
-        <p>Click a module to add it. Select a section first to drop inside it.</p>
-        {CATS.map((cat) => (
-          <div key={cat}>
-            <h3>{cat}</h3>
-            {MODULES.filter((m) => m.category === cat).map((m) => (
-              <button key={m.type} type="button" className="bb-widget" onClick={() => addModule(m.type)} title={m.hint}>
-                <b>{m.label}</b>
-                <span>{m.hint}</span>
-              </button>
-            ))}
-          </div>
-        ))}
-      </aside>
-
-      <div className="bb-canvas">
-        {document.nodes.length === 0 ? (
-          <div className="bb-empty">
-            <p>This page is empty.</p>
-            <p>Add a Section, then Heading and Text — or click any module and we will create a section for you.</p>
-          </div>
-        ) : (
-          document.nodes.map((node) => (
-            <CanvasNode
-              key={node.id}
-              node={node}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          ))
-        )}
-      </div>
-
-      <aside className="bb-insp" aria-label="Editor">
-        <h2>Editor</h2>
-        {selected && def ? (
-          <>
-            <p className="bb-kind">{def.label}</p>
-            {def.fields.length === 0 ? <p className="ad-empty">This module has no settings.</p> : null}
-            {def.fields.map((field) => {
-              const value = String(selected.props[field.key] ?? '')
-              const set = (v: string) => setNodes(updateNodeProps(document.nodes, selected.id, { [field.key]: v }))
-              return (
-                <label key={field.key}>
-                  {field.label}
-                  {field.kind === 'textarea' ? (
-                    <textarea rows={6} value={value} onChange={(e) => set(e.target.value)} />
-                  ) : field.kind === 'select' && field.options ? (
-                    <select value={value} onChange={(e) => set(e.target.value)}>
-                      {field.options.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input value={value} onChange={(e) => set(e.target.value)} />
-                  )}
-                </label>
-              )
-            })}
-            <div className="bb-actions">
-              <button type="button" onClick={() => setNodes(moveNode(document.nodes, selected.id, -1))}>
-                Up
-              </button>
-              <button type="button" onClick={() => setNodes(moveNode(document.nodes, selected.id, 1))}>
-                Down
-              </button>
-              <button type="button" onClick={() => setNodes(duplicateNode(document.nodes, selected.id))}>
-                Duplicate
-              </button>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => {
-                  setNodes(removeNode(document.nodes, selected.id), null)
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="ad-empty">Select a module on the canvas, or add one from the left.</p>
-        )}
-        {structure.length > 0 ? (
-          <div className="bb-tree">
-            <h3>Structure</h3>
-            {structure.map(({ node, depth }) => (
-              <button
-                key={node.id}
-                type="button"
-                className={node.id === selectedId ? 'on' : undefined}
-                style={{ paddingLeft: 8 + depth * 12 }}
-                onClick={() => setSelectedId(node.id)}
-              >
-                {getModule(node.type)?.label ?? node.type}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </aside>
+    <div className="doc-canvas" onClick={() => onSelect(null)}>
+      <FormatToolbar enabled={selected?.type === 'paragraph'} onCommand={runFormat} />
+      {document.nodes.length === 0 ? (
+        <button
+          type="button"
+          className="doc-empty"
+          onClick={(e) => {
+            e.stopPropagation()
+            setPicker(null)
+          }}
+        >
+          <b>Start building this page</b>
+          <span>Add a paragraph, heading, image, or the kit signup.</span>
+        </button>
+      ) : (
+        document.nodes.map((node) => (
+          <CanvasBlock
+            key={node.id}
+            node={node}
+            selected={node.id === selectedId}
+            onSelect={() => onSelect(node.id)}
+            onChange={(props) => setNodes(updateNodeProps(document.nodes, node.id, props))}
+            onUp={() => setNodes(moveNode(document.nodes, node.id, -1))}
+            onDown={() => setNodes(moveNode(document.nodes, node.id, 1))}
+            onDup={() => setNodes(duplicateNode(document.nodes, node.id))}
+            onDelete={() => setNodes(removeNode(document.nodes, node.id), null)}
+            onAddAfter={() => setPicker(node.id)}
+          />
+        ))
+      )}
+      {document.nodes.length > 0 ? (
+        <button
+          type="button"
+          className="doc-add"
+          onClick={(e) => {
+            e.stopPropagation()
+            setPicker(null)
+          }}
+        >
+          + Add block
+        </button>
+      ) : null}
+      {picker !== false ? (
+        <BlockPicker
+          onAdd={(type) => addType(type, typeof picker === 'string' ? picker : null)}
+          onClose={() => setPicker(false)}
+        />
+      ) : null}
     </div>
   )
 }
 
-function CanvasNode({
+function CanvasBlock({
   node,
-  selectedId,
+  selected,
   onSelect,
+  onChange,
+  onUp,
+  onDown,
+  onDup,
+  onDelete,
+  onAddAfter,
 }: {
   node: BuilderNode
-  selectedId: string | null
-  onSelect: (id: string) => void
+  selected: boolean
+  onSelect: () => void
+  onChange: (props: Record<string, unknown>) => void
+  onUp: () => void
+  onDown: () => void
+  onDup: () => void
+  onDelete: () => void
+  onAddAfter: () => void
 }) {
-  const on = node.id === selectedId
   const label = getModule(node.type)?.label ?? node.type
   return (
     <div
-      className={`bb-block${on ? ' on' : ''}${node.type === 'section' ? ' is-section' : ''}`}
+      data-block={node.id}
+      className={`doc-block${selected ? ' on' : ''}`}
       onClick={(e) => {
         e.stopPropagation()
-        onSelect(node.id)
+        onSelect()
       }}
     >
-      <span className="bb-handle">{label}</span>
-      <div className="bb-preview">
-        {node.type === 'section' ? (
-          <section className={`sec ${String(node.props.tone || 'cream')}`}>
-            <div className="wrap">
-              {(node.children ?? []).length === 0 ? (
-                <p className="lede" style={{ opacity: 0.55 }}>
-                  Empty section — click a module on the left to add it here.
-                </p>
-              ) : (
-                (node.children ?? []).map((child) => (
-                  <CanvasNode key={child.id} node={child} selectedId={selectedId} onSelect={onSelect} />
-                ))
-              )}
-            </div>
-          </section>
-        ) : (
-          <RenderNode node={node} />
-        )}
+      <div className="doc-block-bar">
+        <span>{label}</span>
+        <div>
+          <button type="button" onClick={onAddAfter} title="Insert after">
+            +
+          </button>
+          <button type="button" onClick={onUp} title="Move up">
+            ↑
+          </button>
+          <button type="button" onClick={onDown} title="Move down">
+            ↓
+          </button>
+          <button type="button" onClick={onDup} title="Duplicate">
+            Copy
+          </button>
+          <button type="button" onClick={onDelete} title="Delete">
+            Delete
+          </button>
+        </div>
       </div>
+      <BlockBody node={node} onChange={onChange} />
     </div>
   )
+}
+
+function BlockBody({ node, onChange }: { node: BuilderNode; onChange: (props: Record<string, unknown>) => void }) {
+  const [pick, setPick] = useState(false)
+  const html = String(node.props.html ?? node.props.text ?? '')
+  const edit = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (node.type !== 'paragraph' || !edit.current) return
+    if (document.activeElement === edit.current) return
+    if (edit.current.innerHTML !== html) edit.current.innerHTML = html || ''
+  }, [html, node.type])
+
+  if (node.type === 'paragraph') {
+    return (
+      <div
+        ref={edit}
+        className="doc-edit cms-p"
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder="Start writing…"
+        style={{ textAlign: (String(node.props.align || 'left') as 'left') , color: String(node.props.color || '') || undefined }}
+        onInput={(e) => onChange({ html: (e.currentTarget as HTMLDivElement).innerHTML })}
+      />
+    )
+  }
+  if (node.type === 'heading') {
+    const Tag = String(node.props.level || 'h2') === 'h3' ? 'h3' : 'h2'
+    return (
+      <input
+        className={`doc-ghost cms-h ${Tag}`}
+        value={String(node.props.text ?? '')}
+        placeholder="Heading"
+        onChange={(e) => onChange({ text: e.target.value })}
+      />
+    )
+  }
+  if (node.type === 'quote') {
+    return (
+      <blockquote className="cms-quote">
+        <textarea placeholder="Quote" value={String(node.props.text ?? '')} onChange={(e) => onChange({ text: e.target.value })} />
+        <input placeholder="Citation" value={String(node.props.cite ?? '')} onChange={(e) => onChange({ cite: e.target.value })} />
+      </blockquote>
+    )
+  }
+  if (node.type === 'callout') {
+    return (
+      <aside className="cms-callout">
+        <textarea placeholder="Callout" value={String(node.props.text ?? '')} onChange={(e) => onChange({ text: e.target.value })} />
+      </aside>
+    )
+  }
+  if (node.type === 'image') {
+    const src = String(node.props.src ?? '')
+    return (
+      <div>
+        {src ? <img className="cms-img" src={src} alt={String(node.props.alt ?? '')} /> : <p className="ad-empty">No image yet.</p>}
+        <div className="doc-inline-fields">
+          <input placeholder="Image URL" value={src} onChange={(e) => onChange({ src: e.target.value })} />
+          <input placeholder="Alt text" value={String(node.props.alt ?? '')} onChange={(e) => onChange({ alt: e.target.value })} />
+          <button type="button" onClick={() => setPick(true)}>
+            Media library
+          </button>
+        </div>
+        {pick ? (
+          <MediaPicker
+            onPick={(url, alt) => {
+              onChange({ src: url, alt: String(node.props.alt || alt) })
+              setPick(false)
+            }}
+            onClose={() => setPick(false)}
+          />
+        ) : null}
+      </div>
+    )
+  }
+  if (node.type === 'button') {
+    return (
+      <div className="doc-inline-fields">
+        <input placeholder="Label" value={String(node.props.label ?? '')} onChange={(e) => onChange({ label: e.target.value })} />
+        <input placeholder="/free" value={String(node.props.href ?? '')} onChange={(e) => onChange({ href: e.target.value })} />
+        <a className="btn cms-btn" href={String(node.props.href || '/free')} onClick={(e) => e.preventDefault()}>
+          {String(node.props.label || 'Button')}
+        </a>
+      </div>
+    )
+  }
+  if (node.type === 'cta') {
+    return (
+      <div className="cms-cta">
+        <input className="doc-ghost cms-h" placeholder="Heading" value={String(node.props.heading ?? '')} onChange={(e) => onChange({ heading: e.target.value })} />
+        <textarea placeholder="Copy" value={String(node.props.text ?? '')} onChange={(e) => onChange({ text: e.target.value })} />
+        <div className="doc-inline-fields">
+          <input placeholder="Button label" value={String(node.props.buttonLabel ?? '')} onChange={(e) => onChange({ buttonLabel: e.target.value })} />
+          <input placeholder="Button link" value={String(node.props.buttonHref ?? '')} onChange={(e) => onChange({ buttonHref: e.target.value })} />
+        </div>
+      </div>
+    )
+  }
+  if (node.type === 'divider') return <hr className="cms-hr" />
+  if (node.type === 'spacer') return <div className="doc-spacer" style={{ height: Number(node.props.height || 32) }} />
+  if (node.type === 'kitSignup') return <p className="ad-empty">Kit signup form will show on the published page.</p>
+  return <p className="ad-empty">{node.type}</p>
 }

@@ -1,17 +1,18 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { supabaseBrowser } from '../../lib/supabaseBrowser'
-import { excerptFromDocument, normalizeDocument, slugify, type BuilderDocument } from '../../cms/document'
+import { excerptFromDocument, findNode, normalizeDocument, slugify, type BuilderDocument } from '../../cms/document'
 import PageBuilder from '../builder/PageBuilder'
+import BlockInspector from '../builder/BlockInspector'
 import type { ContentRow } from './PagesList'
 
 type Revision = { id: string; created_at: string; title: string | null }
 
 export default function PageEditor({ id }: { id: 'new' | string }) {
   const isNew = id === 'new'
-  const [title, setTitle] = useState('Untitled')
+  const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('untitled')
   const [slugTouched, setSlugTouched] = useState(!isNew)
-  const [doc, setDoc] = useState<BuilderDocument>(() => normalizeDocument(null, 'Untitled'))
+  const [doc, setDoc] = useState<BuilderDocument>(() => normalizeDocument(null, ''))
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDesc, setSeoDesc] = useState('')
   const [parentId, setParentId] = useState('')
@@ -23,7 +24,7 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
   const [saveState, setSaveState] = useState('')
   const [err, setErr] = useState('')
   const [homeId, setHomeId] = useState<string | null>(null)
-  const [metaOpen, setMetaOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     const sb = supabaseBrowser()
@@ -48,8 +49,7 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
       setParentId(data.parent_id ?? '')
       setSeoTitle(data.seo?.title ?? '')
       setSeoDesc(data.seo?.description ?? '')
-      const loaded = normalizeDocument(data.draft_document as BuilderDocument, data.title)
-      setDoc(loaded)
+      setDoc(normalizeDocument(data.draft_document as BuilderDocument, data.title))
       setAsHome(data.id === (await sb.from('settings').select('homepage_content_id').eq('id', 1).maybeSingle()).data?.homepage_content_id)
       const { data: revRows } = await sb
         .from('content_revisions')
@@ -72,9 +72,10 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
     if (!sb) return
     const { data: userData } = await sb.auth.getUser()
     const uid = userData.user?.id
-    const nextDoc = { ...doc, title }
+    const pageTitle = title.trim() || 'Untitled'
+    const nextDoc = { ...doc, title: pageTitle }
     const patch = {
-      title,
+      title: pageTitle,
       slug: slugify(slug),
       parent_id: parentId || null,
       excerpt: excerptFromDocument(nextDoc),
@@ -139,7 +140,7 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
       setErr('Someone else saved this page. Reload before saving again.')
       return
     }
-    await sb.from('content_revisions').insert({ content_id: id, document: nextDoc, title, created_by: uid })
+    await sb.from('content_revisions').insert({ content_id: id, document: nextDoc, title: pageTitle, created_by: uid })
     if (asHome) await sb.from('settings').update({ homepage_content_id: id }).eq('id', 1)
     else if (homeId === id) await sb.from('settings').update({ homepage_content_id: null }).eq('id', 1)
     setVersion(updated.doc_version)
@@ -173,41 +174,70 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
     await persist(false)
   }
 
+  const selected = selectedId ? findNode(doc.nodes, selectedId) : null
+  const live = !isNew && status === 'published' ? `/${slug}` : ''
+
   return (
     <form className="ad-editor" onSubmit={onSubmit}>
-      <div className="ad-toolbar">
-        <button type="submit" className="ad-btn">
-          {saveState === 'Saving…' ? 'Saving…' : 'Save draft'}
-        </button>
-        <button type="button" className="ad-btn" onClick={() => persist(true)}>
-          Publish
-        </button>
-        {status === 'published' ? (
-          <button type="button" className="ad-btn danger" onClick={() => persist(false, true)}>
-            Unpublish
+      <div className="ad-toolbar doc-top">
+        <a className="ad-link" href="/admin/pages">
+          ← All pages
+        </a>
+        <span className={`doc-pill ${status}`}>{status === 'published' ? 'Published' : 'Draft'}</span>
+        <span className="ad-empty">{saveState}</span>
+        <span className="doc-top-right">
+          {live ? (
+            <a className="ad-link" href={live} target="_blank" rel="noreferrer">
+              Preview
+            </a>
+          ) : null}
+          <button type="submit" className="ad-btn ghost">
+            Save draft
           </button>
-        ) : null}
-        <span className="ad-empty">
-          {saveState}
-          {status ? ` · ${status}` : ''}
+          <button type="button" className="ad-btn" onClick={() => persist(true)}>
+            Publish
+          </button>
+          {status === 'published' ? (
+            <button type="button" className="ad-btn danger" onClick={() => persist(false, true)}>
+              Unpublish
+            </button>
+          ) : null}
         </span>
-        <button type="button" className="ad-link" onClick={() => setMetaOpen((v) => !v)}>
-          {metaOpen ? 'Hide page settings' : 'Page settings'}
-        </button>
       </div>
       {err ? (
-        <p className="ad-empty" style={{ color: 'var(--ad-danger)' }}>
+        <p className="ad-empty" style={{ color: 'var(--ad-danger)', padding: '0 16px' }}>
           {err}
         </p>
       ) : null}
-      {metaOpen ? (
-        <div className="ad-form ad-meta">
+      <div className="doc-shell">
+        <aside className="doc-left">
+          <h3>Module</h3>
+          <BlockInspector document={doc} selected={selected} onChange={setDoc} />
+        </aside>
+        <div className="doc-mid">
+          <p className="doc-notice">
+            {status === 'published' ? 'Live after Publish. Drafts stay private until then.' : 'Draft — visible only here until you Publish.'}
+          </p>
+          <textarea
+            className="doc-title"
+            rows={1}
+            placeholder="Title"
+            value={title}
+            onChange={(e) => {
+              onTitle(e.target.value)
+              e.currentTarget.style.height = 'auto'
+              e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.preventDefault()
+            }}
+          />
+          <PageBuilder document={doc} onChange={setDoc} selectedId={selectedId} onSelect={setSelectedId} />
+        </div>
+        <aside className="doc-right">
+          <h3>Page settings</h3>
           <label>
-            Title
-            <input value={title} onChange={(e) => onTitle(e.target.value)} required />
-          </label>
-          <label>
-            URL slug
+            Public URL
             <input
               value={slug}
               onChange={(e) => {
@@ -216,6 +246,15 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
               }}
             />
           </label>
+          {live ? (
+            <p className="ad-empty">
+              <a href={live} target="_blank" rel="noreferrer">
+                {live}
+              </a>
+            </p>
+          ) : (
+            <p className="ad-empty">After you publish, readers open /{slugify(slug)}</p>
+          )}
           <label>
             Parent page
             <select value={parentId} onChange={(e) => setParentId(e.target.value)}>
@@ -239,39 +278,25 @@ export default function PageEditor({ id }: { id: 'new' | string }) {
           </label>
           <label className="ad-check">
             <input type="checkbox" checked={asHome} onChange={(e) => setAsHome(e.target.checked)} />
-            Use as website homepage (only after Publish). /free stays the kit signup.
+            Use as website homepage. /free stays the kit.
           </label>
           {!isNew && revs.length > 0 ? (
             <div>
-              <h2>Revisions</h2>
+              <h3>Revisions</h3>
               <ul className="ad-revs">
                 {revs.map((r) => (
                   <li key={r.id}>
-                    {new Date(r.created_at).toLocaleString()} — {r.title || 'Untitled'}{' '}
+                    {new Date(r.created_at).toLocaleString()}{' '}
                     <button type="button" className="ad-link" onClick={() => restore(r.id)}>
-                      Restore into editor
+                      Restore
                     </button>
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
-          {!isNew && status === 'published' ? (
-            <p className="ad-empty">
-              Live URL:{' '}
-              <a href={`/${slug}`} target="_blank" rel="noreferrer">
-                /{slug}
-              </a>
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <label className="ad-title-inline">
-          Page title
-          <input value={title} onChange={(e) => onTitle(e.target.value)} required />
-        </label>
-      )}
-      <PageBuilder document={doc} onChange={setDoc} />
+        </aside>
+      </div>
     </form>
   )
 }

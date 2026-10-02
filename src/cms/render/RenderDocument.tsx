@@ -1,7 +1,7 @@
 import SignupForm from '../../components/SignupForm'
 import Footer from '../../components/Footer'
 import { getModule } from '../modules/registry'
-import type { BuilderDocument, BuilderNode } from '../document'
+import { sanitizeHtml, type BuilderDocument, type BuilderNode } from '../document'
 
 function str(props: Record<string, unknown>, key: string, fallback = '') {
   const v = props[key]
@@ -22,39 +22,44 @@ export function RenderNode({ node }: { node: BuilderNode }) {
     )
   }
   if (node.type === 'heading') {
-    const Tag = str(node.props, 'level', 'h2') === 'h1' ? 'h1' : 'h2'
-    const eyebrow = str(node.props, 'eyebrow')
-    return (
-      <div>
-        {eyebrow ? <div className="k o">{eyebrow}</div> : null}
-        <Tag className={Tag === 'h1' ? 'an' : undefined}>{str(node.props, 'text', 'Heading')}</Tag>
-      </div>
-    )
+    const Tag = str(node.props, 'level', 'h2') === 'h3' ? 'h3' : 'h2'
+    return <Tag className="cms-h">{str(node.props, 'text') || 'Heading'}</Tag>
   }
-  if (node.type === 'text') {
-    const text = str(node.props, 'text')
+  if (node.type === 'paragraph' || node.type === 'text' || node.type === 'richText') {
+    const html = str(node.props, 'html') || str(node.props, 'text')
+    const align = str(node.props, 'align', 'left')
+    const color = str(node.props, 'color')
+    if (!html.trim()) return null
+    if (html.includes('<')) {
+      return (
+        <div
+          className="cms-p"
+          style={{ textAlign: align as 'left', color: color || undefined }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+        />
+      )
+    }
     return (
-      <>
-        {text.split(/\n{2,}/).map((para, i) => (
-          <p key={i} className="lede" style={{ whiteSpace: 'pre-wrap' }}>
-            {para}
-          </p>
-        ))}
-      </>
+      <p className="cms-p" style={{ textAlign: align as 'left', color: color || undefined, whiteSpace: 'pre-wrap' }}>
+        {html}
+      </p>
     )
   }
   if (node.type === 'quote') {
     return (
-      <blockquote className="lede" style={{ borderLeft: '4px solid var(--o)', paddingLeft: 18, fontStyle: 'italic' }}>
+      <blockquote className="cms-quote">
         {str(node.props, 'text')}
-        {str(node.props, 'cite') ? <cite style={{ display: 'block', fontStyle: 'normal', marginTop: 8 }}>{str(node.props, 'cite')}</cite> : null}
+        {str(node.props, 'cite') ? <cite>{str(node.props, 'cite')}</cite> : null}
       </blockquote>
     )
+  }
+  if (node.type === 'callout') {
+    return <aside className="cms-callout">{str(node.props, 'text')}</aside>
   }
   if (node.type === 'button') {
     return (
       <p>
-        <a className="btn" href={str(node.props, 'href', '/free')} style={{ display: 'inline-block', width: 'auto', paddingInline: 28 }}>
+        <a className="btn cms-btn" href={str(node.props, 'href', '/free')}>
           {str(node.props, 'label', 'Button')}
         </a>
       </p>
@@ -62,10 +67,10 @@ export function RenderNode({ node }: { node: BuilderNode }) {
   }
   if (node.type === 'cta') {
     return (
-      <div>
-        <h2>{str(node.props, 'heading')}</h2>
-        <p className="lede">{str(node.props, 'text')}</p>
-        <a className="btn" href={str(node.props, 'buttonHref', '/free')} style={{ display: 'inline-block', width: 'auto', paddingInline: 28 }}>
+      <div className="cms-cta">
+        {str(node.props, 'heading') ? <h2 className="cms-h">{str(node.props, 'heading')}</h2> : null}
+        {str(node.props, 'text') ? <p className="cms-p">{str(node.props, 'text')}</p> : null}
+        <a className="btn cms-btn" href={str(node.props, 'buttonHref', '/free')}>
           {str(node.props, 'buttonLabel', 'Continue')}
         </a>
       </div>
@@ -74,34 +79,31 @@ export function RenderNode({ node }: { node: BuilderNode }) {
   if (node.type === 'image') {
     const src = str(node.props, 'src')
     if (!src) return null
-    return <img src={src} alt={str(node.props, 'alt')} style={{ maxWidth: 480, margin: '12px 0' }} />
+    return <img className="cms-img" src={src} alt={str(node.props, 'alt')} />
   }
-  if (node.type === 'divider') {
-    return <hr style={{ border: 0, borderTop: '2px solid currentColor', opacity: 0.25, margin: '28px 0' }} />
-  }
+  if (node.type === 'divider') return <hr className="cms-hr" />
   if (node.type === 'spacer') {
-    const h = Number(str(node.props, 'height', '48')) || 48
+    const h = Number(str(node.props, 'height', '32')) || 32
     return <div style={{ height: h }} aria-hidden />
   }
-  if (node.type === 'kitSignup') {
-    return <SignupForm id={node.id.slice(0, 8)} />
-  }
-  const label = getModule(node.type)?.label ?? node.type
-  return <p className="lede">Unknown module: {label}</p>
+  if (node.type === 'kitSignup') return <SignupForm id={node.id.slice(0, 8)} />
+  return <p className="cms-p">Unknown block: {getModule(node.type)?.label ?? node.type}</p>
 }
 
 export default function RenderDocument({ title, document, withFooter = true }: { title: string; document: BuilderDocument; withFooter?: boolean }) {
+  const hasSections = document.nodes.some((n) => n.type === 'section')
   return (
-    <main>
-      {document.nodes.length === 0 ? (
-        <section className="sec cream">
-          <div className="wrap">
-            <h2>{document.title || title}</h2>
-            <p className="lede">This page has no modules yet.</p>
-          </div>
-        </section>
-      ) : (
+    <main className={hasSections ? undefined : 'cms-article'}>
+      {hasSections ? (
         document.nodes.map((node) => <RenderNode key={node.id} node={node} />)
+      ) : (
+        <article className="cms-sheet">
+          <h1 className="cms-title">{document.title || title}</h1>
+          {document.nodes.length === 0 ? <p className="cms-p">This page has no blocks yet.</p> : null}
+          {document.nodes.map((node) => (
+            <RenderNode key={node.id} node={node} />
+          ))}
+        </article>
       )}
       {withFooter ? <Footer /> : null}
     </main>

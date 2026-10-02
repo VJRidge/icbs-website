@@ -119,13 +119,42 @@ export function duplicateNode(nodes: BuilderNode[], id: string): BuilderNode[] {
 function collectText(nodes: BuilderNode[]): string[] {
   const out: string[] = []
   for (const node of nodes) {
-    for (const key of ['text', 'heading', 'label', 'eyebrow', 'cite']) {
+    for (const key of ['text', 'heading', 'label', 'eyebrow', 'cite', 'html']) {
       const v = node.props[key]
-      if (typeof v === 'string' && v.trim()) out.push(v.trim())
+      if (typeof v === 'string' && v.trim()) out.push(v.replace(/<[^>]+>/g, ' ').trim())
     }
     if (node.children) out.push(...collectText(node.children))
   }
   return out
+}
+
+export function flattenBlocks(nodes: BuilderNode[]): BuilderNode[] {
+  const out: BuilderNode[] = []
+  for (const node of nodes) {
+    if (node.type === 'section') {
+      out.push(...flattenBlocks(node.children ?? []))
+      continue
+    }
+    if (node.type === 'richText' || node.type === 'text') {
+      const raw = String(node.props.html ?? node.props.text ?? '')
+      out.push({
+        ...node,
+        type: 'paragraph',
+        props: { html: raw.includes('<') ? raw : raw.replace(/\n/g, '<br>') },
+        children: undefined,
+      })
+      continue
+    }
+    out.push({ ...node, children: undefined })
+  }
+  return out
+}
+
+export function sanitizeHtml(html: string) {
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
 }
 
 export function excerptFromDocument(doc: BuilderDocument): string {
@@ -134,31 +163,10 @@ export function excerptFromDocument(doc: BuilderDocument): string {
 
 export function normalizeDocument(doc: BuilderDocument | null | undefined, title = ''): BuilderDocument {
   const base = doc && Array.isArray(doc.nodes) ? doc : emptyDocument(title)
-  const nodes = base.nodes.map((node) => {
-    if (node.type === 'richText') {
-      return {
-        ...node,
-        type: 'text',
-        props: { text: String(node.props.text ?? node.props.html ?? '') },
-      }
-    }
-    return node
-  })
-  const needsWrap = nodes.length > 0 && nodes.every((n) => n.type !== 'section')
   return {
     schemaVersion: 1,
     title: base.title || title,
-    nodes: needsWrap
-      ? [
-          {
-            id: newId(),
-            type: 'section',
-            moduleVersion: 1,
-            props: { tone: 'cream' },
-            children: nodes,
-          },
-        ]
-      : nodes,
+    nodes: flattenBlocks(base.nodes),
   }
 }
 

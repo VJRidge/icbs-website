@@ -159,19 +159,19 @@ Admin chrome: left sidebar, top toolbar (save state, preview, viewport), central
 
 ### Phase 3 — Media library
 
-- Upload (device), library pick, external URL (allowlist)
-- Images, PDF, video, audio, office docs
-- Progress, type/size validation
-- Public vs private buckets
-- Alt/caption metadata
+- [x] Upload (device), library grid, insert-from-library in image blocks
+- [x] Images, video, audio, other
+- Progress, type/size validation (later)
+- [x] Public bucket (`media-public`)
+- Alt/caption metadata (later)
 
 ### Phase 4 — Visual builder (starter modules)
 
-- [x] Library, canvas, inspector, structure tree
+- [x] Document canvas (Clubhouse-style): title, format toolbar, in-place blocks, + Add block picker
+- [x] Module inspector + page settings
 - Desktop / tablet / mobile (later)
 - Drag-drop, undo/redo, autosave (later; Up/Down + Save draft now)
-- [x] Starter modules: Section, Heading, Text, Image, Button, Divider, Spacer, CTA, Quote, Kit signup
-- Container / Columns / Card later
+- [x] Blocks: Paragraph, Heading, Quote, Callout, Image, Divider, Spacer, Button, CTA, Kit signup
 
 ### Phase 5 — Blog + templates
 

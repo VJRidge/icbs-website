@@ -6,6 +6,7 @@ import Dashboard from './Dashboard'
 import ComingSoon from './ComingSoon'
 import PagesList from './pages/PagesList'
 import PageEditor from './pages/PageEditor'
+import MediaLibrary from './media/MediaLibrary'
 import './admin.css'
 
 type Profile = { role: string; display_name: string | null; staff_approved: boolean }
@@ -16,8 +17,8 @@ function adminPath() {
 
 function titleFor(path: string) {
   if (path === '/admin') return 'Dashboard'
-  if (path === '/admin/pages/new') return 'New page'
-  if (path.startsWith('/admin/pages/')) return 'Edit page'
+  if (path === '/admin/pages/new') return 'Editor'
+  if (path.startsWith('/admin/pages/')) return 'Editor'
   if (path.startsWith('/admin/pages')) return 'Pages'
   return ADMIN_NAV.find((n) => n.href === path)?.label ?? 'Studio'
 }
@@ -28,6 +29,7 @@ function screen(path: string, profile: Profile | null) {
   if (path === '/admin/pages/new') return <PageEditor id="new" />
   const edit = path.match(/^\/admin\/pages\/([^/]+)$/)
   if (edit) return <PageEditor id={edit[1]} />
+  if (path === '/admin/media') return <MediaLibrary />
   return <ComingSoon path={path} />
 }
 

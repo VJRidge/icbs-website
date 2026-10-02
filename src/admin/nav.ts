@@ -2,7 +2,7 @@ export const ADMIN_NAV = [
   { href: '/admin', label: 'Dashboard', phase: 1 },
   { href: '/admin/pages', label: 'Pages', phase: 1 },
   { href: '/admin/posts', label: 'Blog Posts', phase: 5 },
-  { href: '/admin/media', label: 'Media Library', phase: 3 },
+  { href: '/admin/media', label: 'Media Library', phase: 1 },
   { href: '/admin/templates', label: 'Templates', phase: 5 },
   { href: '/admin/appearance', label: 'Appearance', phase: 6 },
   { href: '/admin/menus', label: 'Navigation', phase: 6 },
