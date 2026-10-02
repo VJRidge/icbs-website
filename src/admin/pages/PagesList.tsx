@@ -97,7 +97,7 @@ export default function PagesList() {
       </div>
       {err ? <p className="ad-empty" style={{ color: 'var(--ad-danger)' }}>{err}</p> : null}
       {shown.length === 0 ? (
-        <p className="ad-empty">No pages yet. Add a page to start. The live kit at /free stays as-is until you set a published homepage in Settings on the editor.</p>
+        <p className="ad-empty">No pages yet. Add a page, then drop modules onto the canvas. The live kit at /free stays as-is until you publish a homepage.</p>
       ) : (
         <table className="ad-table">
           <thead>

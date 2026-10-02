@@ -151,7 +151,7 @@ export default function AdminApp() {
             View site
           </a>
         </header>
-        <div className="ad-body">{screen(path, profile)}</div>
+        <div className={path.startsWith('/admin/pages/') ? 'ad-body ad-body-flush' : 'ad-body'}>{screen(path, profile)}</div>
       </div>
     </div>
   )

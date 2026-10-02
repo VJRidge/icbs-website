@@ -104,6 +104,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  flex: 1;
 }
 
 .ad-top {
@@ -338,6 +340,261 @@
   padding-left: 18px;
   font-size: 13px;
   line-height: 1.7;
+}
+
+.ad-body-flush {
+  padding: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ad-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 58px);
+}
+
+.ad-editor .ad-toolbar {
+  padding: 12px 16px;
+  margin: 0;
+  background: #fff;
+  border-bottom: 1px solid #e4dfd4;
+}
+
+.ad-title-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e4dfd4;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ad-title-inline input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d8d3c8;
+  font: inherit;
+}
+
+.ad-meta {
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e4dfd4;
+}
+
+.bb {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  min-height: 640px;
+  flex: 1;
+  background: #d9d3c6;
+}
+
+.bb-lib,
+.bb-insp {
+  background: #161c17;
+  color: var(--ad-ink);
+  padding: 14px 12px 28px;
+  overflow: auto;
+}
+
+.bb-insp {
+  background: #fff;
+  color: var(--ad-paper-ink);
+  border-left: 1px solid #e4dfd4;
+}
+
+.bb-lib h2,
+.bb-insp h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bb-lib p {
+  color: var(--ad-mute);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0 0 14px;
+}
+
+.bb-lib h3,
+.bb-insp h3 {
+  margin: 16px 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ad-mute);
+}
+
+.bb-insp h3 {
+  color: #666;
+}
+
+.bb-widget {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+  padding: 10px 10px 9px;
+  background: #0e130f;
+  border: 1px solid var(--ad-line);
+  color: var(--ad-ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.bb-widget:hover {
+  border-color: var(--ad-accent);
+}
+
+.bb-widget b {
+  display: block;
+  font-size: 13px;
+}
+
+.bb-widget span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ad-mute);
+  font-weight: 400;
+}
+
+.bb-canvas {
+  overflow: auto;
+  padding: 18px;
+}
+
+.bb-empty {
+  background: #fff;
+  padding: 48px 28px;
+  text-align: center;
+  color: #555;
+}
+
+.bb-block {
+  position: relative;
+  outline: 1px dashed transparent;
+  cursor: pointer;
+  margin: 6px 0;
+}
+
+.bb-block.on {
+  outline: 2px solid #fdc20f;
+}
+
+.bb-block:hover {
+  outline: 1px dashed #072a1b;
+}
+
+.bb-block.on:hover {
+  outline: 2px solid #fdc20f;
+}
+
+.bb-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  background: #072a1b;
+  color: #f4efe3;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+}
+
+.bb-preview {
+  pointer-events: none;
+}
+
+.bb-preview .bb-block {
+  pointer-events: auto;
+}
+
+.bb-block.is-section > .bb-preview {
+  pointer-events: none;
+}
+
+.bb-block.is-section > .bb-preview .bb-block,
+.bb-block.is-section > .bb-handle {
+  pointer-events: auto;
+}
+
+.bb-kind {
+  font-size: 15px;
+  font-weight: 650;
+  margin: 0 0 12px;
+}
+
+.bb-insp label {
+  display: block;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.bb-insp input,
+.bb-insp select,
+.bb-insp textarea {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px 10px;
+  border: 1px solid #d8d3c8;
+  font: inherit;
+}
+
+.bb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 16px;
+}
+
+.bb-actions button {
+  padding: 6px 10px;
+  border: 1px solid #d8d3c8;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.bb-actions button.danger {
+  color: #fff;
+  background: var(--ad-danger);
+  border-color: var(--ad-danger);
+}
+
+.bb-tree button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 6px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.bb-tree button.on {
+  background: #f4efe3;
+  font-weight: 650;
+}
+
+@media (max-width: 1100px) {
+  .bb {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {

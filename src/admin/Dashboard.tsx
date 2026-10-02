@@ -41,8 +41,8 @@ export default function Dashboard({ profile }: { profile: Profile | null }) {
       <div className="ad-panel">
         <h2>Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}</h2>
         <p className="ad-empty">
-          You can create pages now. The live kit at /free does not change until you publish a page and check
-          “Use as website homepage.”
+          Open Pages, add a page, then click modules on the left to build it. The live kit at /free does not
+          change until you publish a page and check “Use as website homepage.”
         </p>
       </div>
       <div className="ad-panel">

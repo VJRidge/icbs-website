@@ -155,7 +155,7 @@ Admin chrome: left sidebar, top toolbar (save state, preview, viewport), central
 - [x] Revisions list + restore
 - [x] Optimistic `doc_version`
 - [x] Public renderer: if homepage published in settings, render it; else current `Free.tsx`
-  Plain-text body for now; visual builder is Phase 4.
+  Plain-text body replaced by the visual builder in the same increment.
 
 ### Phase 3 — Media library
 
@@ -167,10 +167,11 @@ Admin chrome: left sidebar, top toolbar (save state, preview, viewport), central
 
 ### Phase 4 — Visual builder (starter modules)
 
-- Library, canvas, inspector, structure tree
-- Desktop / tablet / mobile
-- Drag-drop, undo/redo, autosave, stale-save guard
-- Starter modules: Section, Container, Columns, Heading, Rich text, Image, Button, Divider, Spacer, Card, CTA, Quote, Form (kit signup wrapper)
+- [x] Library, canvas, inspector, structure tree
+- Desktop / tablet / mobile (later)
+- Drag-drop, undo/redo, autosave (later; Up/Down + Save draft now)
+- [x] Starter modules: Section, Heading, Text, Image, Button, Divider, Spacer, CTA, Quote, Kit signup
+- Container / Columns / Card later
 
 ### Phase 5 — Blog + templates
 
