@@ -17,21 +17,51 @@ type Row = {
   disabled_at: string | null;
 };
 
+function asRole(raw: unknown): Role {
+  return ROLES.includes(raw as Role) ? (raw as Role) : 'author';
+}
+
 export default function SiteUsersPage({ userProfile }: { userProfile: UserProfile | null }) {
   const owner = isSuperAdminProfile(userProfile);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase
+    const { data, error: loadError } = await supabase
       .from('profiles')
       .select('id, email, display_name, role, staff_approved, disabled_at')
       .order('created_at');
-    if (error) {
-      window.alert(error.message);
-      setRows([]);
+    if (loadError) {
+      setError(loadError.message);
+      setRows(
+        userProfile
+          ? [
+              {
+                id: userProfile.id,
+                email: userProfile.email ?? null,
+                display_name: userProfile.display_name ?? null,
+                role: asRole(userProfile.role),
+                staff_approved: true,
+                disabled_at: null,
+              },
+            ]
+          : [],
+      );
     } else {
-      setRows((data as Row[]) ?? []);
+      setError(null);
+      const list = ((data as Row[]) ?? []).map((r) => ({ ...r, role: asRole(r.role) }));
+      if (list.length === 0 && userProfile) {
+        list.push({
+          id: userProfile.id,
+          email: userProfile.email ?? null,
+          display_name: userProfile.display_name ?? null,
+          role: asRole(userProfile.role),
+          staff_approved: true,
+          disabled_at: null,
+        });
+      }
+      setRows(list);
     }
     setLoading(false);
   };
@@ -50,8 +80,8 @@ export default function SiteUsersPage({ userProfile }: { userProfile: UserProfil
       window.alert('You cannot demote your own owner account.');
       return;
     }
-    const { error } = await supabase.from('profiles').update(next).eq('id', id);
-    if (error) window.alert(error.message);
+    const { error: saveError } = await supabase.from('profiles').update(next).eq('id', id);
+    if (saveError) window.alert(saveError.message);
     else await load();
   };
 
@@ -75,9 +105,10 @@ export default function SiteUsersPage({ userProfile }: { userProfile: UserProfil
         <h1 className="font-serif text-3xl font-black text-slate-900">Users & roles</h1>
         <p className="mt-2 text-sm font-medium text-slate-600">
           {owner
-            ? 'Approve studio access, set a role, or disable an account. The public site has no sign-up.'
+            ? 'You are the owner. The public site has no sign-up. If you need staff, have them create an account at /admin, then approve them here.'
             : 'View only. Ask the owner to change roles or approve staff.'}
         </p>
+        {error ? <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
         <div className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <p className="p-6 text-sm text-slate-500">Loading…</p>
@@ -91,64 +122,70 @@ export default function SiteUsersPage({ userProfile }: { userProfile: UserProfil
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-50">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-900">{r.display_name || '—'}</p>
-                      <p className="text-xs text-slate-500">{r.email || r.id.slice(0, 8)}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {owner ? (
-                        <select
-                          value={r.role}
-                          onChange={(e) => void patch(r.id, { role: e.target.value as Role })}
-                          className="rounded-lg border border-slate-200 px-2 py-1 text-sm"
-                        >
-                          {ROLES.map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="capitalize">{r.role}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {owner ? (
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void patch(r.id, { staff_approved: !r.staff_approved, disabled_at: r.staff_approved ? r.disabled_at : null })
-                            }
-                            className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                              r.staff_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                            }`}
+                {rows.map((r) => {
+                  const you = r.id === userProfile?.id;
+                  return (
+                    <tr key={r.id} className="border-t border-slate-50">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-slate-900">
+                          {r.display_name || r.email || 'Studio user'}
+                          {you ? <span className="ml-2 text-[10px] font-black uppercase tracking-wider text-brand-blue">You</span> : null}
+                        </p>
+                        <p className="text-xs text-slate-500">{r.email || r.id.slice(0, 8)}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        {owner ? (
+                          <select
+                            value={r.role}
+                            onChange={(e) => void patch(r.id, { role: e.target.value as Role })}
+                            className="rounded-lg border border-slate-200 px-2 py-1 text-sm text-slate-900"
                           >
-                            {r.staff_approved ? 'Approved' : 'Approve'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void patch(r.id, {
-                                disabled_at: r.disabled_at ? null : new Date().toISOString(),
-                                staff_approved: r.disabled_at ? r.staff_approved : false,
-                              })
-                            }
-                            className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-red-600 hover:bg-red-50"
-                          >
-                            {r.disabled_at ? 'Re-enable' : 'Disable'}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-500">
-                          {r.disabled_at ? 'Disabled' : r.staff_approved ? 'Approved' : 'Pending'}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                            {ROLES.map((role) => (
+                              <option key={role} value={role}>
+                                {role}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="capitalize">{r.role}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {owner ? (
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void patch(r.id, { staff_approved: !r.staff_approved, disabled_at: r.staff_approved ? r.disabled_at : null })
+                              }
+                              className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                                r.staff_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {r.staff_approved ? 'Approved' : 'Approve'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void patch(r.id, {
+                                  disabled_at: r.disabled_at ? null : new Date().toISOString(),
+                                  staff_approved: r.disabled_at ? r.staff_approved : false,
+                                })
+                              }
+                              className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-red-600 hover:bg-red-50"
+                            >
+                              {r.disabled_at ? 'Re-enable' : 'Disable'}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            {r.disabled_at ? 'Disabled' : r.staff_approved ? 'Approved' : 'Pending'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

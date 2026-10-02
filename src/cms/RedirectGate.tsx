@@ -17,10 +17,9 @@ export default function RedirectGate({ path, children }: { path: string; childre
     }
     let gone = false
     const here = norm(path)
-    void sb
-      .from('redirects')
-      .select('from_path, to_path')
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        const { data } = await sb.from('redirects').select('from_path, to_path')
         if (gone) return
         const hit = (data ?? []).find((r) => norm(String(r.from_path)) === here)
         if (hit?.to_path) {
@@ -31,10 +30,10 @@ export default function RedirectGate({ path, children }: { path: string; childre
           }
         }
         setPass(true)
-      })
-      .catch(() => {
+      } catch {
         if (!gone) setPass(true)
-      })
+      }
+    })()
     return () => {
       gone = true
     }

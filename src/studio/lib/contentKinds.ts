@@ -35,5 +35,9 @@ export const CONTENT_KINDS: Record<ContentKind, ContentKindConfig> = {
   },
 };
 
+export function kindConfig(kind: string): ContentKindConfig {
+  return kind === 'post' ? CONTENT_KINDS.post : CONTENT_KINDS.page;
+}
+
 /** Taxonomy kind used for blog categories (`taxonomies.kind`). */
 export const POST_CATEGORY_KIND = 'category';
