@@ -1,8 +1,9 @@
 # I Call BS site
 
 The lead-capture funnel for *I Call BS: AI Vibe Coding Myths Dispelled*.
-Vite + React on Vercel, Supabase for subscribers, Resend for email. No SDKs: the
-server functions call Supabase and Resend with plain `fetch`.
+Vite + React on Vercel, Supabase for subscribers (and the CMS underway), Resend for email.
+Server funnel functions still call Supabase and Resend with plain `fetch`. The studio uses the
+anon key only.
 
 ## What's here
 
@@ -45,6 +46,11 @@ server functions call Supabase and Resend with plain `fetch`.
 - [ ] Review the email 1 wording in `api/_emails.ts`
 - [ ] Set `BOOK_URL` in `FreeThanks.tsx` to the sales page or Stripe Checkout link
 - [ ] Confirm the sending address in `EMAIL_FROM` (currently hello@vettajimale.tech)
+
+## CMS (in progress)
+
+Staff studio at `/admin`. Plan and phases: [`docs/cms/IMPLEMENTATION.md`](docs/cms/IMPLEMENTATION.md).
+The public kit funnel stays hardcoded until a published CMS homepage is assigned.
 
 ## Not built yet
 
