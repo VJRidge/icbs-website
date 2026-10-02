@@ -51,15 +51,15 @@ function RowActions({
       {page.status === 'published' ? (
         <>
           {sep}
-          <Link
-            to={cfg.publicPath(page.slug)}
+          <a
+            href={cfg.publicPath(page.slug)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 font-semibold text-brand-blue hover:underline"
           >
             <Eye size={12} />
             View
-          </Link>
+          </a>
         </>
       ) : null}
     </div>

@@ -7,12 +7,14 @@ import CmsBySlug from './cms/CmsBySlug'
 import ShortLinkRedirect from './cms/ShortLinkRedirect'
 import BlogIndex from './cms/BlogIndex'
 import BlogPost from './cms/BlogPost'
+import CmsPreview from './cms/CmsPreview'
 
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
   if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp />
   const short = path.match(/^\/s\/([a-z0-9]+)$/i)
   if (short) return <ShortLinkRedirect code={short[1]} />
+  if (path === '/preview') return <CmsPreview />
   if (path === '/blog') return <BlogIndex />
   const post = path.match(/^\/blog\/([^/]+)$/)
   if (post) return <BlogPost slug={decodeURIComponent(post[1])} />

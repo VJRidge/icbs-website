@@ -247,7 +247,7 @@ export const BLOG_BLOCK_DEFAULTS = {
   },
   /** Post grid — manual cards or auto “related” from `publisher_blog_posts`. */
   post_teasers: {
-    mode: 'related' as 'manual' | 'related',
+    mode: 'latest' as 'manual' | 'latest',
     heading: 'Related posts',
     limit: 3,
     relatedBy: 'category' as 'category' | 'recent',
@@ -458,7 +458,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   testimonial: 'Testimonial',
   icon_box: 'Icon box',
   video_playlist: 'Video playlist',
-  post_teasers: 'Related posts',
+  post_teasers: 'Latest posts',
   contact_cta: 'Contact CTA',
   price_list: 'Price list',
   modal_popup: 'Popup / modal',

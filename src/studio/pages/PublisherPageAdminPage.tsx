@@ -37,6 +37,7 @@ import { clearCmsEditorLocalDraft, syncCmsEditorUrlSilently } from '../lib/cms/c
 import { useCmsEditorAutosave } from '../lib/cms/useCmsEditorAutosave';
 import PostCategoriesPanel from '../components/admin/PostCategoriesPanel';
 import { CONTENT_KINDS, type ContentKind } from '../lib/contentKinds';
+import { writeCmsPreview } from '../lib/cmsPreview';
 import type { PageLayout, PublishedPageDocument, PublisherSitePage, UserProfile } from '../types';
 
 function bodyHtmlForEditor(raw: string | null | undefined): string {
@@ -535,18 +536,33 @@ export default function PublisherPageAdminPage({
       return;
     }
     const blocks = useBlogEditorStore.getState().blocks;
-    const serialized =
-      form.contentMode === 'blocks' && blocks.length > 0 ? serializeBlogBlocksToHtml(blocks) : form.body;
-    const esc = (s: string) =>
-      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const w = window.open('', '_blank', 'noopener,noreferrer');
-    if (!w) return;
-    w.document.write(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(form.title.trim())}</title></head><body style="font-family:system-ui;padding:24px;max-width:720px;margin:0 auto;">` +
-        `<h1 style="font-size:1.75rem;">${esc(form.title.trim())}</h1>` +
-        `<div class="body">${serialized}</div></body></html>`,
-    );
-    w.document.close();
+    const html = form.contentMode === 'blocks' && blocks.length > 0 ? serializeBlogBlocksToHtml(blocks) : form.body;
+    const title = form.title.trim();
+    const publishedAt = form.publish_date
+      ? new Date(`${form.publish_date}T09:00:00`).toISOString()
+      : new Date().toISOString();
+    writeCmsPreview({
+      title,
+      document: {
+        format: 'blocks',
+        blocks: form.contentMode === 'blocks' ? blocks : [],
+        html,
+        layout: form.layout,
+        title,
+        excerpt: form.excerpt.trim() || null,
+        author_name: userProfile?.display_name?.trim() || 'I Call BS',
+        published_at: publishedAt,
+        featured_image_url: form.featured_image_url.trim() || null,
+        featured_image_alt: form.featured_image_alt.trim() || null,
+      },
+      post: isPost
+        ? {
+            author: userProfile?.display_name?.trim() || 'I Call BS',
+            publishedAt,
+          }
+        : undefined,
+    });
+    window.open(`${window.location.origin}/preview`, '_blank', 'noopener,noreferrer');
   };
 
   const publishedAtRow = loadedRow?.published_at ?? null;
@@ -650,14 +666,14 @@ export default function PublisherPageAdminPage({
               </button>
 
               {form.status === 'published' && previewSlug ? (
-                <Link
-                  to={cfg.publicPath(previewSlug)}
+                <a
+                  href={cfg.publicPath(previewSlug)}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
                 >
                   View live
-                </Link>
+                </a>
               ) : null}
 
               <CmsEditorActionsMenu
@@ -728,7 +744,7 @@ export default function PublisherPageAdminPage({
                         return (
                           <>
                             Pending offline — Save or <strong className="text-slate-700">Unpublish</strong> to remove{' '}
-                            <span className="font-mono text-slate-600">/{previewSlug}</span> (still live until then).
+                            <span className="font-mono text-slate-600">{cfg.publicPath(previewSlug)}</span> (still live until then).
                           </>
                         );
                       }
@@ -736,14 +752,14 @@ export default function PublisherPageAdminPage({
                         return (
                           <>
                             Pending go-live — Save or <strong className="text-slate-700">Publish</strong> above to expose{' '}
-                            <span className="font-mono text-slate-600">/{previewSlug}</span>.
+                            <span className="font-mono text-slate-600">{cfg.publicPath(previewSlug)}</span>.
                           </>
                         );
                       }
                       if (form.status === 'published') {
                         return (
                           <>
-                            Live at <span className="font-mono text-slate-600">/{previewSlug}</span> until you unpublish or set Draft and save.
+                            Live at <span className="font-mono text-slate-600">{cfg.publicPath(previewSlug)}</span> until you unpublish or set Draft and save.
                           </>
                         );
                       }
@@ -756,14 +772,14 @@ export default function PublisherPageAdminPage({
                       {form.status === 'published' ? (
                         <>
                           Public URL:{' '}
-                          <Link
-                            to={cfg.publicPath(previewSlug)}
+                          <a
+                            href={cfg.publicPath(previewSlug)}
                             target="_blank"
                             rel="noreferrer"
                             className="font-mono text-brand-blue underline decoration-brand-blue/30 underline-offset-2 hover:decoration-brand-blue"
                           >
-                            /{previewSlug}
-                          </Link>
+                            {cfg.publicPath(previewSlug)}
+                          </a>
                         </>
                       ) : (
                         <>
