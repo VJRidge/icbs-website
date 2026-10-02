@@ -27,6 +27,7 @@ export interface PublisherSitePage {
   seo_description?: string | null;
   published_document?: PublishedPageDocument | null;
   layout?: PageLayout | null;
+  excerpt?: string | null;
 }
 
 /** `article` = title + narrow column; `landing` = full-width kit sections, no title header. */
@@ -37,6 +38,11 @@ export interface PublishedPageDocument {
   blocks: unknown[];
   html: string;
   layout?: PageLayout;
+  /** Posts: snapshot of the byline fields so the public site never reads working copies or profiles. */
+  title?: string;
+  excerpt?: string | null;
+  author_name?: string;
+  published_at?: string | null;
   featured_image_url?: string | null;
   featured_image_alt?: string | null;
 }

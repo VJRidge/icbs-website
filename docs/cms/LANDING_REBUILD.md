@@ -91,7 +91,7 @@ Implementation notes:
 - Kit fallback verified by unpublishing.
 
 ## After this
-Blog posts editor (byline, excerpt, featured image, categories, `/blog`, `/blog/:slug`) reusing the same editor.
+Blog posts are live: `/admin/posts`, categories, `/blog`, `/blog/:slug`. Next CMS slices are templates, appearance, menus, and forms.
 
 ## Limits worth knowing
 - Uploads: video 50 MB, image 15 MB (editor check; Supabase free plan also caps files at 50 MB).

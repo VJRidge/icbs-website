@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ExternalLink, FileText, Images, LayoutDashboard } from 'lucide-react';
+import { ChevronDown, ExternalLink, FileText, Images, LayoutDashboard, Newspaper } from 'lucide-react';
 import AdminCmsNav from '../../AdminCmsNav';
 import CarouselPanelResizeHandle from '../../social/carousel/CarouselPanelResizeHandle';
 import { useHorizontalPanelResize } from '../../social/carousel/useHorizontalPanelResize';
@@ -42,6 +42,9 @@ function CompactNav({ onExpand }: { onExpand: () => void }) {
       </Link>
       <Link to="/admin/pages" className={quickLinkCls} title="Pages" aria-label="Pages">
         <FileText size={15} />
+      </Link>
+      <Link to="/admin/posts" className={quickLinkCls} title="Blog posts" aria-label="Blog posts">
+        <Newspaper size={15} />
       </Link>
       <Link to="/admin/media" className={quickLinkCls} title="Media" aria-label="Media">
         <Images size={15} />

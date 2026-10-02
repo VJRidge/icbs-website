@@ -34,6 +34,9 @@ function Dashboard({ userProfile }: { userProfile: UserProfile }) {
   const drafts = useCount(() =>
     supabase.from('contents').select('id', { count: 'exact', head: true }).eq('kind', 'page').eq('status', 'draft'),
   );
+  const posts = useCount(() =>
+    supabase.from('contents').select('id', { count: 'exact', head: true }).eq('kind', 'post').eq('status', 'published'),
+  );
   const submissions = useCount(() => supabase.from('form_submissions').select('id', { count: 'exact', head: true }));
 
   return (
@@ -45,9 +48,10 @@ function Dashboard({ userProfile }: { userProfile: UserProfile }) {
         <p className="mt-2 max-w-2xl text-sm font-medium text-slate-600">
           Build pages with blocks, manage media, and publish when ready. The kit at /free never changes.
         </p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Published pages" value={published} />
-          <StatCard label="Drafts" value={drafts} />
+          <StatCard label="Published posts" value={posts} />
+          <StatCard label="Page drafts" value={drafts} />
           <StatCard label="Form submissions" value={submissions} />
         </div>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -58,10 +62,22 @@ function Dashboard({ userProfile }: { userProfile: UserProfile }) {
             <Plus size={14} /> Add a page
           </Link>
           <Link
+            to="/admin/posts/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-blue px-5 py-2.5 text-xs font-black uppercase tracking-widest text-brand-yellow shadow-md hover:bg-brand-blue/90"
+          >
+            <Plus size={14} /> Write a post
+          </Link>
+          <Link
             to="/admin/pages"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-700 hover:border-brand-blue/40 hover:text-brand-blue"
           >
             <FileText size={14} /> All pages
+          </Link>
+          <Link
+            to="/admin/posts"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-700 hover:border-brand-blue/40 hover:text-brand-blue"
+          >
+            <FileText size={14} /> All posts
           </Link>
           <Link
             to="/admin/media"
@@ -84,7 +100,7 @@ function ComingSoon({ userProfile }: { userProfile: UserProfile }) {
       <div className="mx-auto max-w-3xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">{title}</h1>
         <p className="mt-3 text-sm font-medium text-slate-600">
-          This area is planned for a later phase. Pages and the media library are live now.
+          This area is planned for a later phase. Pages, blog posts, and the media library are live now.
         </p>
       </div>
     </AdminCmsShell>
@@ -97,8 +113,13 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
       <div className="studio-root contents">
         <Routes>
           <Route path="/admin" element={<Dashboard userProfile={userProfile} />} />
-          <Route path="/admin/pages" element={<PublisherPagesListPage userProfile={userProfile} />} />
+          <Route path="/admin/pages" element={<PublisherPagesListPage key="page" userProfile={userProfile} />} />
           <Route path="/admin/pages/:pageId" element={<PublisherPageAdminPage userProfile={userProfile} />} />
+          <Route path="/admin/posts" element={<PublisherPagesListPage key="post" kind="post" userProfile={userProfile} />} />
+          <Route
+            path="/admin/posts/:pageId"
+            element={<PublisherPageAdminPage key="post" kind="post" userProfile={userProfile} />}
+          />
           <Route path="/admin/media" element={<PublisherCmsMediaPage userProfile={userProfile} />} />
           <Route path="/admin/*" element={<ComingSoon userProfile={userProfile} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />

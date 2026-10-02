@@ -8,6 +8,7 @@ import { isAnyAdminProfile } from '../lib/adminPermissions';
 import { CMS_LIST_PAGE_SIZE, paginateList, totalListPages } from '../lib/admin/cmsListPagination';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import CmsListPagination from '../components/admin/CmsListPagination';
+import { CONTENT_KINDS, type ContentKind, type ContentKindConfig } from '../lib/contentKinds';
 import type { PublisherSitePage, UserProfile } from '../types';
 
 function normalizePageListStatus(raw: unknown): 'draft' | 'published' {
@@ -24,17 +25,19 @@ type QuickEditState = {
 
 function RowActions({
   page,
+  cfg,
   onQuickEdit,
   onTrash,
 }: {
   page: PublisherSitePage;
+  cfg: ContentKindConfig;
   onQuickEdit: () => void;
   onTrash: () => void;
 }) {
   const sep = <span className="text-slate-300" aria-hidden> | </span>;
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-0 gap-y-0.5 text-xs">
-      <Link to={`/admin/pages/${page.id}`} className="font-semibold text-brand-blue hover:underline">
+      <Link to={`${cfg.adminBase}/${page.id}`} className="font-semibold text-brand-blue hover:underline">
         Edit
       </Link>
       {sep}
@@ -49,7 +52,7 @@ function RowActions({
         <>
           {sep}
           <Link
-            to={`/${encodeURIComponent(page.slug)}`}
+            to={cfg.publicPath(page.slug)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 font-semibold text-brand-blue hover:underline"
@@ -63,7 +66,17 @@ function RowActions({
   );
 }
 
-export default function PublisherPagesListPage({ userProfile }: { userProfile: UserProfile | null }) {
+export default function PublisherPagesListPage({
+  userProfile,
+  kind = 'page',
+}: {
+  userProfile: UserProfile | null;
+  kind?: ContentKind;
+}) {
+  const cfg = CONTENT_KINDS[kind];
+  const isPost = kind === 'post';
+  const noun = cfg.singular.toLowerCase();
+  const nouns = isPost ? 'posts' : 'pages';
   const [rows, setRows] = useState<PublisherSitePage[]>([]);
   const [loading, setLoading] = useState(true);
   const [listSearchQuery, setListSearchQuery] = useState('');
@@ -76,7 +89,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
     const { data, error } = await supabase
       .from('contents')
       .select('*')
-      .eq('kind', 'page')
+      .eq('kind', cfg.kind)
       .neq('status', 'trash')
       .order('updated_at', { ascending: false });
     if (error) {
@@ -85,7 +98,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
       return;
     }
     setRows((data as PublisherSitePage[]) || []);
-  }, []);
+  }, [cfg.kind]);
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile)) {
@@ -125,7 +138,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
 
   const onTrash = async (row: PublisherSitePage) => {
     if (!window.confirm(`Delete "${row.title || 'Untitled'}" permanently?`)) return;
-    const { error } = await supabase.from('contents').delete().eq('kind', 'page').eq('id', row.id);
+    const { error } = await supabase.from('contents').delete().eq('kind', cfg.kind).eq('id', row.id);
     if (error) {
       window.alert(error.message);
       return;
@@ -175,6 +188,14 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
                     html: prev.body ?? '',
                     featured_image_url: prev.featured_image_url ?? null,
                     featured_image_alt: prev.featured_image_alt ?? null,
+                    ...(isPost
+                      ? {
+                          title,
+                          excerpt: prev.excerpt ?? null,
+                          author_name: userProfile?.display_name?.trim() || 'I Call BS',
+                          published_at,
+                        }
+                      : {}),
                   },
                 }
               : {}),
@@ -210,14 +231,14 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
 
   return (
     <AdminCmsShell
-      title="Pages"
+      title={cfg.plural}
       titleIcon={<FileText size={14} className="text-brand-yellow" />}
       backTo="/admin"
       backLabel="Dashboard"
       userProfile={userProfile}
       headerExtra={
         <Link
-          to="/admin/pages/new"
+          to={`${cfg.adminBase}/new`}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-3 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90"
         >
           <Plus size={14} />
@@ -226,9 +247,22 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
       }
     >
       <div className="mx-auto max-w-6xl p-6 md:p-10">
-        <h1 className="font-serif text-3xl font-black text-slate-900">All pages</h1>
+        <h1 className="font-serif text-3xl font-black text-slate-900">All {nouns}</h1>
         <p className="mt-2 max-w-2xl text-sm font-medium text-slate-600">
-          Static pages publish at <span className="font-mono text-brand-blue">/your-slug</span> — About, program landing pages, and evergreen content.
+          {isPost ? (
+            <>
+              Posts publish at <span className="font-mono text-brand-blue">/blog/your-slug</span> and appear on the{' '}
+              <a href="/blog" target="_blank" rel="noreferrer" className="font-semibold text-brand-blue hover:underline">
+                blog
+              </a>{' '}
+              newest first.
+            </>
+          ) : (
+            <>
+              Static pages publish at <span className="font-mono text-brand-blue">/your-slug</span> — About, program
+              landing pages, and evergreen content.
+            </>
+          )}
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
@@ -265,7 +299,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
               onChange={(e) => setListSearchQuery(e.target.value)}
               placeholder="Search title or slug"
               className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-brand-blue/40"
-              aria-label="Search pages"
+              aria-label={`Search ${nouns}`}
             />
           </div>
         </div>
@@ -284,7 +318,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
-                    Loading pages…
+                    Loading {nouns}…
                   </td>
                 </tr>
               ) : pagedPages.length === 0 ? (
@@ -292,14 +326,14 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
                   <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
                     {rows.length === 0 ? (
                       <>
-                        No pages yet.{' '}
-                        <Link to="/admin/pages/new" className="font-bold text-brand-blue hover:underline">
-                          Create your first page
+                        No {nouns} yet.{' '}
+                        <Link to={`${cfg.adminBase}/new`} className="font-bold text-brand-blue hover:underline">
+                          Create your first {noun}
                         </Link>
                         .
                       </>
                     ) : (
-                      'No pages match your filters.'
+                      `No ${nouns} match your filters.`
                     )}
                   </td>
                 </tr>
@@ -308,16 +342,17 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
                   <Fragment key={row.id}>
                     <tr className="border-b border-slate-50 align-top hover:bg-slate-50/80">
                       <td className="px-4 py-3">
-                        <Link to={`/admin/pages/${row.id}`} className="font-bold text-brand-blue hover:underline">
+                        <Link to={`${cfg.adminBase}/${row.id}`} className="font-bold text-brand-blue hover:underline">
                           {row.title || 'Untitled'}
                         </Link>
                         <RowActions
                           page={row}
+                          cfg={cfg}
                           onQuickEdit={() => openQuickEdit(row)}
                           onTrash={() => void onTrash(row)}
                         />
                       </td>
-                      <td className="hidden px-4 py-3 font-mono text-xs text-slate-500 sm:table-cell">/{row.slug}</td>
+                      <td className="hidden px-4 py-3 font-mono text-xs text-slate-500 sm:table-cell">{cfg.publicPath(row.slug)}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
@@ -398,7 +433,7 @@ export default function PublisherPagesListPage({ userProfile }: { userProfile: U
             totalItems={filteredPages.length}
             pageSize={CMS_LIST_PAGE_SIZE}
             onPageChange={setPage}
-            itemLabel="pages"
+            itemLabel={nouns}
           />
         </div>
       </div>

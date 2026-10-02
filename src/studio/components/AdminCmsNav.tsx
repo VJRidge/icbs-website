@@ -26,8 +26,8 @@ type NavItem = { to: string; label: string; icon: LucideIcon; soon?: boolean };
 const CONTENT_NAV: NavItem[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/pages', label: 'Pages', icon: FileText },
+  { to: '/admin/posts', label: 'Blog posts', icon: Newspaper },
   { to: '/admin/media', label: 'Media', icon: Images },
-  { to: '/admin/posts', label: 'Blog posts', icon: Newspaper, soon: true },
   { to: '/admin/templates', label: 'Templates', icon: LayoutTemplate, soon: true },
 ];
 

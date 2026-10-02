@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import type { PublishedPageDocument } from '../studio/types'
+import type { PostMeta } from '../studio/pages/PublisherSitePageDetailPage'
 
 const StudioPageView = lazy(() => import('../studio/pages/PublisherSitePageDetailPage'))
 const KitLandingView = lazy(() => import('../studio/pages/KitLandingView'))
@@ -13,9 +14,18 @@ function isKitOnly(doc: PublishedPageDocument): boolean {
   return doc.blocks.every((b) => String((b as { type?: unknown })?.type ?? '').startsWith('kit_'))
 }
 
-export default function PublicPage({ title, document, fallback }: { title: string; document: unknown; fallback: ReactNode }) {
+export default function PublicPage({
+  title,
+  document,
+  fallback,
+  post,
+}: {
+  title: string
+  document: unknown
+  fallback: ReactNode
+  post?: PostMeta
+}) {
   if (!isStudioDocument(document)) return <>{fallback}</>
-  const View = isKitOnly(document) ? KitLandingView : StudioPageView
   return (
     <Suspense
       fallback={
@@ -24,7 +34,11 @@ export default function PublicPage({ title, document, fallback }: { title: strin
         </main>
       }
     >
-      <View title={title} document={document} />
+      {isKitOnly(document) ? (
+        <KitLandingView title={title} document={document} />
+      ) : (
+        <StudioPageView title={title} document={document} post={post} />
+      )}
     </Suspense>
   )
 }

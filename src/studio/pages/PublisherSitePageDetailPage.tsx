@@ -8,10 +8,23 @@ import Footer from '../../components/Footer';
 import type { PublishedPageDocument } from '../types';
 import '../studio-public.css';
 
+export type PostMeta = {
+  author?: string;
+  publishedAt?: string | null;
+  categories?: { slug: string; name: string }[];
+};
+
 type Props = {
   title: string;
   document: PublishedPageDocument;
+  post?: PostMeta;
 };
+
+function formatPostDate(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 const PROSE_CLASSES = [
   'op-ed-body prose prose-slate max-w-none prose-headings:font-black prose-h2:text-2xl prose-h3:text-xl',
@@ -57,7 +70,8 @@ function LandingLayout({ blocks }: { blocks: BlogBlock[] }) {
 }
 
 /** Public render of a published studio page (`contents.published_document`). */
-export default function PublisherSitePageDetailPage({ title, document }: Props) {
+export default function PublisherSitePageDetailPage({ title, document, post }: Props) {
+  const postDate = formatPostDate(post?.publishedAt);
   const img = document.featured_image_url?.trim();
   const html = document.html || '';
   const bodyIsHtml = manuscriptLooksLikeHtml(coerceBlogHtmlForRendering(html));
@@ -72,10 +86,29 @@ export default function PublisherSitePageDetailPage({ title, document }: Props) 
         <article className="mx-auto max-w-3xl">
           <header className="flex flex-col gap-6 border-b border-slate-200 pb-8">
             <div className="min-w-0">
-              <a href="/" className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-blue hover:underline">
-                I Call BS
+              <a
+                href={post ? '/blog' : '/'}
+                className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-blue hover:underline"
+              >
+                {post ? '← I Call BS blog' : 'I Call BS'}
               </a>
               <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
+              {post ? (
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-medium text-slate-600">
+                  {post.author ? <span>By {post.author}</span> : null}
+                  {post.author && postDate ? <span aria-hidden>·</span> : null}
+                  {postDate ? <time dateTime={post.publishedAt ?? undefined}>{postDate}</time> : null}
+                  {post.categories?.map((c) => (
+                    <a
+                      key={c.slug}
+                      href={`/blog?category=${encodeURIComponent(c.slug)}`}
+                      className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-brand-blue hover:bg-brand-blue/20"
+                    >
+                      {c.name}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
             </div>
             {img ? (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">

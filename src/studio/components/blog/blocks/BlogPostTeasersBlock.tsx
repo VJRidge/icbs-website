@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { supabaseBrowser } from '../../../../lib/supabaseBrowser';
 
 type Item = { title: string; slug: string; excerpt: string; imageUrl: string };
 
@@ -22,17 +24,54 @@ export default function BlogPostTeasersBlock({ block, isEditing }: { block: Blog
   const columns = Number(block.data.columns) === 3 ? 3 : 2;
 
   const setItems = (next: Item[]) => updateBlock(block.id, { items: next });
+  const filled = items.filter((it) => it.title.trim() || it.slug.trim());
+  const [latest, setLatest] = useState<Item[] | null>(null);
+
+  useEffect(() => {
+    if (isEditing || filled.length > 0) return;
+    const sb = supabaseBrowser();
+    if (!sb) {
+      setLatest([]);
+      return;
+    }
+    let gone = false;
+    void sb
+      .from('contents')
+      .select('slug, title, published_document')
+      .eq('kind', 'post')
+      .eq('status', 'published')
+      .lte('published_at', new Date().toISOString())
+      .order('published_at', { ascending: false })
+      .limit(columns * 2)
+      .then(({ data }) => {
+        if (gone) return;
+        setLatest(
+          (data ?? []).map((r) => {
+            const doc = r.published_document as { title?: string; excerpt?: string; featured_image_url?: string } | null;
+            return {
+              title: doc?.title || r.title || '',
+              slug: r.slug,
+              excerpt: doc?.excerpt ?? '',
+              imageUrl: doc?.featured_image_url ?? '',
+            };
+          }),
+        );
+      });
+    return () => {
+      gone = true;
+    };
+  }, [isEditing, filled.length, columns]);
 
   if (!isEditing) {
+    const cards = filled.length > 0 ? filled : latest ?? [];
     return (
       <section
         className="my-10 grid gap-6"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
-        {items
-          .filter((it) => it.title.trim() || it.slug.trim())
-          .map((it, i) => {
-            const to = it.slug.trim() ? `/${encodeURIComponent(it.slug.trim())}` : '#';
+        {cards.map((it, i) => {
+            const slug = it.slug.trim().replace(/^\/?(blog\/)?/, '');
+            const to = slug ? `/blog/${encodeURIComponent(slug)}` : '/blog';
             return (
               <article key={i} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
                 <a href={to} className="block">

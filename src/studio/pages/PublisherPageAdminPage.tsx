@@ -35,7 +35,9 @@ import HomepageToggle from '../components/admin/HomepageToggle';
 import { clipboardCopy } from '../lib/clipboardCopy';
 import { clearCmsEditorLocalDraft, syncCmsEditorUrlSilently } from '../lib/cms/cmsEditorDraft';
 import { useCmsEditorAutosave } from '../lib/cms/useCmsEditorAutosave';
-import type { PageLayout, PublisherSitePage, UserProfile } from '../types';
+import PostCategoriesPanel from '../components/admin/PostCategoriesPanel';
+import { CONTENT_KINDS, type ContentKind } from '../lib/contentKinds';
+import type { PageLayout, PublishedPageDocument, PublisherSitePage, UserProfile } from '../types';
 
 function bodyHtmlForEditor(raw: string | null | undefined): string {
   const b = (raw ?? '').trim();
@@ -73,6 +75,10 @@ type FormState = {
   seo_title: string;
   seo_description: string;
   layout: PageLayout;
+  /** Posts only. */
+  excerpt: string;
+  /** Posts only: `yyyy-MM-dd`; empty = date of first publish. */
+  publish_date: string;
 };
 
 function emptyForm(): FormState {
@@ -88,6 +94,8 @@ function emptyForm(): FormState {
     seo_title: '',
     seo_description: '',
     layout: 'article',
+    excerpt: '',
+    publish_date: '',
   };
 }
 
@@ -131,7 +139,15 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-export default function PublisherPageAdminPage({ userProfile }: { userProfile: UserProfile | null }) {
+export default function PublisherPageAdminPage({
+  userProfile,
+  kind = 'page',
+}: {
+  userProfile: UserProfile | null;
+  kind?: ContentKind;
+}) {
+  const cfg = CONTENT_KINDS[kind];
+  const isPost = kind === 'post';
   const { pageId } = useParams<{ pageId: string }>();
   const navigate = useNavigate();
   const isNewRoute = pageId === 'new';
@@ -199,6 +215,8 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
         seo_title: r.seo_title || '',
         seo_description: r.seo_description || '',
         layout: r.layout === 'landing' ? 'landing' : 'article',
+        excerpt: r.excerpt || '',
+        publish_date: r.published_at ? format(new Date(r.published_at), 'yyyy-MM-dd') : '',
       });
       if (blockMode) {
         loadBlocks(r.content_blocks);
@@ -235,21 +253,21 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
       const { data, error } = await supabase
         .from('contents')
         .select('*')
-        .eq('kind', 'page')
+        .eq('kind', cfg.kind)
         .eq('id', pageId)
         .maybeSingle();
       if (cancelled) return;
       if (error) {
         console.error(error);
         window.alert(error.message);
-        navigate('/admin/pages', { replace: true });
+        navigate(cfg.adminBase, { replace: true });
         setHydrating(false);
         return;
       }
       const row = data as PublisherSitePage | null;
       if (!row) {
-        window.alert('Page not found.');
-        navigate('/admin/pages', { replace: true });
+        window.alert(`${cfg.singular} not found.`);
+        navigate(cfg.adminBase, { replace: true });
         setHydrating(false);
         return;
       }
@@ -318,6 +336,13 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
         let published_at =
           effectiveStatus === 'published' ? prev?.published_at ?? new Date().toISOString() : null;
         if (effectiveStatus === 'published' && !published_at) published_at = new Date().toISOString();
+        if (isPost && effectiveStatus === 'published' && /^\d{4}-\d{2}-\d{2}$/.test(form.publish_date)) {
+          const prevDay = prev?.published_at ? format(new Date(prev.published_at), 'yyyy-MM-dd') : null;
+          if (form.publish_date !== prevDay) published_at = new Date(`${form.publish_date}T09:00:00`).toISOString();
+        }
+        const prevDoc: PublishedPageDocument | null | undefined = prev?.published_document;
+        const authorName = prevDoc?.author_name || userProfile.display_name?.trim() || 'I Call BS';
+        const excerpt = form.excerpt.trim() || null;
 
         const blocks = useBlogEditorStore.getState().blocks;
         const serialized =
@@ -345,6 +370,9 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                       layout: form.layout,
                       featured_image_url: featuredUrl,
                       featured_image_alt: featuredAlt,
+                      ...(isPost
+                        ? { title: form.title.trim(), excerpt, author_name: authorName, published_at }
+                        : {}),
                     }
                   : null,
             };
@@ -361,6 +389,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
           seo_description: seoDescription,
           seo: { title: seoTitle, description: seoDescription },
           layout: form.layout,
+          excerpt,
           ...liveSnapshot,
         });
 
@@ -371,7 +400,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
               .from('contents')
               .insert({
                 ...buildBase(slug),
-                kind: 'page',
+                kind: cfg.kind,
                 author_id: userProfile.id,
               })
               .select('id')
@@ -393,7 +422,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
           const { error } = await supabase
             .from('contents')
             .update(buildBase(slug))
-            .eq('kind', 'page')
+            .eq('kind', cfg.kind)
             .eq('id', form.id);
           if (error) throw error;
         }
@@ -417,11 +446,11 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
           }
         }
         if (!wasExisting && nextId) {
-          clearCmsEditorLocalDraft('page', 'new');
+          clearCmsEditorLocalDraft(cfg.draftKind, 'new');
           if (options?.autosave) {
-            syncCmsEditorUrlSilently(`/admin/pages/${nextId}`);
+            syncCmsEditorUrlSilently(`${cfg.adminBase}/${nextId}`);
           } else if (isNewRoute) {
-            navigate(`/admin/pages/${nextId}`, { replace: true });
+            navigate(`${cfg.adminBase}/${nextId}`, { replace: true });
           }
         }
         saveSuccessRef.current(nextForm, slugTouched);
@@ -437,7 +466,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
         else setSaving(false);
       }
     },
-    [userProfile, form, loadedRow, markClean, navigate, isNewRoute, slugTouched],
+    [userProfile, form, loadedRow, markClean, navigate, isNewRoute, slugTouched, cfg, isPost],
   );
 
   const draftStorageKey = form.id ?? (isNewRoute ? 'new' : pageId ?? 'new');
@@ -451,7 +480,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
     restoreLocalDraft,
     dismissLocalDraft,
   } = useCmsEditorAutosave<FormState>({
-    kind: 'page',
+    kind: cfg.draftKind,
     storageKey: draftStorageKey,
     enabled: !hydrating && isAnyAdminProfile(userProfile),
     form,
@@ -489,13 +518,13 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
   };
 
   const onDelete = async (id: string) => {
-    if (!window.confirm('Delete this page permanently?')) return;
-    const { error } = await supabase.from('contents').delete().eq('kind', 'page').eq('id', id);
+    if (!window.confirm(`Delete this ${cfg.singular.toLowerCase()} permanently?`)) return;
+    const { error } = await supabase.from('contents').delete().eq('kind', cfg.kind).eq('id', id);
     if (error) {
       window.alert(error.message);
       return;
     }
-    navigate('/admin/pages', { replace: true });
+    navigate(cfg.adminBase, { replace: true });
   };
 
   const previewSlug = (form.slug.trim() || slugifyTitle(form.title)).toLowerCase();
@@ -528,10 +557,10 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
       : 'Not published';
 
   const savedSitePageRow = loadedRow;
-  const absolutePagePublicUrl = previewSlug ? `${window.location.origin}/${encodeURIComponent(previewSlug)}` : '';
+  const absolutePagePublicUrl = previewSlug ? `${window.location.origin}${cfg.publicPath(previewSlug)}` : '';
 
   const copyPublicPageUrl = async (slug: string) => {
-    const url = `${window.location.origin}/${encodeURIComponent(slug)}`;
+    const url = `${window.location.origin}${cfg.publicPath(slug)}`;
     const ok = await clipboardCopy(url);
     window.alert(ok ? 'Link copied to clipboard.' : 'Could not copy. Copy the URL manually.');
   };
@@ -570,19 +599,19 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
             <div className="flex h-full min-w-0 items-stretch">
               <button
                 type="button"
-                onClick={() => navigate('/admin/pages')}
+                onClick={() => navigate(cfg.adminBase)}
                 className="flex h-full shrink-0 items-center gap-1.5 border-r border-white/10 px-3 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white sm:px-4"
-                title="Back to pages list"
+                title={`Back to ${cfg.plural.toLowerCase()} list`}
               >
                 <ArrowLeft size={16} className="shrink-0" />
                 <span className="hidden sm:inline">Back</span>
               </button>
               <Link
-                to="/admin/pages"
+                to={cfg.adminBase}
                 className="flex items-center gap-2 border-b-2 border-transparent px-5 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <FileText size={14} />
-                Pages list
+                {cfg.plural} list
               </Link>
               <div className="flex items-center gap-2 border-b-2 border-brand-yellow bg-white/10 px-5 text-sm font-semibold text-white">
                 <FileText size={14} className="text-brand-yellow" />
@@ -622,7 +651,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
 
               {form.status === 'published' && previewSlug ? (
                 <Link
-                  to={`/${encodeURIComponent(previewSlug)}`}
+                  to={cfg.publicPath(previewSlug)}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
@@ -641,7 +670,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                 onPublish={() => void persistPage('published')}
                 onUnpublish={() => void persistPage('draft')}
                 onDelete={() => form.id && void onDelete(form.id)}
-                publishLabel="Publish page"
+                publishLabel={`Publish ${cfg.singular.toLowerCase()}`}
               />
             </div>
           </header>
@@ -728,7 +757,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                         <>
                           Public URL:{' '}
                           <Link
-                            to={`/${encodeURIComponent(previewSlug)}`}
+                            to={cfg.publicPath(previewSlug)}
                             target="_blank"
                             rel="noreferrer"
                             className="font-mono text-brand-blue underline decoration-brand-blue/30 underline-offset-2 hover:decoration-brand-blue"
@@ -738,7 +767,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                         </>
                       ) : (
                         <>
-                          After publish: <span className="font-mono text-slate-600">/{previewSlug}</span>
+                          After publish: <span className="font-mono text-slate-600">{previewSlug ? cfg.publicPath(previewSlug) : '/'}</span>
                         </>
                       )}
                     </span>
@@ -762,7 +791,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                 </div>
 
                 <BlogPostTitleField
-                  placeholder="Page title"
+                  placeholder={`${cfg.singular} title`}
                   value={form.title}
                   onChange={(title) => {
                     setForm((f) => ({
@@ -892,7 +921,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                 </div>
               </form>
             </main>
-            <BlogAdminPostSettingsAside settingsHeading="Page settings">
+            <BlogAdminPostSettingsAside settingsHeading={`${cfg.singular} settings`}>
               <div className="shrink-0 space-y-2 border-b border-slate-100 bg-slate-50/90 px-5 py-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Public URL</span>
@@ -909,24 +938,54 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                   {previewSlug ? absolutePagePublicUrl : '—'}
                 </p>
                 <CmsShortLinkPanel
-                  resourceType="site_page"
+                  resourceType={cfg.shortLinkType}
                   resourceId={form.id}
                   isPublished={form.status === 'published'}
                   userId={userProfile?.id ?? null}
                 />
-                <label className="block space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Layout</span>
-                  <select
-                    value={form.layout}
-                    onChange={(e) => setForm((f) => ({ ...f, layout: e.target.value as PageLayout }))}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    <option value="article">Article: title on top, narrow column</option>
-                    <option value="landing">Landing: full-width sections, no title</option>
-                  </select>
-                </label>
-                <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} />
-                <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} target="kit" />
+                {isPost ? (
+                  <>
+                    <label className="block space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Publish date</span>
+                      <input
+                        type="date"
+                        value={form.publish_date}
+                        onChange={(e) => setForm((f) => ({ ...f, publish_date: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                      />
+                      <span className="block text-[10px] text-slate-500">
+                        Empty = the day you publish. A future date keeps it off the blog list until then.
+                      </span>
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Excerpt</span>
+                      <textarea
+                        value={form.excerpt}
+                        onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
+                        rows={3}
+                        placeholder="One or two sentences for the blog list and link previews…"
+                        className="w-full resize-none rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-brand-blue/40"
+                      />
+                    </label>
+                    <PostCategoriesPanel postId={form.id} />
+                  </>
+                ) : (
+                  <>
+                    <label className="block space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Layout</span>
+                      <select
+                        value={form.layout}
+                        onChange={(e) => setForm((f) => ({ ...f, layout: e.target.value as PageLayout }))}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                      >
+                        <option value="article">Article: title on top, narrow column</option>
+                        <option value="landing">Landing: full-width sections, no title</option>
+                      </select>
+                    </label>
+                    <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} />
+                    <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} target="kit" />
+                  </>
+                )}
                 <p className="text-[10px] font-medium leading-snug text-slate-500">
                   {savedSitePageRow?.updated_at
                     ? `Last saved ${format(new Date(savedSitePageRow.updated_at), 'MMM d, yyyy · h:mm a')}`
@@ -992,7 +1051,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                         />
                         <p className="text-right text-[10px] text-slate-400">{(form.seo_description || '').length}/160</p>
                         <div className="flex items-center rounded-lg border border-slate-200 px-3 py-2 text-xs focus-within:border-brand-blue/40">
-                          <span className="shrink-0 text-slate-400">/</span>
+                          <span className="shrink-0 text-slate-400">{isPost ? '/blog/' : '/'}</span>
                           <input
                             value={form.slug}
                             onChange={(e) => {
@@ -1000,7 +1059,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                               setForm((f) => ({ ...f, slug: e.target.value }));
                             }}
                             className="ml-1 flex-1 font-mono text-slate-600 outline-none"
-                            placeholder="page-slug"
+                            placeholder={isPost ? 'post-slug' : 'page-slug'}
                           />
                         </div>
                       </div>
