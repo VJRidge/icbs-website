@@ -321,6 +321,7 @@ export const BLOG_BLOCK_DEFAULTS = {
       { heading: 'Free starter kit', note: 'Free', ctaLabel: '', ctaHref: '', items: [{ title: '' }] },
       { heading: 'The full edition', note: '$17', ctaLabel: '', ctaHref: '', items: [{ title: '' }] },
     ] as Array<{ heading: string; note: string; ctaLabel: string; ctaHref: string; items: Array<{ title: string }> }>,
+    groups: [] as Array<{ label: string; kitCount: string; bookCount: string; rows: Array<{ title: string; kit: string; book: string }> }>,
     items: [
       { number: '01', title: 'Myth vs Reality', kind: 'Part 01' },
       { number: '02', title: 'AI Is Not Smarter Than You', kind: 'Part 02' },

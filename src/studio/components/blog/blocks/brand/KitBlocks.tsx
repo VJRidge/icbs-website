@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState, useRef, type KeyboardEvent } from 'react';
+import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useState, useRef, type KeyboardEvent } from 'react';
 import SignupForm from '../../../../../components/SignupForm';
 import SiteSocial from '../../../../../components/SiteSocial';
 import { EMPTY_SOCIAL, loadSiteChromeOnce, type SiteSocial as SocialMap } from '../../../../../lib/siteChrome';
@@ -231,6 +231,22 @@ function columnRows(d: Record<string, unknown>): Record<string, unknown>[] {
   return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
 }
 
+function groupRows(d: Record<string, unknown>): Record<string, unknown>[] {
+  const v = d.groups;
+  return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+}
+
+function Mark({ value }: { value: string }) {
+  const v = value.trim();
+  const low = v.toLowerCase();
+  if (v === '✓' || low === 'yes' || low === 'included') return <span className="cmp-yes">✓</span>;
+  if (low === 'preview') return <span className="cmp-preview">Preview</span>;
+  if (low === '—' || low === '-' || low === 'no') return <span className="cmp-no">—</span>;
+  if (low.includes('full')) return <span className="cmp-full">Full version</span>;
+  if (!v) return <span className="cmp-no">—</span>;
+  return <span className="cmp-full">{v}</span>;
+}
+
 function KitContents({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'cream');
@@ -258,7 +274,10 @@ function KitContents({ block }: { block: BlogBlock }) {
             ) : null}
           </p>
         ) : null}
-        {compare ? (
+        {compare && groupRows(d).length ? (
+          <ComparisonTable columns={columns} groups={groupRows(d)} />
+        ) : null}
+        {compare && !groupRows(d).length ? (
           <div className="compare">
             {columns.map((col, i) => {
               const lines = Array.isArray(col.items) ? (col.items as Row[]) : [];
@@ -304,6 +323,66 @@ function KitContents({ block }: { block: BlogBlock }) {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function ComparisonTable({ columns, groups }: { columns: Record<string, unknown>[]; groups: Record<string, unknown>[] }) {
+  const heads = [0, 1].map((i) => columns[i] ?? {});
+  return (
+    <>
+      <div className="cmp">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col" />
+              {heads.map((col, i) => (
+                <th scope="col" key={i}>
+                  {typeof col.heading === 'string' ? col.heading : ''}
+                  {typeof col.note === 'string' && col.note ? <span className="cmp-price">{col.note}</span> : null}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((group, gi) => {
+              const lines = Array.isArray(group.rows) ? (group.rows as Row[]) : [];
+              return (
+                <Fragment key={gi}>
+                  <tr className="cmp-sec">
+                    <th scope="row">{typeof group.label === 'string' ? group.label : ''}</th>
+                    <td>{typeof group.kitCount === 'string' ? group.kitCount : ''}</td>
+                    <td>{typeof group.bookCount === 'string' ? group.bookCount : ''}</td>
+                  </tr>
+                  {lines.map((line, n) => (
+                    <tr className="cmp-row" key={n}>
+                      <th scope="row">{line.title ?? ''}</th>
+                      <td>
+                        <Mark value={line.kit ?? ''} />
+                      </td>
+                      <td>
+                        <Mark value={line.book ?? ''} />
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="cmp-actions">
+        {heads.map((col, i) => {
+          const href = typeof col.ctaHref === 'string' ? col.ctaHref : '';
+          const label = typeof col.ctaLabel === 'string' ? col.ctaLabel : '';
+          if (!href || !label) return null;
+          return (
+            <a key={i} className={i === 0 ? 'btn line' : 'btn'} href={href}>
+              {label}
+            </a>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

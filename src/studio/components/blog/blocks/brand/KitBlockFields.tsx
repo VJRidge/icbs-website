@@ -205,14 +205,16 @@ function CompareColumns({ data, update }: { data: Record<string, unknown>; updat
             <span className={labelCls}>Price note</span>
             <input value={col.note ?? ''} onChange={(e) => setCol(i, { note: e.target.value })} className={inputCls} />
           </label>
-          <RowList
-            data={{ items: col.items ?? [] }}
-            k="items"
-            update={(patch) => setCol(i, { items: patch.items as Row[] })}
-            fields={[{ key: 'title', label: 'Included' }]}
-            addLabel="Add line"
-            blank={{ title: '' }}
-          />
+          {Array.isArray(data.groups) && data.groups.length > 0 ? null : (
+            <RowList
+              data={{ items: col.items ?? [] }}
+              k="items"
+              update={(patch) => setCol(i, { items: patch.items as Row[] })}
+              fields={[{ key: 'title', label: 'Included' }]}
+              addLabel="Add line"
+              blank={{ title: '' }}
+            />
+          )}
           <label className="block">
             <span className={labelCls}>Button label</span>
             <input value={col.ctaLabel ?? ''} onChange={(e) => setCol(i, { ctaLabel: e.target.value })} className={inputCls} />
@@ -223,6 +225,73 @@ function CompareColumns({ data, update }: { data: Record<string, unknown>; updat
           </label>
         </Group>
       ))}
+    </>
+  );
+}
+
+type CompareGroup = { label?: string; kitCount?: string; bookCount?: string; rows?: Row[] };
+
+function CompareGroups({ data, update }: { data: Record<string, unknown>; update: Update }) {
+  const groups: CompareGroup[] = Array.isArray(data.groups) ? (data.groups as CompareGroup[]) : [];
+  const setGroups = (next: CompareGroup[]) => update({ groups: next });
+  const setGroup = (i: number, patch: Partial<CompareGroup>) => {
+    setGroups(groups.map((group, n) => (n === i ? { ...group, ...patch } : group)));
+  };
+  return (
+    <>
+      {groups.map((group, i) => (
+        <Group key={i} title={group.label || `Section ${i + 1}`}>
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={group.label ?? ''}
+              placeholder="Section"
+              aria-label="Section"
+              onChange={(e) => setGroup(i, { label: e.target.value })}
+              className={`${inputCls} min-w-0 flex-1`}
+            />
+            <input
+              value={group.kitCount ?? ''}
+              placeholder="Kit"
+              aria-label="Kit count"
+              onChange={(e) => setGroup(i, { kitCount: e.target.value })}
+              className={`${inputCls} w-16`}
+            />
+            <input
+              value={group.bookCount ?? ''}
+              placeholder="Book"
+              aria-label="Book count"
+              onChange={(e) => setGroup(i, { bookCount: e.target.value })}
+              className={`${inputCls} w-16`}
+            />
+          </div>
+          <RowList
+            data={{ rows: group.rows ?? [] }}
+            k="rows"
+            update={(patch) => setGroup(i, { rows: patch.rows as Row[] })}
+            fields={[
+              { key: 'title', label: 'Item' },
+              { key: 'kit', label: 'Kit', width: 'w-24' },
+              { key: 'book', label: 'Book', width: 'w-24' },
+            ]}
+            addLabel="Add row"
+            blank={{ title: '', kit: '—', book: '✓' }}
+          />
+          <button
+            type="button"
+            onClick={() => setGroups(groups.filter((_, n) => n !== i))}
+            className="text-[10px] font-black uppercase tracking-widest text-red-600"
+          >
+            Remove section
+          </button>
+        </Group>
+      ))}
+      <button
+        type="button"
+        onClick={() => setGroups([...groups, { label: 'Section', kitCount: '', bookCount: '', rows: [] }])}
+        className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600"
+      >
+        <Plus size={14} /> Add section
+      </button>
     </>
   );
 }
@@ -324,7 +393,10 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
             </label>
           </Group>
           {d.layout === 'compare' ? (
-            <CompareColumns data={d} update={update} />
+            <>
+              <CompareColumns data={d} update={update} />
+              <CompareGroups data={d} update={update} />
+            </>
           ) : (
             <Group title="Contents">
               <RowList
