@@ -11,7 +11,7 @@ anon key only.
 | --- | --- |
 | `src/pages/Free.tsx` | `/free` — the Free Starter Kit signup page (also the home page for now) |
 | `src/pages/FreeThanks.tsx` | `/free/thanks` — download, one book offer, share buttons |
-| `src/pages/Legal.tsx` | `/privacy`, `/terms`, `/refunds` — placeholders, still to be written |
+| `src/pages/Legal.tsx` | `/refunds` is all sales final. `/privacy` and `/terms` are still placeholders |
 | `src/components/SignupForm.tsx` | The form (name, email, hidden honeypot, UTM source) |
 | `api/subscribe.ts` | Saves the subscriber, sends email 1 with the kit |
 | `api/unsubscribe.ts` | One-click unsubscribe |
@@ -42,7 +42,7 @@ anon key only.
 
 ## Before launch
 
-- [ ] Write the privacy, terms and refunds pages
+- [ ] Write the privacy and terms pages. Refunds: all sales final.
 - [ ] Review the email 1 wording in `api/_emails.ts`
 - [x] Sales page at `/` (thanks-page book button points here). Stripe Checkout still to do.
 - [ ] Confirm the sending address in `EMAIL_FROM` (currently hello@vettajimale.tech)

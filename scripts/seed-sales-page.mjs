@@ -173,7 +173,7 @@ const blocks = [
       tone: 'green',
       label: 'The offer',
       heading: 'The full edition is $17.',
-      body: 'No upsell maze. No fake countdown. The book, the toolkit, and the receipts.',
+      body: 'No upsell maze. No fake countdown. The book, the toolkit, and the receipts.\n\nThe book is a digital file, delivered as soon as you pay. All sales are final.',
       highlight: 'The free kit is ready today if you want to hear the voice first.',
       centered: true,
       buttonLabel: 'Get the full guide — $17',
