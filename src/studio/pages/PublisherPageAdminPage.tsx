@@ -35,7 +35,7 @@ import HomepageToggle from '../components/admin/HomepageToggle';
 import { clipboardCopy } from '../lib/clipboardCopy';
 import { clearCmsEditorLocalDraft, syncCmsEditorUrlSilently } from '../lib/cms/cmsEditorDraft';
 import { useCmsEditorAutosave } from '../lib/cms/useCmsEditorAutosave';
-import type { PublisherSitePage, UserProfile } from '../types';
+import type { PageLayout, PublisherSitePage, UserProfile } from '../types';
 
 function bodyHtmlForEditor(raw: string | null | undefined): string {
   const b = (raw ?? '').trim();
@@ -72,6 +72,7 @@ type FormState = {
   contentMode: ContentMode;
   seo_title: string;
   seo_description: string;
+  layout: PageLayout;
 };
 
 function emptyForm(): FormState {
@@ -86,6 +87,7 @@ function emptyForm(): FormState {
     contentMode: 'blocks',
     seo_title: '',
     seo_description: '',
+    layout: 'article',
   };
 }
 
@@ -196,6 +198,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
         contentMode: openInBlocks ? 'blocks' : 'html',
         seo_title: r.seo_title || '',
         seo_description: r.seo_description || '',
+        layout: r.layout === 'landing' ? 'landing' : 'article',
       });
       if (blockMode) {
         loadBlocks(r.content_blocks);
@@ -339,6 +342,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                       format: 'blocks',
                       blocks: contentBlocks,
                       html: serialized,
+                      layout: form.layout,
                       featured_image_url: featuredUrl,
                       featured_image_alt: featuredAlt,
                     }
@@ -356,6 +360,7 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
           seo_title: seoTitle,
           seo_description: seoDescription,
           seo: { title: seoTitle, description: seoDescription },
+          layout: form.layout,
           ...liveSnapshot,
         });
 
@@ -909,7 +914,19 @@ export default function PublisherPageAdminPage({ userProfile }: { userProfile: U
                   isPublished={form.status === 'published'}
                   userId={userProfile?.id ?? null}
                 />
+                <label className="block space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Layout</span>
+                  <select
+                    value={form.layout}
+                    onChange={(e) => setForm((f) => ({ ...f, layout: e.target.value as PageLayout }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+                  >
+                    <option value="article">Article: title on top, narrow column</option>
+                    <option value="landing">Landing: full-width sections, no title</option>
+                  </select>
+                </label>
                 <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} />
+                <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} target="kit" />
                 <p className="text-[10px] font-medium leading-snug text-slate-500">
                   {savedSitePageRow?.updated_at
                     ? `Last saved ${format(new Date(savedSitePageRow.updated_at), 'MMM d, yyyy · h:mm a')}`

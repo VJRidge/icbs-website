@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { captureUtm } from '../lib/utm'
 
-export default function SignupForm({ id }: { id: string }) {
+export default function SignupForm({ id, buttonLabel = 'Send me the free kit' }: { id: string; buttonLabel?: string }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -46,7 +46,7 @@ export default function SignupForm({ id }: { id: string }) {
         <input id={`${id}-company`} name="company" tabIndex={-1} autoComplete="off" />
       </div>
       <button className="btn" type="submit" disabled={busy}>
-        {busy ? 'Sending…' : 'Send me the free kit'}
+        {busy ? 'Sending…' : buttonLabel}
       </button>
       {error && <div className="err" role="alert">{error}</div>}
       <div className="fine">

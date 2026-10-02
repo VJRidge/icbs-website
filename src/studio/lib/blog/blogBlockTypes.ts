@@ -286,7 +286,88 @@ export const BLOG_BLOCK_DEFAULTS = {
     variant: 'fade-up' as 'fade-up' | 'gradient' | 'underline',
     level: 2 as 1 | 2 | 3,
   },
+  /** I Call BS brand sections — rendered with the kit classes in `src/styles.css`. */
+  kit_hero: {
+    tag: 'Free Starter Kit',
+    tagline: 'Practical. Honest. Receipts-driven.',
+    coverUrl: '/img/kit-cover.png',
+    coverAlt: 'Cover of the I Call BS Free Starter Kit',
+    headlineBefore: 'The ',
+    highlight: 'honest',
+    headlineAfter: ' version of “build an app with AI.”',
+    subhead:
+      'No fairy tales. No thirty-minute miracles. The myth-busting, the mindset, and just enough of the toolkit to prove it’s real.',
+    showForm: true,
+    buttonLabel: 'Send me the free kit',
+    receipts: [
+      { value: '221', label: 'Chat sessions' },
+      { value: '3,302', label: 'Prompts I typed' },
+      { value: '16,612', label: 'File edits by the AI' },
+      { value: '4,338', label: 'Terminal commands' },
+    ] as Array<{ value: string; label: string }>,
+  },
+  kit_contents: {
+    tone: 'cream' as KitTone,
+    label: 'Inside the kit',
+    heading: 'What this free kit is',
+    lede: 'The myth-busting, the mindset, and just enough of the toolkit to prove it’s real.',
+    ledeHighlight: 'Everything here is yours to copy, edit, and keep.',
+    items: [
+      { number: '01', title: 'Myth vs Reality', kind: 'Part 01' },
+      { number: '02', title: 'AI Is Not Smarter Than You', kind: 'Part 02' },
+      { number: '03', title: 'Three Lessons from the Receipts', kind: 'Part 03' },
+      { number: '04', title: 'The Literacy Gate', kind: 'Part 04' },
+      { number: '05', title: 'The Toolkit', kind: 'Part 05' },
+      { number: '—', title: 'Where to Go from Here', kind: 'Next step' },
+      { number: '—', title: 'The Pocket Glossary', kind: 'Glossary' },
+      { number: '—', title: 'Proof Your Work', kind: 'Checklist' },
+      { number: '—', title: 'The Smoke Test', kind: 'Checklist' },
+      { number: '—', title: 'Before You Ship', kind: 'Checklist' },
+    ] as Array<{ number: string; title: string; kind: string }>,
+  },
+  kit_gallery: {
+    tone: 'white' as KitTone,
+    label: 'Look inside',
+    heading: 'Real pages from the kit.',
+    images: [
+      { url: '/img/preview-receipts.jpg', alt: 'Kit page: My Receipts' },
+      { url: '/img/preview-gap.jpg', alt: 'Kit page: That’s not a knowledge gap. That’s an experience gap.' },
+      { url: '/img/preview-smoke.jpg', alt: 'Kit page: The Smoke Test' },
+    ] as Array<{ url: string; alt: string }>,
+    caption: 'My receipts · Not a knowledge gap · The smoke test',
+  },
+  kit_closing: {
+    tone: 'green' as KitTone,
+    headlineBefore: 'You bring the depth. It brings the breadth. ',
+    highlight: 'Neither one ships alone.',
+    label: 'Get the free starter kit',
+    buttonLabel: 'Send me the free kit',
+  },
+  kit_text: {
+    tone: 'cream' as KitTone,
+    label: 'Label',
+    heading: 'Section heading',
+    body: 'Write the section copy here.',
+    highlight: '',
+    centered: false,
+    buttonLabel: '',
+    buttonHref: '',
+  },
+  kit_signup: {
+    tone: 'green' as KitTone,
+    label: 'Get the free starter kit',
+    heading: '',
+    buttonLabel: 'Send me the free kit',
+  },
 } as const;
+
+export type KitTone = 'green' | 'cream' | 'white';
+
+export const KIT_BLOCK_TYPES = ['kit_hero', 'kit_contents', 'kit_gallery', 'kit_closing', 'kit_text', 'kit_signup'] as const;
+
+export function isKitBlockType(type: string): boolean {
+  return (KIT_BLOCK_TYPES as readonly string[]).includes(type);
+}
 
 export type BlogBlockType = keyof typeof BLOG_BLOCK_DEFAULTS;
 
@@ -335,6 +416,7 @@ export const BLOG_EDITOR_PICKER_TYPES: BlogBlockType[] = [
   'newsletter',
   'modal_popup',
   'animated_headline',
+  ...KIT_BLOCK_TYPES,
 ];
 
 export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
@@ -381,6 +463,12 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   price_list: 'Price list',
   modal_popup: 'Popup / modal',
   animated_headline: 'Animated headline',
+  kit_hero: 'Kit hero + signup',
+  kit_contents: 'Contents section',
+  kit_gallery: 'Image row',
+  kit_closing: 'Closing CTA',
+  kit_text: 'Text section',
+  kit_signup: 'Signup section',
 };
 
 // Branded Lucide replacement for the editor's block-type glyphs. The
@@ -394,6 +482,7 @@ import {
   AudioLines,
   BadgeDollarSign,
   BarChart3,
+  BookOpen,
   Code as CodeIcon,
   Columns,
   Download,
@@ -405,6 +494,7 @@ import {
   Image as ImageBlockIcon,
   LayoutGrid,
   LayoutTemplate,
+  ListOrdered,
   ListVideo,
   Mail,
   MapPin as MapPinBlockIcon,
@@ -476,9 +566,16 @@ export const BLOG_BLOCK_ICONS: Record<BlogBlockType, LucideIcon> = {
   price_list: BadgeDollarSign,
   modal_popup: Frame,
   animated_headline: SparklesIcon,
+  kit_hero: BookOpen,
+  kit_contents: ListOrdered,
+  kit_gallery: GalleryHorizontal,
+  kit_closing: Megaphone,
+  kit_text: TypeIcon,
+  kit_signup: Mail,
 };
 
 export const BLOG_EDITOR_PICKER_CATEGORIES: Record<string, BlogBlockType[]> = {
+  Brand: [...KIT_BLOCK_TYPES],
   Text: ['paragraph', 'heading', 'animated_headline', 'quote', 'callout', 'code', 'table'],
   Media: ['image', 'video', 'youtube', 'social_embed', 'slideshow', 'gallery', 'carousel', 'video_playlist'],
   Layout: ['columns', 'divider', 'spacer', 'tabs', 'accordion', 'button', 'banner', 'card', 'icon_box', 'modal_popup'],

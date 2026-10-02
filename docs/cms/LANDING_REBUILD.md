@@ -1,6 +1,23 @@
 # Rebuild `/free` with the studio builder — plan
 
-Status: **planned, not started.** `/free` stays the hardcoded `src/pages/Free.tsx` until the CMS version is approved.
+Status: **built.** Draft page `kit-v2` exists in the studio. `/free` keeps showing the hardcoded
+`src/pages/Free.tsx` until `kit-v2` is published **and** "Use as kit page (/free)" is ticked.
+
+### What shipped
+- Brand tab blocks: `kit_hero` (receipts strip built in), `kit_contents`, `kit_gallery`, `kit_closing`,
+  `kit_text`, `kit_signup`. Views in `src/studio/components/blog/blocks/brand/KitBlocks.tsx`,
+  fields in `KitBlockFields.tsx`. The canvas shows a scaled 1280px desktop render.
+- `contents.layout` (`article` | `landing`) + Page settings "Layout" select; stored in `published_document.layout`.
+- `settings.kit_content_id` + "Use as kit page (/free)" toggle. `/free` → `HomeOrKit slot="kit_content_id"`.
+- Pages made only of brand blocks render through `KitLandingView` (≈6 KB chunk, no studio CSS).
+  Mixed landing pages render non-brand blocks in a centered cream column.
+- Verified: published `kit-v2` markup is identical to `Free.tsx` (form ids aside).
+- Migration: `supabase/migrations/20261004_landing_layout.sql`.
+
+### Go-live steps
+1. `/admin/pages` → open "Free Starter Kit" (`kit-v2`) → edit → Publish.
+2. Check `/kit-v2` on desktop and phone; do one real signup.
+3. Tick "Use as kit page (/free)". Untick (or unpublish) to fall back to the built-in page instantly.
 
 ## Goal
 

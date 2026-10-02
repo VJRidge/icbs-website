@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import BlogColumnsBlock from '../blocks/BlogColumnsBlock';
+import KitBlockFields from '../blocks/brand/KitBlockFields';
 import {
   BlogInspectorAdvancedPanel,
   BlogInspectorAlignment,
@@ -123,6 +124,13 @@ function InspectorContentTab({ block }: { block: BlogBlock }) {
       return <GenericTextContent block={block} label="Button label" />;
     case 'columns':
       return <BlogColumnsBlock block={block} isEditing inspectorTab="content" />;
+    case 'kit_hero':
+    case 'kit_contents':
+    case 'kit_gallery':
+    case 'kit_closing':
+    case 'kit_text':
+    case 'kit_signup':
+      return <KitBlockFields block={block} />;
     default:
       return (
         <div className="space-y-2">

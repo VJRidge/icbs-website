@@ -36,6 +36,7 @@ import BlogModalPopupBlock from './blocks/BlogModalPopupBlock';
 import BlogAnimatedHeadlineBlock from './blocks/BlogAnimatedHeadlineBlock';
 import BlogSocialEmbedBlock from './blocks/BlogSocialEmbedBlock';
 import BlogColumnsBlock from './blocks/BlogColumnsBlock';
+import KitBlock from './blocks/brand/KitBlocks';
 
 export default function BlogBlockRenderer({
   block,
@@ -121,6 +122,13 @@ export default function BlogBlockRenderer({
       return <BlogAnimatedHeadlineBlock block={block} isEditing={isEditing} />;
     case 'columns':
       return <BlogColumnsBlock block={block} isEditing={isEditing} />;
+    case 'kit_hero':
+    case 'kit_contents':
+    case 'kit_gallery':
+    case 'kit_closing':
+    case 'kit_text':
+    case 'kit_signup':
+      return <KitBlock block={block} isEditing={isEditing} />;
     default:
       return (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

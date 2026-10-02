@@ -26,12 +26,17 @@ export interface PublisherSitePage {
   seo_title?: string | null;
   seo_description?: string | null;
   published_document?: PublishedPageDocument | null;
+  layout?: PageLayout | null;
 }
+
+/** `article` = title + narrow column; `landing` = full-width kit sections, no title header. */
+export type PageLayout = 'article' | 'landing';
 
 export interface PublishedPageDocument {
   format: 'blocks';
   blocks: unknown[];
   html: string;
+  layout?: PageLayout;
   featured_image_url?: string | null;
   featured_image_alt?: string | null;
 }

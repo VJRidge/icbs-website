@@ -2,6 +2,8 @@ import { coerceBlogHtmlForRendering, manuscriptLooksLikeHtml } from '../lib/opEd
 import { parseBlogBlocks } from '../lib/blog/useBlogEditorStore';
 import BlogBlockRenderer from '../components/blog/BlogBlockRenderer';
 import BlogArticleHtmlDisplay from '../components/blog/BlogArticleHtmlDisplay';
+import { KitBlockView } from '../components/blog/blocks/brand/KitBlocks';
+import { isKitBlockType, type BlogBlock } from '../lib/blog/blogBlockTypes';
 import Footer from '../../components/Footer';
 import type { PublishedPageDocument } from '../types';
 import '../studio-public.css';
@@ -11,6 +13,49 @@ type Props = {
   document: PublishedPageDocument;
 };
 
+const PROSE_CLASSES = [
+  'op-ed-body prose prose-slate max-w-none prose-headings:font-black prose-h2:text-2xl prose-h3:text-xl',
+  'prose-p:text-[17px] prose-p:leading-[1.75] prose-p:text-slate-700 prose-li:text-slate-700',
+  'prose-a:text-brand-blue prose-a:font-semibold prose-a:no-underline hover:prose-a:underline',
+  'prose-blockquote:border-l-brand-blue prose-blockquote:text-slate-600',
+  'prose-img:rounded-xl prose-img:shadow-md prose-img:my-8',
+  '[&_video]:rounded-xl [&_video]:shadow-md [&_video]:my-8',
+  '[&_iframe]:max-w-full [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-slate-200 [&_iframe]:my-8',
+].join(' ');
+
+/** Kit blocks run edge to edge; runs of regular blocks sit in a centered cream column between them. */
+function LandingLayout({ blocks }: { blocks: BlogBlock[] }) {
+  const groups: { kit: boolean; blocks: BlogBlock[] }[] = [];
+  for (const b of blocks) {
+    const kit = isKitBlockType(b.type);
+    const last = groups[groups.length - 1];
+    if (last && !kit && !last.kit) last.blocks.push(b);
+    else groups.push({ kit, blocks: [b] });
+  }
+  return (
+    <main>
+      {groups.map((g) =>
+        g.kit ? (
+          <KitBlockView key={g.blocks[0].id} block={g.blocks[0]} />
+        ) : (
+          <section key={g.blocks[0].id} className="sec cream">
+            <div className="wrap">
+              <div className={`studio-public mx-auto max-w-3xl ${PROSE_CLASSES}`}>
+                <div className="not-prose space-y-8">
+                  {g.blocks.map((b) => (
+                    <BlogBlockRenderer key={b.id} block={b} isEditing={false} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ),
+      )}
+      <Footer />
+    </main>
+  );
+}
+
 /** Public render of a published studio page (`contents.published_document`). */
 export default function PublisherSitePageDetailPage({ title, document }: Props) {
   const img = document.featured_image_url?.trim();
@@ -18,6 +63,8 @@ export default function PublisherSitePageDetailPage({ title, document }: Props) 
   const bodyIsHtml = manuscriptLooksLikeHtml(coerceBlogHtmlForRendering(html));
   const blockList = parseBlogBlocks(document.blocks);
   const useBlockLayout = blockList.length > 0;
+
+  if (document.layout === 'landing' && useBlockLayout) return <LandingLayout blocks={blockList} />;
 
   return (
     <>
@@ -42,17 +89,7 @@ export default function PublisherSitePageDetailPage({ title, document }: Props) 
             ) : null}
           </header>
 
-          <div
-            className={[
-              'op-ed-body prose prose-slate max-w-none py-10 prose-headings:font-black prose-h2:text-2xl prose-h3:text-xl',
-              'prose-p:text-[17px] prose-p:leading-[1.75] prose-p:text-slate-700 prose-li:text-slate-700',
-              'prose-a:text-brand-blue prose-a:font-semibold prose-a:no-underline hover:prose-a:underline',
-              'prose-blockquote:border-l-brand-blue prose-blockquote:text-slate-600',
-              'prose-img:rounded-xl prose-img:shadow-md prose-img:my-8',
-              '[&_video]:rounded-xl [&_video]:shadow-md [&_video]:my-8',
-              '[&_iframe]:max-w-full [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-slate-200 [&_iframe]:my-8',
-            ].join(' ')}
-          >
+          <div className={`${PROSE_CLASSES} py-10`}>
             {useBlockLayout ? (
               <div className="not-prose space-y-8">
                 {blockList.map((b) => (

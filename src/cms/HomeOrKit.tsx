@@ -3,7 +3,10 @@ import Free from '../pages/Free'
 import PublicPage from './PublicPage'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
 
-export default function HomeOrKit() {
+type Slot = 'homepage_content_id' | 'kit_content_id'
+
+/** Renders the published studio page assigned to a `settings` slot, or the built-in kit page. */
+export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slot }) {
   const [state, setState] = useState<'load' | 'kit' | 'cms'>('load')
   const [title, setTitle] = useState('')
   const [doc, setDoc] = useState<unknown>(null)
@@ -16,8 +19,8 @@ export default function HomeOrKit() {
     }
     let gone = false
     ;(async () => {
-      const { data: settings } = await sb.from('settings').select('homepage_content_id').eq('id', 1).maybeSingle()
-      const id = settings?.homepage_content_id
+      const { data: settings } = await sb.from('settings').select(slot).eq('id', 1).maybeSingle()
+      const id = (settings as Record<string, unknown> | null)?.[slot] as string | null | undefined
       if (!id) {
         if (!gone) setState('kit')
         return
@@ -38,7 +41,7 @@ export default function HomeOrKit() {
     return () => {
       gone = true
     }
-  }, [])
+  }, [slot])
 
   if (state === 'load') {
     return (

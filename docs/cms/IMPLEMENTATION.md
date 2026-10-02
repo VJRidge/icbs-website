@@ -234,6 +234,8 @@ Studio data rules (migration `20261003_studio_editor.sql`):
 | --- | --- |
 | 2026-10-01 | Funnel live: kit, Resend, domain, Vercel, GitHub |
 | 2026-10-01 | CMS plan written; Phase 1 studio shell + SQL + login |
+| 2026-10-02 | Clubhouse block editor port: pages, media, short links, public block renderer |
+| 2026-10-02 | `/free` rebuild: Brand blocks, landing layout, `kit-v2` draft, kit-page toggle (see `LANDING_REBUILD.md`) |
 
 ---
 

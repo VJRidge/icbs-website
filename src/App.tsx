@@ -12,7 +12,7 @@ export default function App() {
   const short = path.match(/^\/s\/([a-z0-9]+)$/i)
   if (short) return <ShortLinkRedirect code={short[1]} />
   if (path === '/free/thanks') return <FreeThanks />
-  if (path === '/free') return <Free />
+  if (path === '/free') return <HomeOrKit slot="kit_content_id" />
   if (path === '/privacy' || path === '/terms' || path === '/refunds') {
     return <CmsBySlug slug={path.slice(1)} fallback={<Legal page={path.slice(1)} />} />
   }
