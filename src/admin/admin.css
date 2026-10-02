@@ -228,6 +228,21 @@
   cursor: pointer;
 }
 
+.ad-login button.ad-secondary {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--ad-accent);
+  border: 1px solid var(--ad-accent);
+}
+
+.ad-login button.ad-ghost {
+  margin-top: 10px;
+  background: transparent;
+  color: var(--ad-ink);
+  border: 1px solid var(--ad-line);
+}
+
+
 .ad-login .msg {
   margin-top: 12px;
   font-size: 14px;
