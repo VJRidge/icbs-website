@@ -10,7 +10,7 @@ import type { UserProfile } from '../types';
 
 const PRESETS: SiteMenuItem[] = [
   { id: 'home', label: 'The book', href: '/' },
-  { id: 'kit', label: 'Free Starter Kit', href: '/free' },
+  { id: 'kit', label: 'Free Starter Kit', href: '/#kit' },
   { id: 'blog', label: 'Blog', href: '/blog' },
   { id: 'about', label: 'About', href: '/about' },
   { id: 'privacy', label: 'Privacy', href: '/privacy' },

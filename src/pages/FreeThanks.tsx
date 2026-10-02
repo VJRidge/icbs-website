@@ -13,7 +13,7 @@ const INCLUDES = [
 
 export default function FreeThanks() {
   const [copied, setCopied] = useState(false)
-  const shareUrl = `${window.location.origin}/free`
+  const shareUrl = `${window.location.origin}/#kit`
   const shareText = 'The honest version of “build an app with AI.” Free starter kit:'
 
   async function copy() {

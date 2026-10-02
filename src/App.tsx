@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Free from './pages/Free'
 import FreeThanks from './pages/FreeThanks'
 import Legal from './pages/Legal'
@@ -10,6 +11,17 @@ import BlogPost from './cms/BlogPost'
 import CmsPreview from './cms/CmsPreview'
 import RedirectGate from './cms/RedirectGate'
 
+function ToLanding() {
+  useEffect(() => {
+    window.location.replace('/#kit')
+  }, [])
+  return (
+    <main>
+      <section className="sec green" style={{ minHeight: '40vh' }} />
+    </main>
+  )
+}
+
 function PublicRoutes({ path }: { path: string }) {
   const short = path.match(/^\/s\/([a-z0-9]+)$/i)
   if (short) return <ShortLinkRedirect code={short[1]} />
@@ -18,7 +30,7 @@ function PublicRoutes({ path }: { path: string }) {
   const post = path.match(/^\/blog\/([^/]+)$/)
   if (post) return <BlogPost slug={decodeURIComponent(post[1])} />
   if (path === '/free/thanks') return <FreeThanks />
-  if (path === '/free') return <HomeOrKit slot="kit_content_id" />
+  if (path === '/free') return <ToLanding />
   if (path === '/privacy' || path === '/terms' || path === '/refunds') {
     return <CmsBySlug slug={path.slice(1)} fallback={<Legal page={path.slice(1)} />} />
   }

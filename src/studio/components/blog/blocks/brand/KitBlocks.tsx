@@ -195,7 +195,11 @@ function KitHero({ block }: { block: BlogBlock }) {
                 <HeroButton d={d} labelKey="buttonLabel" hrefKey="buttonHref" className="btn" edit={!!edit} />
                 <HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />
               </div>
-            ) : null}
+            ) : (
+              <div className="hero-actions">
+                <HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />
+              </div>
+            )}
           </div>
         </div>
         {receipts.length ? (
@@ -255,7 +259,7 @@ function KitContents({ block }: { block: BlogBlock }) {
   const columns = columnRows(d).slice(0, 2);
   const centered = compare || d.centered === true;
   return (
-    <section className={`sec ${t}`}>
+    <section className={`sec ${t}`} id={str(d, 'anchor') || undefined}>
       <div className={centered ? 'wrap center' : 'wrap'}>
         <SectionLabel d={d} t={t} centered={centered} />
         {str(d, 'heading') ? (
@@ -524,7 +528,7 @@ function KitSignup({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'green');
   return (
-    <section className={`sec ${t}`}>
+    <section className={`sec ${t}`} id={str(d, 'anchor') || undefined}>
       <div className="wrap" style={{ maxWidth: 560 }}>
         <SectionLabel d={d} t={t} />
         {str(d, 'heading') ? (
