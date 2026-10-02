@@ -33,6 +33,25 @@ const blocks = [
     },
   },
   {
+    id: 'sale-questions',
+    type: 'kit_questions',
+    data: {
+      tone: 'cream',
+      greeting: 'Dear builder,',
+      questions: [
+        { text: 'Were you told you could build a whole app in thirty minutes with one prompt?' },
+        { text: 'Have you asked the AI to fix one small thing and watched it change five others?' },
+        { text: 'Has the AI told you "fixed" when it wasn\'t?' },
+        { text: 'Or does your app work fine for you and fall apart the moment someone else tries it?' },
+      ],
+      heading: 'Me too.',
+      body: 'I believed a softer version of that story longer than I should have. Then I built real apps with Claude Code and Cursor. It took 3,302 prompts across 221 chats, and about one in six of them was a correction.',
+      buttonLabel: 'Send me the free kit',
+      buttonHref: '#kit',
+      anchor: '',
+    },
+  },
+  {
     id: 'sale-who',
     type: 'kit_text',
     data: {

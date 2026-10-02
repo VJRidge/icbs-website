@@ -374,11 +374,26 @@ export const BLOG_BLOCK_DEFAULTS = {
     heading: '',
     buttonLabel: 'Send me the free kit',
   },
+  kit_questions: {
+    tone: 'cream' as KitTone,
+    greeting: 'Dear builder,',
+    questions: [
+      { text: 'Were you told you could build a whole app in thirty minutes with one prompt?' },
+      { text: 'Have you asked the AI to fix one small thing and watched it change five others?' },
+      { text: 'Has the AI told you "fixed" when it wasn\'t?' },
+      { text: 'Or does your app work fine for you and fall apart the moment someone else tries it?' },
+    ] as Array<{ text: string }>,
+    heading: 'Me too.',
+    body: 'I believed a softer version of that story longer than I should have. Then I built real apps with Claude Code and Cursor. It took 3,302 prompts across 221 chats, and about one in six of them was a correction.',
+    buttonLabel: 'Send me the free kit',
+    buttonHref: '#kit',
+    anchor: '',
+  },
 } as const;
 
 export type KitTone = 'green' | 'cream' | 'white';
 
-export const KIT_BLOCK_TYPES = ['kit_hero', 'kit_contents', 'kit_gallery', 'kit_closing', 'kit_text', 'kit_signup'] as const;
+export const KIT_BLOCK_TYPES = ['kit_hero', 'kit_contents', 'kit_gallery', 'kit_closing', 'kit_text', 'kit_signup', 'kit_questions'] as const;
 
 export function isKitBlockType(type: string): boolean {
   return (KIT_BLOCK_TYPES as readonly string[]).includes(type);
@@ -484,6 +499,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   kit_closing: 'Closing CTA',
   kit_text: 'Text section',
   kit_signup: 'Signup section',
+  kit_questions: 'Questions',
 };
 
 // Branded Lucide replacement for the editor's block-type glyphs. The
@@ -509,6 +525,7 @@ import {
   Image as ImageBlockIcon,
   LayoutGrid,
   LayoutTemplate,
+  ListChecks,
   ListOrdered,
   ListVideo,
   Mail,
@@ -587,6 +604,7 @@ export const BLOG_BLOCK_ICONS: Record<BlogBlockType, LucideIcon> = {
   kit_closing: Megaphone,
   kit_text: TypeIcon,
   kit_signup: Mail,
+  kit_questions: ListChecks,
 };
 
 export const BLOG_EDITOR_PICKER_CATEGORIES: Record<string, BlogBlockType[]> = {

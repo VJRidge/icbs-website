@@ -130,6 +130,7 @@ function InspectorContentTab({ block }: { block: BlogBlock }) {
     case 'kit_closing':
     case 'kit_text':
     case 'kit_signup':
+    case 'kit_questions':
       return <KitBlockFields block={block} />;
     default:
       return (

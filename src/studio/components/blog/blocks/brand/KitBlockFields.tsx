@@ -477,6 +477,32 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
           </Group>
         </div>
       );
+    case 'kit_questions':
+      return (
+        <div className="space-y-4">
+          <Group title="Section">
+            <Tone data={d} update={update} />
+            <Text data={d} k="greeting" label="Greeting" update={update} />
+            <Text data={d} k="heading" label="Bridge heading" update={update} />
+            <Text data={d} k="body" label="Bridge story" update={update} multiline />
+          </Group>
+          <Group title="Questions">
+            <RowList
+              data={d}
+              k="questions"
+              update={update}
+              addLabel="Add question"
+              blank={{ text: '' }}
+              fields={[{ key: 'text', label: 'Question' }]}
+            />
+          </Group>
+          <Group title="Button">
+            <Text data={d} k="buttonLabel" label="Label" update={update} />
+            <Text data={d} k="buttonHref" label="Link" update={update} hint="e.g. #kit" />
+            <Text data={d} k="anchor" label="Section id" update={update} hint="Links can jump here with #id" />
+          </Group>
+        </div>
+      );
     case 'kit_signup':
       return (
         <div className="space-y-4">
