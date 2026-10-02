@@ -252,8 +252,97 @@
   color: #ffb4a4;
 }
 
+.ad-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ad-toolbar input,
+.ad-toolbar select {
+  padding: 8px 10px;
+  border: 1px solid #d8d3c8;
+  font: inherit;
+}
+
+.ad-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #072a1b;
+  color: #f4efe3;
+  border: 0;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ad-btn.danger {
+  background: var(--ad-danger);
+}
+
+.ad-link {
+  background: none;
+  border: 0;
+  color: #0b4a2a;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.ad-table th,
+.ad-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e4dfd4;
+}
+
+.ad-form label {
+  display: block;
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ad-form input,
+.ad-form select,
+.ad-form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d8d3c8;
+  font: inherit;
+}
+
+.ad-check {
+  display: flex !important;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 500 !important;
+}
+
+.ad-check input {
+  width: auto !important;
+  margin-top: 3px;
+}
+
+.ad-revs {
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
 @media (max-width: 900px) {
   .ad-root { grid-template-columns: 1fr; }
   .ad-side { min-height: auto; }
   .ad-cards { grid-template-columns: 1fr 1fr; }
 }
+

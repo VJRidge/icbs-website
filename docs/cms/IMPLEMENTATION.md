@@ -148,13 +148,14 @@ Admin chrome: left sidebar, top toolbar (save state, preview, viewport), central
 
 ### Phase 2 — Pages CRUD (no canvas yet)
 
-- Contents list: search, filter, trash, bulk
-- Edit title, slug, SEO, status, parent
-- Save draft JSON (validated empty document)
-- Publish / unpublish copies draft → published
-- Revisions list + restore
-- Optimistic `doc_version`
-- Public renderer: if homepage published in settings, render it; else current `Free.tsx`
+- [x] Contents list: search, filter, trash, bulk
+- [x] Edit title, slug, SEO, status, parent
+- [x] Save draft JSON (validated empty document)
+- [x] Publish / unpublish copies draft → published
+- [x] Revisions list + restore
+- [x] Optimistic `doc_version`
+- [x] Public renderer: if homepage published in settings, render it; else current `Free.tsx`
+  Plain-text body for now; visual builder is Phase 4.
 
 ### Phase 3 — Media library
 

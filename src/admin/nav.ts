@@ -1,6 +1,6 @@
 export const ADMIN_NAV = [
   { href: '/admin', label: 'Dashboard', phase: 1 },
-  { href: '/admin/pages', label: 'Pages', phase: 2 },
+  { href: '/admin/pages', label: 'Pages', phase: 1 },
   { href: '/admin/posts', label: 'Blog Posts', phase: 5 },
   { href: '/admin/media', label: 'Media Library', phase: 3 },
   { href: '/admin/templates', label: 'Templates', phase: 5 },

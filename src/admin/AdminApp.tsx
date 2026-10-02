@@ -4,6 +4,8 @@ import { ADMIN_NAV } from './nav'
 import Login from './Login'
 import Dashboard from './Dashboard'
 import ComingSoon from './ComingSoon'
+import PagesList from './pages/PagesList'
+import PageEditor from './pages/PageEditor'
 import './admin.css'
 
 type Profile = { role: string; display_name: string | null; staff_approved: boolean }
@@ -14,7 +16,19 @@ function adminPath() {
 
 function titleFor(path: string) {
   if (path === '/admin') return 'Dashboard'
+  if (path === '/admin/pages/new') return 'New page'
+  if (path.startsWith('/admin/pages/')) return 'Edit page'
+  if (path.startsWith('/admin/pages')) return 'Pages'
   return ADMIN_NAV.find((n) => n.href === path)?.label ?? 'Studio'
+}
+
+function screen(path: string, profile: Profile | null) {
+  if (path === '/admin') return <Dashboard profile={profile} />
+  if (path === '/admin/pages') return <PagesList />
+  if (path === '/admin/pages/new') return <PageEditor id="new" />
+  const edit = path.match(/^\/admin\/pages\/([^/]+)$/)
+  if (edit) return <PageEditor id={edit[1]} />
+  return <ComingSoon path={path} />
 }
 
 export default function AdminApp() {
@@ -111,7 +125,7 @@ export default function AdminApp() {
         </div>
         <nav className="ad-nav">
           {ADMIN_NAV.map((item) => (
-            <a key={item.href} href={item.href} className={path === item.href ? 'on' : undefined}>
+            <a key={item.href} href={item.href} className={path === item.href || (item.href !== '/admin' && path.startsWith(item.href)) ? 'on' : undefined}>
               {item.label}
               {item.phase > 1 ? <i>P{item.phase}</i> : null}
             </a>
@@ -137,7 +151,7 @@ export default function AdminApp() {
             View site
           </a>
         </header>
-        <div className="ad-body">{path === '/admin' ? <Dashboard profile={profile} /> : <ComingSoon path={path} />}</div>
+        <div className="ad-body">{screen(path, profile)}</div>
       </div>
     </div>
   )
