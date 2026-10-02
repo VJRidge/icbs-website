@@ -482,7 +482,6 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
         <div className="space-y-4">
           <Group title="Section">
             <Tone data={d} update={update} />
-            <Text data={d} k="greeting" label="Greeting" update={update} />
             <Text data={d} k="heading" label="Bridge heading" update={update} />
             <Text data={d} k="body" label="Bridge story" update={update} multiline />
           </Group>

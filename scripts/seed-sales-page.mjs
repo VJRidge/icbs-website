@@ -52,7 +52,6 @@ const blocks = [
     type: 'kit_questions',
     data: {
       tone: 'cream',
-      greeting: 'Dear builder,',
       questions: [
         { text: 'Were you told you could build a whole app in thirty minutes with one prompt?' },
         { text: 'Have you asked the AI to fix one small thing and watched it change five others?' },

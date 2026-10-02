@@ -226,8 +226,10 @@ input.cms-h.h3, .cms-h.h3, h3.cms-h { font-size: 24px; text-transform: none; fon
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 /* Recognition questions. Append-only so existing landing styles stay put. */
+.sec:has(+ .sec .ask) { padding-bottom: 16px; }
+.sec:has(+ .sec .ask) .lede:last-of-type { margin-bottom: 8px; }
+.sec:has(.ask) { padding-top: 0; }
 .ask { max-width: 680px; margin-inline: auto; }
-.ask-greet { font-size: 22px; line-height: 32px; margin: 0 0 22px; }
 .ask-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .ask-list li { display: flex; gap: 14px; align-items: flex-start; background: #fff; color: var(--ink); border: 2px solid var(--ink); padding: 14px 16px; font-size: 20px; line-height: 28px; }
 .ask-mark { flex: none; width: 16px; height: 16px; margin-top: 6px; background: var(--y); }

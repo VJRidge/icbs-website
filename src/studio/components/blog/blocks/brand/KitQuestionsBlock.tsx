@@ -71,11 +71,6 @@ export function KitQuestionsBlock({ block, edit }: { block: BlogBlock; edit: Kit
   return (
     <section className={`sec ${tone}`} id={str(d, 'anchor') || undefined}>
       <div className="wrap ask">
-        {str(d, 'greeting') || edit ? (
-          <p className="ask-greet">
-            <Field edit={edit} d={d} k="greeting" />
-          </p>
-        ) : null}
         {questions.length ? (
           <ul className="ask-list">
             {questions.map(({ i }) => (
