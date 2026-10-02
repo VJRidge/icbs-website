@@ -111,10 +111,10 @@
 .foot-links a:hover { text-decoration: underline; }
 .foot-end { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .foot-end .foot-links a:first-child { margin-left: 0; }
-.social { display: flex; gap: 18px; align-items: center; color: var(--y); }
-.social a, .social span { display: inline-flex; align-items: center; justify-content: center; color: var(--y); text-decoration: none; }
-.social a:hover { color: var(--cr); }
-.social span.social-ph { opacity: 1; }
+.social { display: flex; gap: 10px; align-items: center; }
+.social a, .social span { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; background: #111; color: #fff; text-decoration: none; }
+.social svg { width: 22px; height: 22px; display: block; }
+.social a:hover { background: var(--y); color: var(--ink); }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; text-align: left; }
 .compare-col { background: #fff; color: var(--ink); border-top: 3px solid var(--ink); padding: 28px 28px 22px; }
 .compare-col h3 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 36px; line-height: 40px; margin: 8px 0 10px; color: var(--ink); }
