@@ -3,6 +3,7 @@ import SignupForm from '../../../../../components/SignupForm';
 import SiteSocial from '../../../../../components/SiteSocial';
 import { EMPTY_SOCIAL, loadSiteChromeOnce, type SiteSocial as SocialMap } from '../../../../../lib/siteChrome';
 import type { BlogBlock, KitTone } from '../../../../lib/blog/blogBlockTypes';
+import { KitQuestionsBlock } from './KitQuestionsBlock';
 
 type Row = Record<string, string>;
 
@@ -544,6 +545,7 @@ function KitSignup({ block }: { block: BlogBlock }) {
 }
 
 export function KitBlockView({ block }: { block: BlogBlock }) {
+  const edit = useContext(KitEditContext);
   switch (block.type) {
     case 'kit_hero':
       return <KitHero block={block} />;
@@ -557,6 +559,8 @@ export function KitBlockView({ block }: { block: BlogBlock }) {
       return <KitText block={block} />;
     case 'kit_signup':
       return <KitSignup block={block} />;
+    case 'kit_questions':
+      return <KitQuestionsBlock block={block} edit={edit} />;
     default:
       return null;
   }
