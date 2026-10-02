@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api/|downloads/|img/|assets/|src/|node_modules/|@).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
