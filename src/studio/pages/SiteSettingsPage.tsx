@@ -39,6 +39,7 @@ export default function SiteSettingsPage({ userProfile }: { userProfile: UserPro
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile)) {
@@ -77,7 +78,8 @@ export default function SiteSettingsPage({ userProfile }: { userProfile: UserPro
 
   const save = async () => {
     setSaving(true);
-    const { error: saveError } = await supabase
+    setStatus(null);
+    const { data, error: saveError } = await supabase
       .from('settings')
       .update({
         site_name: form.site_name.trim() || empty.site_name,
@@ -86,10 +88,24 @@ export default function SiteSettingsPage({ userProfile }: { userProfile: UserPro
         date_format: form.date_format.trim() || empty.date_format,
         homepage_content_id: form.homepage_content_id || null,
         kit_content_id: form.kit_content_id || null,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', 1);
+      .eq('id', 1)
+      .select('id')
+      .maybeSingle();
     setSaving(false);
-    if (saveError) window.alert(saveError.message);
+    if (saveError) {
+      setStatus(saveError.message);
+      window.alert(saveError.message);
+      return;
+    }
+    if (!data) {
+      const msg = 'Save did not write. Sign out, sign back in, and try again.';
+      setStatus(msg);
+      window.alert(msg);
+      return;
+    }
+    setStatus('Saved.');
   };
 
   if (!isAnyAdminProfile(userProfile)) {
@@ -231,6 +247,9 @@ export default function SiteSettingsPage({ userProfile }: { userProfile: UserPro
             >
               {saving ? 'Saving…' : 'Save settings'}
             </button>
+            {status ? (
+              <p className={`text-sm font-medium ${status === 'Saved.' ? 'text-emerald-700' : 'text-red-700'}`}>{status}</p>
+            ) : null}
           </div>
         )}
       </div>

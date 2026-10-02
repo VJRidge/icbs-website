@@ -7,6 +7,7 @@ import { LandingMediaPicker } from '../components/LandingMediaPicker';
 import {
   chromeStylesPayload,
   DEFAULT_SITE_CHROME,
+  invalidateSiteChrome,
   loadSiteChrome,
   type SiteChrome,
 } from '../../lib/siteChrome';
@@ -22,6 +23,7 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
   const [prevStyles, setPrevStyles] = useState<unknown>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [picker, setPicker] = useState(false);
 
   useEffect(() => {
@@ -45,19 +47,34 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase
+    setStatus(null);
+    const { data: latest } = await supabase.from('settings').select('global_styles').eq('id', 1).maybeSingle();
+    const nextStyles = chromeStylesPayload(form, latest?.global_styles ?? prevStyles);
+    const { data, error } = await supabase
       .from('settings')
       .update({
         site_name: form.siteName.trim() || DEFAULT_SITE_CHROME.siteName,
-        global_styles: chromeStylesPayload(form, prevStyles),
+        global_styles: nextStyles,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', 1);
+      .eq('id', 1)
+      .select('id')
+      .maybeSingle();
     setSaving(false);
     if (error) {
+      setStatus(error.message);
       window.alert(error.message);
       return;
     }
-    setPrevStyles(chromeStylesPayload(form, prevStyles));
+    if (!data) {
+      const msg = 'Save did not write. Sign out, sign back in, and try again.';
+      setStatus(msg);
+      window.alert(msg);
+      return;
+    }
+    setPrevStyles(nextStyles);
+    invalidateSiteChrome();
+    setStatus('Saved. The public header shows on /about and /blog — /free keeps its own top bar.');
   };
 
   if (!isAnyAdminProfile(userProfile)) {
@@ -132,6 +149,20 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-brand-blue/40"
               />
             </label>
+            <div className="rounded-xl bg-[#072a1b] p-4 text-white">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/45">Public header preview</p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                {form.logoUrl ? (
+                  <img src={form.logoUrl} alt="" className="h-8 w-auto rounded bg-white/10 p-1" />
+                ) : (
+                  <span className="rounded bg-brand-yellow px-2 py-0.5 text-xs font-black text-brand-blue">
+                    {form.siteName || 'I Call BS'}
+                  </span>
+                )}
+                <span className="text-sm text-white/80">{form.tagline}</span>
+              </div>
+              <p className="mt-3 border-t border-white/15 pt-3 text-xs text-white/70">{form.footerCredit || 'Footer credit'}</p>
+            </div>
             <button
               type="button"
               disabled={saving}
@@ -140,6 +171,9 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
             >
               {saving ? 'Saving…' : 'Save appearance'}
             </button>
+            {status ? (
+              <p className={`text-sm font-medium ${status.startsWith('Saved') ? 'text-emerald-700' : 'text-red-700'}`}>{status}</p>
+            ) : null}
           </div>
         )}
       </div>

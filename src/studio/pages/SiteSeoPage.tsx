@@ -28,6 +28,7 @@ export default function SiteSeoPage({ userProfile }: { userProfile: UserProfile 
   const [toPath, setToPath] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [rowSaving, setRowSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,17 +71,33 @@ export default function SiteSeoPage({ userProfile }: { userProfile: UserProfile 
 
   const saveDefaults = async () => {
     setSaving(true);
-    const nextStyles = { ...prevStyles, seoTitleSuffix: suffix.trim() || 'I Call BS' };
-    const { error: saveError } = await supabase
+    setStatus(null);
+    const { data: latest } = await supabase.from('settings').select('global_styles').eq('id', 1).maybeSingle();
+    const nextStyles = { ...((latest?.global_styles ?? prevStyles) as Record<string, unknown>), seoTitleSuffix: suffix.trim() || 'I Call BS' };
+    const { data, error: saveError } = await supabase
       .from('settings')
       .update({
         site_description: description.trim() || null,
         global_styles: nextStyles,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', 1);
+      .eq('id', 1)
+      .select('id')
+      .maybeSingle();
     setSaving(false);
-    if (saveError) window.alert(saveError.message);
-    else setPrevStyles(nextStyles);
+    if (saveError) {
+      setStatus(saveError.message);
+      window.alert(saveError.message);
+      return;
+    }
+    if (!data) {
+      const msg = 'Save did not write. Sign out, sign back in, and try again.';
+      setStatus(msg);
+      window.alert(msg);
+      return;
+    }
+    setPrevStyles(nextStyles);
+    setStatus('Saved.');
   };
 
   const saveRow = async (row: SeoRow) => {
@@ -181,6 +198,9 @@ export default function SiteSeoPage({ userProfile }: { userProfile: UserProfile 
               >
                 {saving ? 'Saving…' : 'Save defaults'}
               </button>
+              {status ? (
+                <p className={`text-sm font-medium ${status === 'Saved.' ? 'text-emerald-700' : 'text-red-700'}`}>{status}</p>
+              ) : null}
             </section>
 
             <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

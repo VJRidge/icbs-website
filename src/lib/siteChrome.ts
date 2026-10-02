@@ -83,6 +83,10 @@ export async function loadSiteChrome(sb: SupabaseClient | null = supabaseBrowser
 
 let cached: Promise<SiteChrome> | null = null
 
+export function invalidateSiteChrome() {
+  cached = null
+}
+
 export function loadSiteChromeOnce(): Promise<SiteChrome> {
   if (!cached) cached = loadSiteChrome()
   return cached

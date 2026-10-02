@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import { CONTENT_KINDS } from '../lib/contentKinds';
-import { DEFAULT_SITE_CHROME, loadSiteChrome, type SiteMenuItem } from '../../lib/siteChrome';
+import { DEFAULT_SITE_CHROME, invalidateSiteChrome, loadSiteChrome, type SiteMenuItem } from '../../lib/siteChrome';
 import type { UserProfile } from '../types';
 
 const QUICK: SiteMenuItem[] = [
@@ -150,6 +150,7 @@ export default function SiteMenusPage({ userProfile }: { userProfile: UserProfil
   const [pages, setPages] = useState<PageOpt[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile)) {
@@ -172,11 +173,16 @@ export default function SiteMenusPage({ userProfile }: { userProfile: UserProfil
 
   const save = async () => {
     setSaving(true);
+    setStatus(null);
     try {
       await upsertMenu('header', 'Header', header);
       await upsertMenu('footer', 'Footer', footer);
+      invalidateSiteChrome();
+      setStatus('Saved. Header links show on /about and /blog. Footer links show site-wide, including /free.');
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Could not save menus.');
+      const msg = err instanceof Error ? err.message : 'Could not save menus.';
+      setStatus(msg);
+      window.alert(msg);
     } finally {
       setSaving(false);
     }
@@ -229,6 +235,9 @@ export default function SiteMenusPage({ userProfile }: { userProfile: UserProfil
             >
               {saving ? 'Saving…' : 'Save menus'}
             </button>
+            {status ? (
+              <p className={`text-sm font-medium ${status.startsWith('Saved') ? 'text-emerald-700' : 'text-red-700'}`}>{status}</p>
+            ) : null}
           </div>
         )}
       </div>
