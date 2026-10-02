@@ -357,7 +357,8 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
             <Text data={d} k="buttonLabel" label="Button label" update={update} />
             <Text data={d} k="buttonHref" label="Button link (when form is off)" update={update} hint="e.g. #buy or a Stripe URL" />
             <Text data={d} k="button2Label" label="Second button label" update={update} />
-            <Text data={d} k="button2Href" label="Second button link" update={update} hint="Outline button. e.g. /free" />
+            <Text data={d} k="button2Href" label="Second button link" update={update} hint="Outline button. e.g. #buy" />
+            <Text data={d} k="anchor" label="Section id" update={update} hint="e.g. kit — links can jump here with #kit" />
           </Group>
           <Group title="Receipts strip">
             <RowList

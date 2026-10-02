@@ -1,4 +1,4 @@
-import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useState, useRef, type KeyboardEvent } from 'react';
+import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useState, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import SignupForm from '../../../../../components/SignupForm';
 import SiteSocial from '../../../../../components/SiteSocial';
 import { EMPTY_SOCIAL, loadSiteChromeOnce, type SiteSocial as SocialMap } from '../../../../../lib/siteChrome';
@@ -99,9 +99,9 @@ function Img({
 }
 
 /** Signup forms are inert inside the editor so clicks select the block instead of submitting. */
-function KitForm({ id, label }: { id: string; label: string }) {
+function KitForm({ id, label, companion }: { id: string; label: string; companion?: ReactNode }) {
   const editing = useContext(KitEditContext) !== null;
-  const form = <SignupForm id={`kit-${id}`} buttonLabel={label || undefined} />;
+  const form = <SignupForm id={`kit-${id}`} buttonLabel={label || undefined} companion={companion} />;
   return editing ? <div inert>{form}</div> : form;
 }
 
@@ -149,7 +149,7 @@ function KitHero({ block }: { block: BlogBlock }) {
     .filter(({ r }) => (r.value ?? '').trim() || (r.label ?? '').trim());
   const cover = str(d, 'coverUrl');
   return (
-    <div className="green">
+    <div className="green" id={str(d, 'anchor') || undefined}>
       <div className="wrap">
         {d.showNav !== false ? (
           <div className="nav">
@@ -189,14 +189,15 @@ function KitHero({ block }: { block: BlogBlock }) {
                 <Txt d={d} k="subhead" />
               </p>
             ) : null}
-            {d.showForm !== false ? <KitForm id={block.id} label={str(d, 'buttonLabel')} /> : null}
-            {d.showForm === false ? (
-              <div className="hero-actions">
-                <HeroButton d={d} labelKey="buttonLabel" hrefKey="buttonHref" className="btn" edit={!!edit} />
-                <HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />
-              </div>
+            {d.showForm !== false ? (
+              <KitForm
+                id={block.id}
+                label={str(d, 'buttonLabel')}
+                companion={<HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />}
+              />
             ) : (
               <div className="hero-actions">
+                <HeroButton d={d} labelKey="buttonLabel" hrefKey="buttonHref" className="btn" edit={!!edit} />
                 <HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />
               </div>
             )}

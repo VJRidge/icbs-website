@@ -1,7 +1,15 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { captureUtm } from '../lib/utm'
 
-export default function SignupForm({ id, buttonLabel = 'Send me the free kit' }: { id: string; buttonLabel?: string }) {
+export default function SignupForm({
+  id,
+  buttonLabel = 'Send me the free kit',
+  companion,
+}: {
+  id: string
+  buttonLabel?: string
+  companion?: ReactNode
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -45,9 +53,18 @@ export default function SignupForm({ id, buttonLabel = 'Send me the free kit' }:
         <label htmlFor={`${id}-company`}>Company</label>
         <input id={`${id}-company`} name="company" tabIndex={-1} autoComplete="off" />
       </div>
-      <button className="btn" type="submit" disabled={busy}>
-        {busy ? 'Sending…' : buttonLabel}
-      </button>
+      {companion ? (
+        <div className="form-actions">
+          <button className="btn" type="submit" disabled={busy}>
+            {busy ? 'Sending…' : buttonLabel}
+          </button>
+          {companion}
+        </div>
+      ) : (
+        <button className="btn" type="submit" disabled={busy}>
+          {busy ? 'Sending…' : buttonLabel}
+        </button>
+      )}
       {error && <div className="err" role="alert">{error}</div>}
       <div className="fine">
         Free PDF. You’ll also get a few emails about building with AI. Unsubscribe anytime. <a href="/privacy">Privacy</a>

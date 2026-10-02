@@ -303,6 +303,7 @@ export const BLOG_BLOCK_DEFAULTS = {
     buttonHref: '',
     button2Label: '',
     button2Href: '',
+    anchor: '',
     receipts: [
       { value: '221', label: 'Chat sessions' },
       { value: '3,302', label: 'Prompts I typed' },

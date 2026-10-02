@@ -23,6 +23,7 @@ const blocks = [
       buttonHref: '',
       button2Label: 'Get the full guide — $17',
       button2Href: '#buy',
+      anchor: 'kit',
       receipts: [
         { value: '221', label: 'Chat sessions' },
         { value: '3,302', label: 'Prompts I typed' },
@@ -181,32 +182,6 @@ const blocks = [
         { url: '/img/preview-smoke.jpg', alt: 'Kit page: The Smoke Test' },
       ],
       caption: 'My receipts · Not a knowledge gap · The smoke test',
-    },
-  },
-  {
-    id: 'sale-kit-form',
-    type: 'kit_signup',
-    data: {
-      tone: 'white',
-      label: 'Free starter kit',
-      heading: 'Send me the free kit.',
-      buttonLabel: 'Send me the free kit',
-      anchor: 'kit',
-    },
-  },
-  {
-    id: 'sale-kit',
-    type: 'kit_text',
-    data: {
-      tone: 'white',
-      label: 'Kit or book',
-      heading: 'Start free. Buy when you want the how.',
-      body: 'The free starter kit is the myth-busting and the mindset. The full edition is the how.\n\nTake the kit either way.',
-      highlight: '',
-      centered: true,
-      buttonLabel: 'Get the free starter kit',
-      buttonHref: '#kit',
-      anchor: '',
     },
   },
   {
