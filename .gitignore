@@ -5,4 +5,4 @@ dist
 .env*.local
 .vercel
 *.zip
-!.env.example
+tsconfig.tsbuildinfo
