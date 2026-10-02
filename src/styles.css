@@ -20,7 +20,7 @@
   body { margin: 0; font-family: var(--serif); color: var(--ink); background: var(--g); -webkit-font-smoothing: antialiased; }
   img { max-width: 100%; display: block; }
   a { color: inherit; }
-  mark { background: var(--hl); padding: 0 3px; color: inherit; }
+  mark { background: var(--hl); padding: 0 3px; color: var(--ink); }
 }
 .wrap { max-width: 1440px; margin: 0 auto; }
 .k { font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }

@@ -184,31 +184,6 @@ const blocks = [
     },
   },
   {
-    id: 'sale-kit-list',
-    type: 'kit_contents',
-    data: {
-      tone: 'cream',
-      layout: 'list',
-      label: 'Inside the kit',
-      heading: 'What this free kit is',
-      lede: 'The myth-busting, the mindset, and just enough of the toolkit to prove it is real.',
-      ledeHighlight: 'Everything here is yours to copy, edit, and keep.',
-      anchor: 'kit',
-      items: [
-        { number: '01', title: 'Myth vs Reality', kind: 'Part 01' },
-        { number: '02', title: 'AI Is Not Smarter Than You', kind: 'Part 02' },
-        { number: '03', title: 'Three Lessons from the Receipts', kind: 'Part 03' },
-        { number: '04', title: 'The Literacy Gate', kind: 'Part 04' },
-        { number: '05', title: 'The Toolkit', kind: 'Part 05' },
-        { number: '—', title: 'Where to Go from Here', kind: 'Next step' },
-        { number: '—', title: 'The Pocket Glossary', kind: 'Glossary' },
-        { number: '—', title: 'Proof Your Work', kind: 'Checklist' },
-        { number: '—', title: 'The Smoke Test', kind: 'Checklist' },
-        { number: '—', title: 'Before You Ship', kind: 'Checklist' },
-      ],
-    },
-  },
-  {
     id: 'sale-kit-form',
     type: 'kit_signup',
     data: {
@@ -216,7 +191,7 @@ const blocks = [
       label: 'Free starter kit',
       heading: 'Send me the free kit.',
       buttonLabel: 'Send me the free kit',
-      anchor: '',
+      anchor: 'kit',
     },
   },
   {
