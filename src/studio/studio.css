@@ -10,3 +10,12 @@ body:has(.studio-root) {
   color: rgb(15 23 42);
   background: #04190f;
 }
+
+/* In-place editing for brand (kit) blocks on the editor canvas. Sizes are pre-scale (canvas renders at ~0.6x). */
+.kit-editable { outline: 3px dashed transparent; outline-offset: 6px; border-radius: 4px; cursor: text; transition: outline-color .12s; }
+.kit-editable:empty { display: inline-block; min-width: 2.5em; }
+.kit-editable:empty::before { content: 'Type\2026'; opacity: .45; }
+.kit-editable:hover { outline-color: rgba(253, 194, 15, .85); }
+.kit-editable:focus { outline: 3px solid #fdc20f; background: rgba(253, 194, 15, .12); }
+.kit-editable-img { cursor: pointer; transition: outline-color .12s, filter .12s; outline: 4px dashed transparent; outline-offset: 6px; }
+.kit-editable-img:hover { outline-color: rgba(253, 194, 15, .9); filter: brightness(1.06); }

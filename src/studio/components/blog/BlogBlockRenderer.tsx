@@ -36,7 +36,7 @@ import BlogModalPopupBlock from './blocks/BlogModalPopupBlock';
 import BlogAnimatedHeadlineBlock from './blocks/BlogAnimatedHeadlineBlock';
 import BlogSocialEmbedBlock from './blocks/BlogSocialEmbedBlock';
 import BlogColumnsBlock from './blocks/BlogColumnsBlock';
-import KitBlock from './blocks/brand/KitBlocks';
+import KitBlock from './blocks/brand/KitBlockCanvas';
 
 export default function BlogBlockRenderer({
   block,

@@ -1,9 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { ReactNode } from 'react';
-import { GripVertical, Trash2, Copy, Plus, ChevronUp, ChevronDown, Square } from 'lucide-react';
+import { GripVertical, Trash2, Copy, Plus, ChevronUp, ChevronDown, Square, Pencil } from 'lucide-react';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
-import { BLOG_BLOCK_ICONS, BLOG_BLOCK_LABELS, type BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { BLOG_BLOCK_ICONS, BLOG_BLOCK_LABELS, isKitBlockType, type BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import BlogBlockRenderer from '../BlogBlockRenderer';
 import { useBlogFileDropTargetId } from './BlogEditorFileDrop';
 
@@ -103,6 +103,19 @@ export default function BlogDraggableBlock({
             {label}
           </span>
           <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+              }}
+              title={isKitBlockType(block.type) ? 'Edit: click any text or image on the canvas, or use the left panel' : 'Edit in the left panel'}
+              className={`mr-1 inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                isSelected ? 'bg-brand-blue text-brand-yellow' : 'bg-slate-100 text-slate-600 hover:bg-brand-blue hover:text-brand-yellow'
+              }`}
+            >
+              <Pencil size={11} /> Edit
+            </button>
             <Btn onClick={() => duplicateBlock(block.id)} title="Duplicate" icon={<Copy size={11} />} />
             <Btn onClick={onAddAfter} title="Insert after" icon={<Plus size={11} />} />
             {canMoveUp ? <Btn onClick={() => moveBlock(index, index - 1)} title="Move up" icon={<ChevronUp size={11} />} /> : null}

@@ -1,8 +1,17 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
 import SignupForm from '../../../../../components/SignupForm';
 import type { BlogBlock, KitTone } from '../../../../lib/blog/blogBlockTypes';
 
 type Row = Record<string, string>;
+
+/** Present only on the editor canvas; lets text and images be edited in place. */
+export type KitEditApi = {
+  setField: (key: string, value: string) => void;
+  setRowField: (list: string, index: number, field: string, value: string) => void;
+  pickImage: (onPick: (url: string) => void) => void;
+};
+
+export const KitEditContext = createContext<KitEditApi | null>(null);
 
 function str(data: Record<string, unknown>, key: string): string {
   const v = data[key];
@@ -19,51 +28,130 @@ function tone(data: Record<string, unknown>, fallback: KitTone): KitTone {
   return t === 'green' || t === 'cream' || t === 'white' ? t : fallback;
 }
 
-/** Signup forms are inert inside the editor so clicks select the block instead of submitting. */
-function KitForm({ id, label, preview }: { id: string; label: string; preview: boolean }) {
-  const form = <SignupForm id={`kit-${id}`} buttonLabel={label || undefined} />;
-  return preview ? <div inert>{form}</div> : form;
-}
+/** Plain-text inline editor. Uses textContent (innerText would bake in CSS text-transform). */
+function InlineText({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
 
-function Highlight({ before, mark, after }: { before: string; mark: string; after?: string }) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && document.activeElement !== el && el.textContent !== value) el.textContent = value;
+  }, [value]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLSpanElement>) => {
+    e.stopPropagation();
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  };
+
   return (
-    <>
-      {before}
-      {mark ? <span className="y">{mark}</span> : null}
-      {after}
-    </>
+    <span
+      ref={ref}
+      className="kit-editable"
+      contentEditable="plaintext-only"
+      suppressContentEditableWarning
+      spellCheck
+      title="Click to edit"
+      onKeyDown={onKeyDown}
+      onInput={(e) => onChange((e.currentTarget.textContent ?? '').replace(/\u00a0/g, ' '))}
+    />
   );
 }
 
-function KitHero({ block, preview }: { block: BlogBlock; preview: boolean }) {
+/** A text field from `block.data` (or a list row): plain text publicly, editable on the canvas. */
+function Txt({ d, k, row }: { d: Record<string, unknown>; k: string; row?: [string, number] }) {
+  const edit = useContext(KitEditContext);
+  const value = row ? (rows(d, row[0])[row[1]]?.[k] ?? '') : str(d, k);
+  if (!edit) return <>{value}</>;
+  const onChange = row ? (v: string) => edit.setRowField(row[0], row[1], k, v) : (v: string) => edit.setField(k, v);
+  return <InlineText value={value} onChange={onChange} />;
+}
+
+function Img({ src, alt, onPick, ...rest }: { src: string; alt: string; onPick: (url: string) => void } & React.ImgHTMLAttributes<HTMLImageElement>) {
+  const edit = useContext(KitEditContext);
+  if (!edit) return <img src={src} alt={alt} {...rest} />;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      {...rest}
+      className={[rest.className, 'kit-editable-img'].filter(Boolean).join(' ')}
+      title="Click to replace image"
+      onClick={() => edit.pickImage(onPick)}
+    />
+  );
+}
+
+/** Signup forms are inert inside the editor so clicks select the block instead of submitting. */
+function KitForm({ id, label }: { id: string; label: string }) {
+  const editing = useContext(KitEditContext) !== null;
+  const form = <SignupForm id={`kit-${id}`} buttonLabel={label || undefined} />;
+  return editing ? <div inert>{form}</div> : form;
+}
+
+function useSetField() {
+  const edit = useContext(KitEditContext);
+  return (key: string) => (url: string) => edit?.setField(key, url);
+}
+
+function KitHero({ block }: { block: BlogBlock }) {
   const d = block.data;
-  const receipts = rows(d, 'receipts').filter((r) => (r.value ?? '').trim() || (r.label ?? '').trim());
+  const setField = useSetField();
+  const edit = useContext(KitEditContext);
+  const receipts = rows(d, 'receipts')
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => (r.value ?? '').trim() || (r.label ?? '').trim());
   const cover = str(d, 'coverUrl');
   return (
     <div className="green">
       <div className="wrap">
         <div className="nav">
-          {str(d, 'tag') ? <span className="k tag">{str(d, 'tag')}</span> : <span />}
-          {str(d, 'tagline') ? <span className="k">{str(d, 'tagline')}</span> : null}
+          {str(d, 'tag') ? (
+            <span className="k tag">
+              <Txt d={d} k="tag" />
+            </span>
+          ) : (
+            <span />
+          )}
+          {str(d, 'tagline') ? (
+            <span className="k">
+              <Txt d={d} k="tagline" />
+            </span>
+          ) : null}
         </div>
         <div className="hero">
           <div className="cov">
-            {cover ? <img src={cover} alt={str(d, 'coverAlt')} width={640} height={828} /> : null}
+            {cover ? <Img src={cover} alt={str(d, 'coverAlt')} width={640} height={828} onPick={setField('coverUrl')} /> : null}
           </div>
           <div>
             <h1 className="an">
-              <Highlight before={str(d, 'headlineBefore')} mark={str(d, 'highlight')} after={str(d, 'headlineAfter')} />
+              <Txt d={d} k="headlineBefore" />
+              {str(d, 'highlight') || edit ? (
+                <span className="y">
+                  <Txt d={d} k="highlight" />
+                </span>
+              ) : null}
+              <Txt d={d} k="headlineAfter" />
             </h1>
-            {str(d, 'subhead') ? <p className="sub">{str(d, 'subhead')}</p> : null}
-            {d.showForm !== false ? <KitForm id={block.id} label={str(d, 'buttonLabel')} preview={preview} /> : null}
+            {str(d, 'subhead') ? (
+              <p className="sub">
+                <Txt d={d} k="subhead" />
+              </p>
+            ) : null}
+            {d.showForm !== false ? <KitForm id={block.id} label={str(d, 'buttonLabel')} /> : null}
           </div>
         </div>
         {receipts.length ? (
           <div className="strip">
-            {receipts.map((r, i) => (
+            {receipts.map(({ i }) => (
               <div key={i}>
-                <b>{r.value}</b>
-                <span>{r.label}</span>
+                <b>
+                  <Txt d={d} k="value" row={['receipts', i]} />
+                </b>
+                <span>
+                  <Txt d={d} k="label" row={['receipts', i]} />
+                </span>
               </div>
             ))}
           </div>
@@ -73,9 +161,13 @@ function KitHero({ block, preview }: { block: BlogBlock; preview: boolean }) {
   );
 }
 
-function SectionLabel({ text, t, centered }: { text: string; t: KitTone; centered?: boolean }) {
-  if (!text) return null;
-  return <div className={['k', t === 'green' ? '' : 'o', centered ? 'center' : ''].filter(Boolean).join(' ')}>{text}</div>;
+function SectionLabel({ d, t, centered }: { d: Record<string, unknown>; t: KitTone; centered?: boolean }) {
+  if (!str(d, 'label')) return null;
+  return (
+    <div className={['k', t === 'green' ? '' : 'o', centered ? 'center' : ''].filter(Boolean).join(' ')}>
+      <Txt d={d} k="label" />
+    </div>
+  );
 }
 
 function KitContents({ block }: { block: BlogBlock }) {
@@ -85,22 +177,36 @@ function KitContents({ block }: { block: BlogBlock }) {
   return (
     <section className={`sec ${t}`}>
       <div className="wrap">
-        <SectionLabel text={str(d, 'label')} t={t} />
-        {str(d, 'heading') ? <h2>{str(d, 'heading')}</h2> : null}
+        <SectionLabel d={d} t={t} />
+        {str(d, 'heading') ? (
+          <h2>
+            <Txt d={d} k="heading" />
+          </h2>
+        ) : null}
         {str(d, 'lede') || str(d, 'ledeHighlight') ? (
           <p className="lede">
-            {str(d, 'lede')}
+            <Txt d={d} k="lede" />
             {str(d, 'lede') && str(d, 'ledeHighlight') ? ' ' : null}
-            {str(d, 'ledeHighlight') ? <mark>{str(d, 'ledeHighlight')}</mark> : null}
+            {str(d, 'ledeHighlight') ? (
+              <mark>
+                <Txt d={d} k="ledeHighlight" />
+              </mark>
+            ) : null}
           </p>
         ) : null}
         {items.length ? (
           <ul className="toc">
-            {items.map((it, i) => (
+            {items.map((_, i) => (
               <li key={i}>
-                <b>{it.number}</b>
-                <span>{it.title}</span>
-                <i>{it.kind}</i>
+                <b>
+                  <Txt d={d} k="number" row={['items', i]} />
+                </b>
+                <span>
+                  <Txt d={d} k="title" row={['items', i]} />
+                </span>
+                <i>
+                  <Txt d={d} k="kind" row={['items', i]} />
+                </i>
               </li>
             ))}
           </ul>
@@ -113,37 +219,64 @@ function KitContents({ block }: { block: BlogBlock }) {
 function KitGallery({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'white');
-  const images = rows(d, 'images').filter((im) => (im.url ?? '').trim());
+  const edit = useContext(KitEditContext);
+  const images = rows(d, 'images')
+    .map((im, i) => ({ im, i }))
+    .filter(({ im }) => (im.url ?? '').trim());
   return (
     <section className={`sec ${t}`}>
       <div className="wrap">
-        <SectionLabel text={str(d, 'label')} t={t} centered />
-        {str(d, 'heading') ? <h2 className="center">{str(d, 'heading')}</h2> : null}
+        <SectionLabel d={d} t={t} centered />
+        {str(d, 'heading') ? (
+          <h2 className="center">
+            <Txt d={d} k="heading" />
+          </h2>
+        ) : null}
         {images.length ? (
           <div className="pv">
-            {images.map((im, i) => (
-              <img key={i} src={im.url} alt={im.alt ?? ''} loading="lazy" />
+            {images.map(({ im, i }) => (
+              <Img
+                key={i}
+                src={im.url}
+                alt={im.alt ?? ''}
+                loading="lazy"
+                onPick={(url) => edit?.setRowField('images', i, 'url', url)}
+              />
             ))}
           </div>
         ) : null}
-        {str(d, 'caption') ? <div className="cap">{str(d, 'caption')}</div> : null}
+        {str(d, 'caption') ? (
+          <div className="cap">
+            <Txt d={d} k="caption" />
+          </div>
+        ) : null}
       </div>
     </section>
   );
 }
 
-function KitClosing({ block, preview }: { block: BlogBlock; preview: boolean }) {
+function KitClosing({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'green');
+  const edit = useContext(KitEditContext);
   return (
     <section className={`sec ${t}`}>
       <div className="wrap close">
         <h2>
-          <Highlight before={str(d, 'headlineBefore')} mark={str(d, 'highlight')} />
+          <Txt d={d} k="headlineBefore" />
+          {str(d, 'highlight') || edit ? (
+            <span className="y">
+              <Txt d={d} k="highlight" />
+            </span>
+          ) : null}
         </h2>
         <div>
-          {str(d, 'label') ? <div className="k">{str(d, 'label')}</div> : null}
-          <KitForm id={block.id} label={str(d, 'buttonLabel')} preview={preview} />
+          {str(d, 'label') ? (
+            <div className="k">
+              <Txt d={d} k="label" />
+            </div>
+          ) : null}
+          <KitForm id={block.id} label={str(d, 'buttonLabel')} />
         </div>
       </div>
     </section>
@@ -153,27 +286,46 @@ function KitClosing({ block, preview }: { block: BlogBlock; preview: boolean }) 
 function KitText({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'cream');
+  const edit = useContext(KitEditContext);
   const centered = d.centered === true;
   const href = str(d, 'buttonHref');
-  const paragraphs = str(d, 'body').split(/\n{2,}/).filter((p) => p.trim());
+  const parts = str(d, 'body').split(/\n{2,}/);
+  const paragraphs = parts.map((p, i) => ({ p, i })).filter(({ p }) => p.trim());
+  const setParagraph = (i: number, v: string) => {
+    const next = [...parts];
+    next[i] = v;
+    edit?.setField('body', next.join('\n\n'));
+  };
+  const centerStyle = centered ? { marginInline: 'auto' } : undefined;
   return (
     <section className={`sec ${t}`}>
       <div className={centered ? 'wrap center' : 'wrap'}>
-        <SectionLabel text={str(d, 'label')} t={t} centered={centered} />
-        {str(d, 'heading') ? <h2 className={centered ? 'center' : undefined}>{str(d, 'heading')}</h2> : null}
-        {paragraphs.map((p, i) => (
-          <p key={i} className="lede" style={centered ? { marginInline: 'auto' } : undefined}>
-            {p}
+        <SectionLabel d={d} t={t} centered={centered} />
+        {str(d, 'heading') ? (
+          <h2 className={centered ? 'center' : undefined}>
+            <Txt d={d} k="heading" />
+          </h2>
+        ) : null}
+        {paragraphs.map(({ p, i }) => (
+          <p key={i} className="lede" style={centerStyle}>
+            {edit ? <InlineText value={p} onChange={(v) => setParagraph(i, v)} /> : p}
           </p>
         ))}
         {str(d, 'highlight') ? (
-          <p className="lede" style={centered ? { marginInline: 'auto' } : undefined}>
-            <mark>{str(d, 'highlight')}</mark>
+          <p className="lede" style={centerStyle}>
+            <mark>
+              <Txt d={d} k="highlight" />
+            </mark>
           </p>
         ) : null}
         {str(d, 'buttonLabel') && href ? (
-          <a className="btn" href={href} style={{ maxWidth: 440, ...(centered ? { marginInline: 'auto' } : {}) }}>
-            {str(d, 'buttonLabel')}
+          <a
+            className="btn"
+            href={href}
+            style={{ maxWidth: 440, ...(centered ? { marginInline: 'auto' } : {}) }}
+            onClick={edit ? (e) => e.preventDefault() : undefined}
+          >
+            <Txt d={d} k="buttonLabel" />
           </a>
         ) : null}
       </div>
@@ -181,81 +333,39 @@ function KitText({ block }: { block: BlogBlock }) {
   );
 }
 
-function KitSignup({ block, preview }: { block: BlogBlock; preview: boolean }) {
+function KitSignup({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'green');
   return (
     <section className={`sec ${t}`}>
       <div className="wrap" style={{ maxWidth: 560 }}>
-        <SectionLabel text={str(d, 'label')} t={t} />
-        {str(d, 'heading') ? <h2>{str(d, 'heading')}</h2> : null}
-        <KitForm id={block.id} label={str(d, 'buttonLabel')} preview={preview} />
+        <SectionLabel d={d} t={t} />
+        {str(d, 'heading') ? (
+          <h2>
+            <Txt d={d} k="heading" />
+          </h2>
+        ) : null}
+        <KitForm id={block.id} label={str(d, 'buttonLabel')} />
       </div>
     </section>
   );
 }
 
-export function KitBlockView({ block, preview = false }: { block: BlogBlock; preview?: boolean }) {
+export function KitBlockView({ block }: { block: BlogBlock }) {
   switch (block.type) {
     case 'kit_hero':
-      return <KitHero block={block} preview={preview} />;
+      return <KitHero block={block} />;
     case 'kit_contents':
       return <KitContents block={block} />;
     case 'kit_gallery':
       return <KitGallery block={block} />;
     case 'kit_closing':
-      return <KitClosing block={block} preview={preview} />;
+      return <KitClosing block={block} />;
     case 'kit_text':
       return <KitText block={block} />;
     case 'kit_signup':
-      return <KitSignup block={block} preview={preview} />;
+      return <KitSignup block={block} />;
     default:
       return null;
   }
-}
-
-const DESKTOP_WIDTH = 1280;
-
-/** Scales a desktop-width render down to the canvas so the editor shows the real layout. */
-function KitCanvasFrame({ children }: { children: ReactNode }) {
-  const outer = useRef<HTMLDivElement>(null);
-  const inner = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.6);
-  const [height, setHeight] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    const o = outer.current;
-    const i = inner.current;
-    if (!o || !i) return;
-    const measure = () => {
-      const s = Math.min(1, o.clientWidth / DESKTOP_WIDTH);
-      setScale(s);
-      setHeight(i.offsetHeight * s);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(o);
-    ro.observe(i);
-    return () => ro.disconnect();
-  }, []);
-
-  return (
-    <div ref={outer} className="overflow-hidden rounded-lg" style={{ height: height ?? undefined }}>
-      <div
-        ref={inner}
-        style={{ width: DESKTOP_WIDTH, transform: `scale(${scale})`, transformOrigin: 'top left', fontFamily: 'var(--serif)', color: 'var(--ink)' }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-export default function KitBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
-  if (!isEditing) return <KitBlockView block={block} />;
-  return (
-    <KitCanvasFrame>
-      <KitBlockView block={block} preview />
-    </KitCanvasFrame>
-  );
 }
