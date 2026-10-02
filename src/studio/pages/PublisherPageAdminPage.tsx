@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, ChevronDown, Copy, Eye, FileText, Loader2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { nanoid } from 'nanoid';
@@ -13,7 +13,7 @@ import {
   unwrapTiptapEscapedFullDocument,
 } from '../lib/opEdManuscript';
 import { serializeBlogBlocksToHtml } from '../lib/blog/blogBlocksSerialize';
-import { useBlogEditorStore, htmlBodyToEditorBlocks } from '../lib/blog/useBlogEditorStore';
+import { useBlogEditorStore, htmlBodyToEditorBlocks, parseBlogBlocks } from '../lib/blog/useBlogEditorStore';
 import { sanitizeBlogBlocksDeep } from '../lib/blog/sanitizeBlogBlockHtml';
 import { ActiveEditorProvider } from '../contexts/ActiveEditorContext';
 import { BlogAdminMediaLibraryProvider } from '../contexts/BlogAdminMediaLibraryContext';
@@ -150,8 +150,11 @@ export default function PublisherPageAdminPage({
   const cfg = CONTENT_KINDS[kind];
   const isPost = kind === 'post';
   const { pageId } = useParams<{ pageId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isNewRoute = pageId === 'new';
+  const templateId = isNewRoute ? searchParams.get('template') : null;
+  const [templateReady, setTemplateReady] = useState(() => !templateId);
 
   const [loadedRow, setLoadedRow] = useState<PublisherSitePage | null>(null);
   const [hydrating, setHydrating] = useState(false);
@@ -184,8 +187,9 @@ export default function PublisherPageAdminPage({
     if (form.id != null) return;
     if (form.contentMode !== 'blocks') return;
     if (blockCount > 0) return;
+    if (templateId && !templateReady) return;
     loadBlocks([{ id: nanoid(), type: 'paragraph', data: { text: '<p></p>' } }]);
-  }, [userProfile, form.id, form.contentMode, blockCount, loadBlocks]);
+  }, [userProfile, form.id, form.contentMode, blockCount, loadBlocks, templateId, templateReady]);
 
   const startNew = useCallback(() => {
     setLoadedRow(null);
@@ -240,8 +244,35 @@ export default function PublisherPageAdminPage({
 
     if (pageId === 'new') {
       startNew();
-      setHydrating(false);
-      return;
+      const tid = searchParams.get('template');
+      if (!tid) {
+        setTemplateReady(true);
+        setHydrating(false);
+        return () => {
+          cancelled = true;
+        };
+      }
+      setHydrating(true);
+      void (async () => {
+        const { data, error } = await supabase.from('templates').select('document').eq('id', tid).maybeSingle();
+        if (cancelled) return;
+        if (error) {
+          window.alert(error.message);
+          setTemplateReady(true);
+          setHydrating(false);
+          return;
+        }
+        const doc = data?.document && typeof data.document === 'object' ? (data.document as Record<string, unknown>) : {};
+        const blocks = parseBlogBlocks(doc.blocks);
+        const layout = doc.layout === 'landing' ? 'landing' : 'article';
+        if (blocks.length) loadBlocks(blocks);
+        setForm((f) => ({ ...f, layout, contentMode: 'blocks' }));
+        setTemplateReady(true);
+        setHydrating(false);
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (form.id === pageId && loadedRow?.id === pageId) {
@@ -279,7 +310,7 @@ export default function PublisherPageAdminPage({
     return () => {
       cancelled = true;
     };
-  }, [userProfile, pageId, navigate, startNew, applyRow, form.id, loadedRow?.id]);
+  }, [userProfile, pageId, navigate, startNew, applyRow, form.id, loadedRow?.id, searchParams, loadBlocks]);
 
   const switchToBlocks = () => {
     if (form.contentMode === 'blocks') return;
@@ -426,6 +457,22 @@ export default function PublisherPageAdminPage({
             .eq('kind', cfg.kind)
             .eq('id', form.id);
           if (error) throw error;
+          if (
+            !options?.autosave &&
+            prev &&
+            normalizeStatus(prev.status) === 'published' &&
+            prev.slug &&
+            prev.slug !== slug
+          ) {
+            const { error: redirectError } = await supabase.from('redirects').insert({
+              from_path: cfg.publicPath(prev.slug),
+              to_path: cfg.publicPath(slug),
+              status_code: 301,
+            });
+            if (redirectError && (redirectError as { code?: string }).code !== '23505') {
+              console.warn(redirectError);
+            }
+          }
         }
 
         if (!options?.autosave && nextId) {

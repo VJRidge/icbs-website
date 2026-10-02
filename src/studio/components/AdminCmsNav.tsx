@@ -28,15 +28,15 @@ const CONTENT_NAV: NavItem[] = [
   { to: '/admin/pages', label: 'Pages', icon: FileText },
   { to: '/admin/posts', label: 'Blog posts', icon: Newspaper },
   { to: '/admin/media', label: 'Media', icon: Images },
-  { to: '/admin/templates', label: 'Templates', icon: LayoutTemplate, soon: true },
+  { to: '/admin/templates', label: 'Templates', icon: LayoutTemplate },
 ];
 
 const SITE_NAV: NavItem[] = [
   { to: '/admin/appearance', label: 'Header & footer', icon: Palette },
   { to: '/admin/menus', label: 'Navigation', icon: Menu },
-  { to: '/admin/seo', label: 'SEO & redirects', icon: Search, soon: true },
-  { to: '/admin/users', label: 'Users & roles', icon: Users, soon: true },
-  { to: '/admin/settings', label: 'Settings', icon: Settings, soon: true },
+  { to: '/admin/seo', label: 'SEO & redirects', icon: Search },
+  { to: '/admin/users', label: 'Users & roles', icon: Users },
+  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 type AdminCmsNavProps = {

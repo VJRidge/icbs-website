@@ -189,18 +189,20 @@ Studio data rules (migration `20261003_studio_editor.sql`):
 
 ### Phase 5 — Blog + templates
 
-- Posts, categories, tags, authors
-- Rich-text mode + builder mode
-- Listing, post, category, tag, author routes
-- Header/footer templates
+- [x] Posts, categories, public `/blog` + `/blog/:slug`
+- [x] Rich-text mode + builder mode
+- [x] Header/footer chrome (`/admin/appearance`, `/admin/menus`)
+- [x] Page/post templates (`/admin/templates`) applied via `?template=`
+- Tags / author archive (later)
 
 ### Phase 6 — Menus, forms, SEO, redirects, settings
 
-- Nav builder
-- Form builder + submissions + CSV + Resend notify
-- Redirects on slug change
-- Settings singleton
-- Activity log
+- [x] Nav builder
+- [x] SEO defaults + redirects (`/admin/seo`); slug-change inserts a redirect
+- [x] Settings singleton (`/admin/settings`)
+- [x] Users & roles (`/admin/users`)
+- Form builder + submissions + CSV + Resend notify (later)
+- Activity log (later)
 
 ### Phase 7 — Remaining modules
 
@@ -239,6 +241,7 @@ Studio data rules (migration `20261003_studio_editor.sql`):
 | 2026-10-02 | Blog posts: `/admin/posts`, categories, public `/blog` + `/blog/:slug` |
 | 2026-10-02 | Site chrome: header/footer identity + header/footer menus (`/admin/appearance`, `/admin/menus`) |
 | 2026-10-02 | About page (`/about`) + About in header/footer; post byline links to it |
+| 2026-10-02 | CMS soon items live: Templates, SEO & redirects, Users & roles, Settings |
 
 ---
 

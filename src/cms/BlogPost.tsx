@@ -36,7 +36,7 @@ export default function BlogPost({ slug }: { slug: string }) {
     ;(async () => {
       const { data } = await sb
         .from('contents')
-        .select('title, published_at, published_document, content_taxonomies(taxonomies(kind, slug, name))')
+        .select('title, seo_title, published_at, published_document, content_taxonomies(taxonomies(kind, slug, name))')
         .eq('kind', 'post')
         .eq('slug', slug)
         .eq('status', 'published')
@@ -46,7 +46,8 @@ export default function BlogPost({ slug }: { slug: string }) {
       const doc = data?.published_document
       if (data && isStudioDocument(doc)) {
         const title = doc.title || data.title
-        document.title = `${title} · I Call BS`
+        const tab = (data.seo_title || title || '').trim() || title
+        document.title = `${tab} · I Call BS`
         const links = (data.content_taxonomies ?? []) as unknown as { taxonomies: Taxonomy | null }[]
         const categories = links
           .map((l) => l.taxonomies)

@@ -8,10 +8,9 @@ import ShortLinkRedirect from './cms/ShortLinkRedirect'
 import BlogIndex from './cms/BlogIndex'
 import BlogPost from './cms/BlogPost'
 import CmsPreview from './cms/CmsPreview'
+import RedirectGate from './cms/RedirectGate'
 
-export default function App() {
-  const path = window.location.pathname.replace(/\/+$/, '') || '/'
-  if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp />
+function PublicRoutes({ path }: { path: string }) {
   const short = path.match(/^\/s\/([a-z0-9]+)$/i)
   if (short) return <ShortLinkRedirect code={short[1]} />
   if (path === '/preview') return <CmsPreview />
@@ -25,4 +24,14 @@ export default function App() {
   }
   if (path === '/') return <HomeOrKit />
   return <CmsBySlug slug={path.replace(/^\//, '')} fallback={<Free />} />
+}
+
+export default function App() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp />
+  return (
+    <RedirectGate path={path}>
+      <PublicRoutes path={path} />
+    </RedirectGate>
+  )
 }

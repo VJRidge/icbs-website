@@ -16,14 +16,15 @@ export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: 
     ;(async () => {
       const { data } = await sb
         .from('contents')
-        .select('title, published_document, status')
+        .select('title, seo_title, published_document, status')
         .eq('kind', 'page')
         .eq('slug', slug)
         .eq('status', 'published')
         .maybeSingle()
       if (gone) return
       if (isStudioDocument(data?.published_document)) {
-        document.title = `${data.title} \u00b7 I Call BS`
+        const tab = (data.seo_title || data.title || '').trim() || data.title
+        document.title = `${tab} \u00b7 I Call BS`
         setNode(<PublicPage title={data.title} document={data.published_document} fallback={fallback} chrome />)
       }
       setReady(true)
