@@ -47,7 +47,11 @@ export default function SiteSocial({ social, className }: { social: SocialMap; c
       {SOCIAL_NETWORKS.map((n) => {
         const href = social[n.id].trim()
         const icon = <Icon id={n.id} />
-        if (!href) return <span key={n.id}>{icon}</span>
+        if (!href) return (
+          <span key={n.id} className="social-ph" title={`${n.label} — add the link in Header & footer`}>
+            {icon}
+          </span>
+        )
         return (
           <a key={n.id} href={href} target="_blank" rel="noopener noreferrer" aria-label={n.label}>
             {icon}

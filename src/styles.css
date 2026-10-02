@@ -112,6 +112,7 @@
 .social { display: flex; gap: 8px; align-items: center; }
 .social a, .social span { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid currentColor; color: inherit; text-decoration: none; }
 .social a:hover { color: var(--y); border-color: var(--y); }
+.social span.social-ph { border-style: dashed; opacity: 0.72; }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; text-align: left; }
 .compare-col { background: #fff; color: var(--ink); border-top: 3px solid var(--ink); padding: 28px 28px 22px; }
 .compare-col h3 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: 36px; line-height: 40px; margin: 8px 0 10px; color: var(--ink); }
