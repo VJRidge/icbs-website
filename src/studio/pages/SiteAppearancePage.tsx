@@ -7,18 +7,22 @@ import { LandingMediaPicker } from '../components/LandingMediaPicker';
 import {
   chromeStylesPayload,
   DEFAULT_SITE_CHROME,
+  EMPTY_SOCIAL,
   invalidateSiteChrome,
   loadSiteChrome,
+  SOCIAL_NETWORKS,
   type SiteChrome,
+  type SiteSocial,
 } from '../../lib/siteChrome';
 import type { UserProfile } from '../types';
 
 export default function SiteAppearancePage({ userProfile }: { userProfile: UserProfile | null }) {
-  const [form, setForm] = useState<Pick<SiteChrome, 'siteName' | 'tagline' | 'logoUrl' | 'footerCredit'>>({
+  const [form, setForm] = useState<Pick<SiteChrome, 'siteName' | 'tagline' | 'logoUrl' | 'footerCredit' | 'social'>>({
     siteName: DEFAULT_SITE_CHROME.siteName,
     tagline: DEFAULT_SITE_CHROME.tagline,
     logoUrl: DEFAULT_SITE_CHROME.logoUrl,
     footerCredit: DEFAULT_SITE_CHROME.footerCredit,
+    social: { ...EMPTY_SOCIAL },
   });
   const [prevStyles, setPrevStyles] = useState<unknown>({});
   const [loading, setLoading] = useState(true);
@@ -40,6 +44,7 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
         tagline: chrome.tagline,
         logoUrl: chrome.logoUrl,
         footerCredit: chrome.footerCredit,
+        social: chrome.social,
       });
       setLoading(false);
     })();
@@ -96,7 +101,7 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
       <div className="mx-auto max-w-3xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">Header & footer</h1>
         <p className="mt-2 text-sm font-medium text-slate-600">
-          Site name, tagline, logo, and footer credit. Edit the actual links under Navigation. The kit page at{' '}
+          Site name, tagline, logo, footer credit, and social profile links. A blank social field stays hidden on the site. Edit page links under Navigation. The kit page at{' '}
           <span className="font-mono">/free</span> keeps its own top bar so the funnel does not change.
         </p>
 
@@ -140,6 +145,25 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
               {form.logoUrl ? (
                 <img src={form.logoUrl} alt="" className="mt-3 h-10 w-auto rounded border border-slate-200 bg-slate-50 p-1" />
               ) : null}
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Social profiles</p>
+              <p className="mt-1 text-xs text-slate-500">Paste a full profile URL. Icons show in the header and the footer.</p>
+              <div className="mt-3 space-y-3">
+                {SOCIAL_NETWORKS.map((n) => (
+                  <label key={n.id} className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                    {n.label}
+                    <input
+                      value={form.social[n.id]}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, social: { ...f.social, [n.id]: e.target.value } as SiteSocial }))
+                      }
+                      placeholder="https://"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs font-normal normal-case tracking-normal text-slate-900 outline-none focus:border-brand-blue/40"
+                    />
+                  </label>
+                ))}
+              </div>
             </div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
               Footer credit

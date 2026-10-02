@@ -184,6 +184,49 @@ function RowList({ data, k, update, fields, addLabel, blank }: {
   );
 }
 
+type CompareCol = { heading?: string; note?: string; ctaLabel?: string; ctaHref?: string; items?: Row[] };
+
+function CompareColumns({ data, update }: { data: Record<string, unknown>; update: Update }) {
+  const raw = Array.isArray(data.columns) ? (data.columns as CompareCol[]) : [];
+  const columns: CompareCol[] = [0, 1].map((i) => raw[i] ?? { heading: '', note: '', ctaLabel: '', ctaHref: '', items: [] });
+  const setCol = (i: number, patch: Partial<CompareCol>) => {
+    const next = columns.map((col, n) => (n === i ? { ...col, ...patch } : col));
+    update({ columns: next });
+  };
+  return (
+    <>
+      {columns.map((col, i) => (
+        <Group key={i} title={i === 0 ? 'Left column' : 'Right column'}>
+          <label className="block">
+            <span className={labelCls}>Heading</span>
+            <input value={col.heading ?? ''} onChange={(e) => setCol(i, { heading: e.target.value })} className={inputCls} />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Price note</span>
+            <input value={col.note ?? ''} onChange={(e) => setCol(i, { note: e.target.value })} className={inputCls} />
+          </label>
+          <RowList
+            data={{ items: col.items ?? [] }}
+            k="items"
+            update={(patch) => setCol(i, { items: patch.items as Row[] })}
+            fields={[{ key: 'title', label: 'Included' }]}
+            addLabel="Add line"
+            blank={{ title: '' }}
+          />
+          <label className="block">
+            <span className={labelCls}>Button label</span>
+            <input value={col.ctaLabel ?? ''} onChange={(e) => setCol(i, { ctaLabel: e.target.value })} className={inputCls} />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Button link</span>
+            <input value={col.ctaHref ?? ''} onChange={(e) => setCol(i, { ctaHref: e.target.value })} className={inputCls} />
+          </label>
+        </Group>
+      ))}
+    </>
+  );
+}
+
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="space-y-3 border-t border-slate-100 pt-3 first:border-t-0 first:pt-0">
@@ -244,6 +287,8 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
             <Toggle data={d} k="showForm" label="Show signup form" update={update} defaultOn />
             <Text data={d} k="buttonLabel" label="Button label" update={update} />
             <Text data={d} k="buttonHref" label="Button link (when form is off)" update={update} hint="e.g. #buy or a Stripe URL" />
+            <Text data={d} k="button2Label" label="Second button label" update={update} />
+            <Text data={d} k="button2Href" label="Second button link" update={update} hint="Outline button. e.g. /free" />
           </Group>
           <Group title="Receipts strip">
             <RowList
@@ -269,21 +314,33 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
             <Text data={d} k="heading" label="Heading" update={update} />
             <Text data={d} k="lede" label="Intro" update={update} multiline />
             <Text data={d} k="ledeHighlight" label="Highlighted sentence" update={update} hint={HIGHLIGHT_HINT} />
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={d.layout === 'compare'}
+                onChange={(e) => update({ layout: e.target.checked ? 'compare' : 'list' })}
+              />
+              Two columns: free kit vs book
+            </label>
           </Group>
-          <Group title="Contents">
-            <RowList
-              data={d}
-              k="items"
-              update={update}
-              fields={[
-                { key: 'number', label: 'No.', width: 'w-14' },
-                { key: 'title', label: 'Title' },
-                { key: 'kind', label: 'Type', width: 'w-24' },
-              ]}
-              addLabel="Add row"
-              blank={{ number: '', title: '', kind: '' }}
-            />
-          </Group>
+          {d.layout === 'compare' ? (
+            <CompareColumns data={d} update={update} />
+          ) : (
+            <Group title="Contents">
+              <RowList
+                data={d}
+                k="items"
+                update={update}
+                fields={[
+                  { key: 'number', label: 'No.', width: 'w-14' },
+                  { key: 'title', label: 'Title' },
+                  { key: 'kind', label: 'Type', width: 'w-24' },
+                ]}
+                addLabel="Add row"
+                blank={{ number: '', title: '', kind: '' }}
+              />
+            </Group>
+          )}
         </div>
       );
     case 'kit_gallery':
@@ -334,6 +391,11 @@ function KitBlockFieldsInner({ block }: { block: BlogBlock }) {
             <Text data={d} k="heading" label="Heading" update={update} />
             <Text data={d} k="body" label="Body" update={update} multiline hint="Blank line between paragraphs." />
             <Text data={d} k="highlight" label="Highlighted sentence" update={update} hint={HIGHLIGHT_HINT} />
+          </Group>
+          <Group title="Image (optional)">
+            <Toggle data={d} k="showImage" label="Show image" update={update} />
+            <ImageField label="Image" field="imageUrl" value={String(d.imageUrl ?? '')} onChange={(url) => update({ imageUrl: url })} />
+            <Text data={d} k="imageAlt" label="Image alt text" update={update} hint="Shown in the frame until a photo is chosen." />
           </Group>
           <Group title="Button (optional)">
             <Text data={d} k="buttonLabel" label="Label" update={update} />

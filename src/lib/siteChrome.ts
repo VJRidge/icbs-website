@@ -3,11 +3,31 @@ import { supabaseBrowser } from './supabaseBrowser'
 
 export type SiteMenuItem = { id: string; label: string; href: string }
 
+export const SOCIAL_NETWORKS = [
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'x', label: 'X' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'facebook', label: 'Facebook' },
+  { id: 'linkedin', label: 'LinkedIn' },
+] as const
+
+export type SocialId = (typeof SOCIAL_NETWORKS)[number]['id']
+export type SiteSocial = Record<SocialId, string>
+
+export const EMPTY_SOCIAL: SiteSocial = {
+  instagram: '',
+  x: '',
+  tiktok: '',
+  facebook: '',
+  linkedin: '',
+}
+
 export type SiteChrome = {
   siteName: string
   tagline: string
   logoUrl: string
   footerCredit: string
+  social: SiteSocial
   header: SiteMenuItem[]
   footer: SiteMenuItem[]
 }
@@ -17,6 +37,7 @@ export const DEFAULT_SITE_CHROME: SiteChrome = {
   tagline: 'Practical. Honest. Receipts-driven.',
   logoUrl: '',
   footerCredit: '© 2026 V. Jimale Ridgeway',
+  social: { ...EMPTY_SOCIAL },
   header: [
     { id: 'book', label: 'The book', href: '/' },
     { id: 'kit', label: 'Free Starter Kit', href: '/free' },
@@ -45,22 +66,34 @@ export function parseMenuItems(raw: unknown): SiteMenuItem[] | null {
     .filter((x): x is SiteMenuItem => !!x)
 }
 
-function readChromeStyles(raw: unknown): Pick<SiteChrome, 'tagline' | 'logoUrl' | 'footerCredit'> {
+function readSocial(raw: unknown): SiteSocial {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const social = { ...EMPTY_SOCIAL }
+  for (const n of SOCIAL_NETWORKS) social[n.id] = String(o[n.id] ?? '').trim()
+  return social
+}
+
+function readChromeStyles(raw: unknown): Pick<SiteChrome, 'tagline' | 'logoUrl' | 'footerCredit' | 'social'> {
   const styles = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
   const chrome = styles.chrome && typeof styles.chrome === 'object' ? (styles.chrome as Record<string, unknown>) : {}
   return {
     tagline: String(chrome.tagline ?? DEFAULT_SITE_CHROME.tagline),
     logoUrl: String(chrome.logoUrl ?? ''),
     footerCredit: String(chrome.footerCredit ?? DEFAULT_SITE_CHROME.footerCredit),
+    social: readSocial(chrome.social),
   }
 }
 
-export function chromeStylesPayload(chrome: Pick<SiteChrome, 'tagline' | 'logoUrl' | 'footerCredit'>, prev: unknown) {
+export function chromeStylesPayload(chrome: Pick<SiteChrome, 'tagline' | 'logoUrl' | 'footerCredit' | 'social'>, prev: unknown) {
   const styles = prev && typeof prev === 'object' ? { ...(prev as Record<string, unknown>) } : {}
+  const prevChrome =
+    styles.chrome && typeof styles.chrome === 'object' ? { ...(styles.chrome as Record<string, unknown>) } : {}
   styles.chrome = {
+    ...prevChrome,
     tagline: chrome.tagline,
     logoUrl: chrome.logoUrl,
     footerCredit: chrome.footerCredit,
+    social: chrome.social,
   }
   return styles
 }

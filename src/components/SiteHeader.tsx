@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SITE_CHROME, loadSiteChromeOnce, type SiteChrome } from '../lib/siteChrome'
+import SiteSocial from './SiteSocial'
 
 function isActive(href: string, path: string): boolean {
   if (href === '/') return path === '/'
@@ -26,15 +27,18 @@ export default function SiteHeader() {
             )}
             {chrome.tagline ? <span className="k site-tagline">{chrome.tagline}</span> : null}
           </a>
-          {chrome.header.length > 0 ? (
-            <nav className="site-header-links" aria-label="Site">
-              {chrome.header.map((item) => (
-                <a key={item.id} href={item.href} aria-current={isActive(item.href, path) ? 'page' : undefined}>
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
+          <div className="site-header-end">
+            <SiteSocial social={chrome.social} />
+            {chrome.header.length > 0 ? (
+              <nav className="site-header-links" aria-label="Site">
+                {chrome.header.map((item) => (
+                  <a key={item.id} href={item.href} aria-current={isActive(item.href, path) ? 'page' : undefined}>
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
+          </div>
         </div>
       </div>
     </header>

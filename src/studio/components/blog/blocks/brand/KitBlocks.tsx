@@ -1,5 +1,7 @@
-import { createContext, useContext, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useState, useRef, type KeyboardEvent } from 'react';
 import SignupForm from '../../../../../components/SignupForm';
+import SiteSocial from '../../../../../components/SiteSocial';
+import { EMPTY_SOCIAL, loadSiteChromeOnce, type SiteSocial as SocialMap } from '../../../../../lib/siteChrome';
 import type { BlogBlock, KitTone } from '../../../../lib/blog/blogBlockTypes';
 
 type Row = Record<string, string>;
@@ -108,10 +110,40 @@ function useSetField() {
   return (key: string) => (url: string) => edit?.setField(key, url);
 }
 
+function useSocial(): SocialMap {
+  const [social, setSocial] = useState<SocialMap>(EMPTY_SOCIAL);
+  useEffect(() => {
+    void loadSiteChromeOnce().then((chrome) => setSocial(chrome.social));
+  }, []);
+  return social;
+}
+
+function HeroButton({
+  d,
+  labelKey,
+  hrefKey,
+  className,
+  edit,
+}: {
+  d: Record<string, unknown>;
+  labelKey: string;
+  hrefKey: string;
+  className: string;
+  edit: boolean;
+}) {
+  if (!str(d, hrefKey) || !str(d, labelKey)) return null;
+  return (
+    <a className={className} href={str(d, hrefKey)} onClick={edit ? (e) => e.preventDefault() : undefined}>
+      <Txt d={d} k={labelKey} />
+    </a>
+  );
+}
+
 function KitHero({ block }: { block: BlogBlock }) {
   const d = block.data;
   const setField = useSetField();
   const edit = useContext(KitEditContext);
+  const social = useSocial();
   const receipts = rows(d, 'receipts')
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => (r.value ?? '').trim() || (r.label ?? '').trim());
@@ -132,7 +164,10 @@ function KitHero({ block }: { block: BlogBlock }) {
               <span className="k">
                 <Txt d={d} k="tagline" />
               </span>
-            ) : null}
+            ) : (
+              <span />
+            )}
+            <SiteSocial social={social} />
           </div>
         ) : null}
         <div className="hero">
@@ -155,15 +190,11 @@ function KitHero({ block }: { block: BlogBlock }) {
               </p>
             ) : null}
             {d.showForm !== false ? <KitForm id={block.id} label={str(d, 'buttonLabel')} /> : null}
-            {d.showForm === false && str(d, 'buttonHref') && str(d, 'buttonLabel') ? (
-              <a
-                className="btn"
-                href={str(d, 'buttonHref')}
-                style={{ maxWidth: 440 }}
-                onClick={edit ? (e) => e.preventDefault() : undefined}
-              >
-                <Txt d={d} k="buttonLabel" />
-              </a>
+            {d.showForm === false ? (
+              <div className="hero-actions">
+                <HeroButton d={d} labelKey="buttonLabel" hrefKey="buttonHref" className="btn" edit={!!edit} />
+                <HeroButton d={d} labelKey="button2Label" hrefKey="button2Href" className="btn ghost" edit={!!edit} />
+              </div>
             ) : null}
           </div>
         </div>
@@ -195,21 +226,29 @@ function SectionLabel({ d, t, centered }: { d: Record<string, unknown>; t: KitTo
   );
 }
 
+function columnRows(d: Record<string, unknown>): Record<string, unknown>[] {
+  const v = d.columns;
+  return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
+}
+
 function KitContents({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'cream');
   const items = rows(d, 'items');
+  const compare = d.layout === 'compare';
+  const columns = columnRows(d).slice(0, 2);
+  const centered = compare || d.centered === true;
   return (
     <section className={`sec ${t}`}>
-      <div className="wrap">
-        <SectionLabel d={d} t={t} />
+      <div className={centered ? 'wrap center' : 'wrap'}>
+        <SectionLabel d={d} t={t} centered={centered} />
         {str(d, 'heading') ? (
-          <h2>
+          <h2 className={centered ? 'center' : undefined}>
             <Txt d={d} k="heading" />
           </h2>
         ) : null}
         {str(d, 'lede') || str(d, 'ledeHighlight') ? (
-          <p className="lede">
+          <p className="lede" style={centered ? { marginInline: 'auto' } : undefined}>
             <Txt d={d} k="lede" />
             {str(d, 'lede') && str(d, 'ledeHighlight') ? ' ' : null}
             {str(d, 'ledeHighlight') ? (
@@ -219,7 +258,34 @@ function KitContents({ block }: { block: BlogBlock }) {
             ) : null}
           </p>
         ) : null}
-        {items.length ? (
+        {compare ? (
+          <div className="compare">
+            {columns.map((col, i) => {
+              const lines = Array.isArray(col.items) ? (col.items as Row[]) : [];
+              const href = typeof col.ctaHref === 'string' ? col.ctaHref : '';
+              const label = typeof col.ctaLabel === 'string' ? col.ctaLabel : '';
+              return (
+                <article className="compare-col" key={i}>
+                  {typeof col.note === 'string' && col.note ? <div className="compare-note">{col.note}</div> : null}
+                  {typeof col.heading === 'string' && col.heading ? <h3>{col.heading}</h3> : null}
+                  {lines.length ? (
+                    <ul>
+                      {lines.map((line, n) => (
+                        <li key={n}>{line.title ?? ''}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {href && label ? (
+                    <a className={i === 0 ? 'btn line' : 'btn'} href={href}>
+                      {label}
+                    </a>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
+        {!compare && items.length ? (
           <ul className="toc">
             {items.map((_, i) => (
               <li key={i}>
@@ -313,7 +379,10 @@ function KitText({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'cream');
   const edit = useContext(KitEditContext);
+  const setField = useSetField();
   const centered = d.centered === true;
+  const showImage = d.showImage === true;
+  const imageUrl = str(d, 'imageUrl');
   const href = str(d, 'buttonHref');
   const parts = str(d, 'body').split(/\n{2,}/);
   const paragraphs = parts.map((p, i) => ({ p, i })).filter(({ p }) => p.trim());
@@ -323,9 +392,20 @@ function KitText({ block }: { block: BlogBlock }) {
     edit?.setField('body', next.join('\n\n'));
   };
   const centerStyle = centered ? { marginInline: 'auto' } : undefined;
+  const frame = centered ? { marginInline: 'auto' as const } : undefined;
+  const portrait = showImage ? (
+    imageUrl ? (
+      <Img src={imageUrl} alt={str(d, 'imageAlt')} className="portrait" style={frame} field="imageUrl" onPick={setField('imageUrl')} />
+    ) : (
+      <div className="portrait portrait-ph" style={frame}>{str(d, 'imageAlt') || 'Author photo'}</div>
+    )
+  ) : null;
   return (
     <section className={`sec ${t}`} id={str(d, 'anchor') || undefined}>
       <div className={centered ? 'wrap center' : 'wrap'}>
+        <div className={showImage && !centered ? 'bio' : undefined}>
+          {portrait}
+          <div>
         <SectionLabel d={d} t={t} centered={centered} />
         {str(d, 'heading') ? (
           <h2 className={centered ? 'center' : undefined}>
@@ -354,6 +434,8 @@ function KitText({ block }: { block: BlogBlock }) {
             <Txt d={d} k="buttonLabel" />
           </a>
         ) : null}
+          </div>
+        </div>
       </div>
     </section>
   );

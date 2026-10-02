@@ -301,6 +301,8 @@ export const BLOG_BLOCK_DEFAULTS = {
     showNav: true,
     buttonLabel: 'Send me the free kit',
     buttonHref: '',
+    button2Label: '',
+    button2Href: '',
     receipts: [
       { value: '221', label: 'Chat sessions' },
       { value: '3,302', label: 'Prompts I typed' },
@@ -314,6 +316,11 @@ export const BLOG_BLOCK_DEFAULTS = {
     heading: 'What this free kit is',
     lede: 'The myth-busting, the mindset, and just enough of the toolkit to prove it’s real.',
     ledeHighlight: 'Everything here is yours to copy, edit, and keep.',
+    layout: 'list' as 'list' | 'compare',
+    columns: [
+      { heading: 'Free starter kit', note: 'Free', ctaLabel: '', ctaHref: '', items: [{ title: '' }] },
+      { heading: 'The full edition', note: '$17', ctaLabel: '', ctaHref: '', items: [{ title: '' }] },
+    ] as Array<{ heading: string; note: string; ctaLabel: string; ctaHref: string; items: Array<{ title: string }> }>,
     items: [
       { number: '01', title: 'Myth vs Reality', kind: 'Part 01' },
       { number: '02', title: 'AI Is Not Smarter Than You', kind: 'Part 02' },
@@ -355,6 +362,9 @@ export const BLOG_BLOCK_DEFAULTS = {
     buttonLabel: '',
     buttonHref: '',
     anchor: '',
+    showImage: false,
+    imageUrl: '',
+    imageAlt: '',
   },
   kit_signup: {
     tone: 'green' as KitTone,
