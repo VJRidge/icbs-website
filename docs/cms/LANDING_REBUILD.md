@@ -91,7 +91,7 @@ Implementation notes:
 - Kit fallback verified by unpublishing.
 
 ## After this
-Blog posts are live: `/admin/posts`, categories, `/blog`, `/blog/:slug`. Next CMS slices are templates, appearance, menus, and forms.
+Blog posts and site chrome (header/footer + menus) are live. Next: SEO/redirects, then forms. The kit hero still owns its own top bar.
 
 ## Limits worth knowing
 - Uploads: video 50 MB, image 15 MB (editor check; Supabase free plan also caps files at 50 MB).

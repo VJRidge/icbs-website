@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Footer from '../components/Footer'
+import SiteHeader from '../components/SiteHeader'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
 
 type Category = { slug: string; name: string }
@@ -93,14 +94,9 @@ export default function BlogIndex() {
 
   return (
     <main>
+      <SiteHeader />
       <div className="green">
         <div className="wrap">
-          <div className="nav">
-            <a className="k tag" href="/free">
-              Free Starter Kit
-            </a>
-            <span className="k">Practical. Honest. Receipts-driven.</span>
-          </div>
           <div className="blog-head">
             <div className="k o">The blog</div>
             <h1 className="an">

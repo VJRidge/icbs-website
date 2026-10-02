@@ -6,6 +6,8 @@ import AdminCmsShell from './components/admin/AdminCmsShell';
 import PublisherPagesListPage from './pages/PublisherPagesListPage';
 import PublisherPageAdminPage from './pages/PublisherPageAdminPage';
 import PublisherCmsMediaPage from './pages/PublisherCmsMediaPage';
+import SiteAppearancePage from './pages/SiteAppearancePage';
+import SiteMenusPage from './pages/SiteMenusPage';
 import type { UserProfile } from './types';
 import './studio.css';
 
@@ -100,7 +102,7 @@ function ComingSoon({ userProfile }: { userProfile: UserProfile }) {
       <div className="mx-auto max-w-3xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">{title}</h1>
         <p className="mt-3 text-sm font-medium text-slate-600">
-          This area is planned for a later phase. Pages, blog posts, and the media library are live now.
+          This area is planned for a later phase. Pages, posts, media, header, footer, and navigation are live now.
         </p>
       </div>
     </AdminCmsShell>
@@ -121,6 +123,8 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
             element={<PublisherPageAdminPage key="post" kind="post" userProfile={userProfile} />}
           />
           <Route path="/admin/media" element={<PublisherCmsMediaPage userProfile={userProfile} />} />
+          <Route path="/admin/appearance" element={<SiteAppearancePage userProfile={userProfile} />} />
+          <Route path="/admin/menus" element={<SiteMenusPage userProfile={userProfile} />} />
           <Route path="/admin/*" element={<ComingSoon userProfile={userProfile} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

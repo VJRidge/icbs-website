@@ -5,6 +5,7 @@ import BlogArticleHtmlDisplay from '../components/blog/BlogArticleHtmlDisplay';
 import { KitBlockView } from '../components/blog/blocks/brand/KitBlocks';
 import { isKitBlockType, type BlogBlock } from '../lib/blog/blogBlockTypes';
 import Footer from '../../components/Footer';
+import SiteHeader from '../../components/SiteHeader';
 import type { PublishedPageDocument } from '../types';
 import '../studio-public.css';
 
@@ -82,6 +83,7 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
 
   return (
     <>
+      <SiteHeader />
       <div className="studio-public min-h-screen bg-[#f4f6f9] px-4 pb-16 pt-10 sm:px-6">
         <article className="mx-auto max-w-3xl">
           <header className="flex flex-col gap-6 border-b border-slate-200 pb-8">

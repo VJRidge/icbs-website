@@ -32,8 +32,8 @@ const CONTENT_NAV: NavItem[] = [
 ];
 
 const SITE_NAV: NavItem[] = [
-  { to: '/admin/appearance', label: 'Appearance', icon: Palette, soon: true },
-  { to: '/admin/menus', label: 'Navigation', icon: Menu, soon: true },
+  { to: '/admin/appearance', label: 'Header & footer', icon: Palette },
+  { to: '/admin/menus', label: 'Navigation', icon: Menu },
   { to: '/admin/seo', label: 'SEO & redirects', icon: Search, soon: true },
   { to: '/admin/users', label: 'Users & roles', icon: Users, soon: true },
   { to: '/admin/settings', label: 'Settings', icon: Settings, soon: true },

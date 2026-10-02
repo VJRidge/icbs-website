@@ -237,6 +237,7 @@ Studio data rules (migration `20261003_studio_editor.sql`):
 | 2026-10-02 | Clubhouse block editor port: pages, media, short links, public block renderer |
 | 2026-10-02 | `/free` rebuild: Brand blocks, landing layout, `kit-v2` draft, kit-page toggle (see `LANDING_REBUILD.md`) |
 | 2026-10-02 | Blog posts: `/admin/posts`, categories, public `/blog` + `/blog/:slug` |
+| 2026-10-02 | Site chrome: header/footer identity + header/footer menus (`/admin/appearance`, `/admin/menus`) |
 
 ---
 

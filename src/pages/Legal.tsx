@@ -1,4 +1,5 @@
 import Footer from '../components/Footer'
+import SiteHeader from '../components/SiteHeader'
 
 // Placeholder. The privacy, terms and refund pages still need to be written
 // before launch (see README, "Before launch").
@@ -7,6 +8,7 @@ const TITLES: Record<string, string> = { privacy: 'Privacy', terms: 'Terms', ref
 export default function Legal({ page }: { page: string }) {
   return (
     <main>
+      <SiteHeader />
       <section className="sec cream" style={{ minHeight: '70vh' }}>
         <div className="wrap">
           <a className="k o" href="/free">← Free Starter Kit</a>

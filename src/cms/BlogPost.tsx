@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import PublicPage, { isStudioDocument } from './PublicPage'
+import SiteHeader from '../components/SiteHeader'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
 
 type Taxonomy = { kind: string; slug: string; name: string }
@@ -7,6 +8,7 @@ type Taxonomy = { kind: string; slug: string; name: string }
 function NotFound() {
   return (
     <main>
+      <SiteHeader />
       <section className="sec cream" style={{ minHeight: '70vh' }}>
         <div className="wrap">
           <a className="k o" href="/blog">
