@@ -101,7 +101,7 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
       <div className="mx-auto max-w-3xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">Header & footer</h1>
         <p className="mt-2 text-sm font-medium text-slate-600">
-          Site name, tagline, logo, footer credit, and social profile links. A blank social field stays hidden on the site. Edit page links under Navigation. The kit page at{' '}
+          Site name, tagline, logo, footer credit, and social profile links. The five icons always show in the header and the footer. Paste a profile URL to make that icon open the profile. Edit page links under Navigation. The kit page at{' '}
           <span className="font-mono">/free</span> keeps its own top bar so the funnel does not change.
         </p>
 
@@ -148,7 +148,7 @@ export default function SiteAppearancePage({ userProfile }: { userProfile: UserP
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Social profiles</p>
-              <p className="mt-1 text-xs text-slate-500">Paste a full profile URL. Icons show in the header and the footer.</p>
+              <p className="mt-1 text-xs text-slate-500">The icons always show. Paste a full profile URL to make one open that profile.</p>
               <div className="mt-3 space-y-3">
                 {SOCIAL_NETWORKS.map((n) => (
                   <label key={n.id} className="block text-xs font-bold uppercase tracking-wider text-slate-500">

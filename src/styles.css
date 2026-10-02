@@ -110,7 +110,7 @@
 .foot-links a { margin-left: 24px; text-decoration: none; }
 .foot-links a:hover { text-decoration: underline; }
 .social { display: flex; gap: 8px; align-items: center; }
-.social a { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid currentColor; color: inherit; text-decoration: none; }
+.social a, .social span { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid currentColor; color: inherit; text-decoration: none; }
 .social a:hover { color: var(--y); border-color: var(--y); }
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; text-align: left; }
 .compare-col { background: #fff; color: var(--ink); border-top: 3px solid var(--ink); padding: 28px 28px 22px; }

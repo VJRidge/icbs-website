@@ -42,15 +42,18 @@ function Icon({ id }: { id: (typeof SOCIAL_NETWORKS)[number]['id'] }) {
 }
 
 export default function SiteSocial({ social, className }: { social: SocialMap; className?: string }) {
-  const links = SOCIAL_NETWORKS.filter((n) => social[n.id].trim())
-  if (!links.length) return null
   return (
     <div className={['social', className].filter(Boolean).join(' ')}>
-      {links.map((n) => (
-        <a key={n.id} href={social[n.id].trim()} target="_blank" rel="noopener noreferrer" aria-label={n.label}>
-          <Icon id={n.id} />
-        </a>
-      ))}
+      {SOCIAL_NETWORKS.map((n) => {
+        const href = social[n.id].trim()
+        const icon = <Icon id={n.id} />
+        if (!href) return <span key={n.id}>{icon}</span>
+        return (
+          <a key={n.id} href={href} target="_blank" rel="noopener noreferrer" aria-label={n.label}>
+            {icon}
+          </a>
+        )
+      })}
     </div>
   )
 }
