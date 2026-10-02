@@ -226,6 +226,13 @@ input.cms-h.h3, .cms-h.h3, h3.cms-h { font-size: 24px; text-transform: none; fon
 .cms-cta { margin: 24px 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
+.contact-form { display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+.contact-form input, .contact-form textarea { font-family: var(--serif); font-size: 18px; padding: 15px 16px; border: 2px solid var(--ink); border-radius: 0; background: #fff; color: var(--ink); width: 100%; }
+.contact-form textarea { min-height: 160px; resize: vertical; }
+.contact-form input:focus-visible, .contact-form textarea:focus-visible { outline: 3px solid var(--o); outline-offset: 2px; }
+.contact-form .btn { width: min(100%, 320px); }
+.contact-err { font-size: 16px; line-height: 22px; color: var(--r); margin: 0; }
+
 /* Recognition questions. Append-only so existing landing styles stay put. */
 .sec:has(+ .sec .ask) { padding-bottom: 16px; }
 .sec:has(+ .sec .ask) .lede:last-of-type { margin-bottom: 8px; }

@@ -22,7 +22,7 @@ export async function supabase(path: string, init: RequestInit & { prefer?: stri
   return text ? JSON.parse(text) : null
 }
 
-export async function sendEmail(msg: { to: string; subject: string; html: string; text: string; unsubscribeUrl: string }) {
+export async function sendEmail(msg: { to: string; subject: string; html: string; text: string; unsubscribeUrl: string; replyTo?: string }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
@@ -32,6 +32,7 @@ export async function sendEmail(msg: { to: string; subject: string; html: string
       subject: msg.subject,
       html: msg.html,
       text: msg.text,
+      ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
       headers: {
         'List-Unsubscribe': `<${msg.unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

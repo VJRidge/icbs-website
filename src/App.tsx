@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import Free from './pages/Free'
 import FreeThanks from './pages/FreeThanks'
 import Legal from './pages/Legal'
+import Contact from './pages/Contact'
 import AdminApp from './admin/AdminApp'
 import HomeOrKit from './cms/HomeOrKit'
 import CmsBySlug from './cms/CmsBySlug'
@@ -31,6 +32,7 @@ function PublicRoutes({ path }: { path: string }) {
   if (post) return <BlogPost slug={decodeURIComponent(post[1])} />
   if (path === '/free/thanks') return <FreeThanks />
   if (path === '/free') return <ToLanding />
+  if (path === '/contact') return <Contact />
   if (path === '/privacy' || path === '/terms' || path === '/refunds') {
     return <CmsBySlug slug={path.slice(1)} fallback={<Legal page={path.slice(1)} />} />
   }

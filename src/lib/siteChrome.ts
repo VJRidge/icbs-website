@@ -43,10 +43,12 @@ export const DEFAULT_SITE_CHROME: SiteChrome = {
     { id: 'kit', label: 'Free Starter Kit', href: '/#kit' },
     { id: 'blog', label: 'Blog', href: '/blog' },
     { id: 'about', label: 'About', href: '/about' },
+    { id: 'contact', label: 'Contact', href: '/contact' },
   ],
   footer: [
     { id: 'blog', label: 'Blog', href: '/blog' },
     { id: 'about', label: 'About', href: '/about' },
+    { id: 'contact', label: 'Contact', href: '/contact' },
     { id: 'privacy', label: 'Privacy', href: '/privacy' },
     { id: 'terms', label: 'Terms', href: '/terms' },
     { id: 'refunds', label: 'Refunds', href: '/refunds' },
