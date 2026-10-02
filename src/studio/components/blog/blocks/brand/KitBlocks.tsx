@@ -525,54 +525,6 @@ function KitText({ block }: { block: BlogBlock }) {
   );
 }
 
-function KitQuestions({ block }: { block: BlogBlock }) {
-  const d = block.data;
-  const t = tone(d, 'cream');
-  const edit = useContext(KitEditContext);
-  const questions = rows(d, 'questions')
-    .map((r, i) => ({ r, i }))
-    .filter(({ r }) => (r.text ?? '').trim() || edit);
-  const href = str(d, 'buttonHref');
-  return (
-    <section className={`sec ${t}`} id={str(d, 'anchor') || undefined}>
-      <div className="wrap ask">
-        {str(d, 'greeting') || edit ? (
-          <p className="ask-greet">
-            <Txt d={d} k="greeting" />
-          </p>
-        ) : null}
-        {questions.length ? (
-          <ul className="ask-list">
-            {questions.map(({ i }) => (
-              <li key={i}>
-                <span className="ask-mark" aria-hidden="true" />
-                <span>
-                  <Txt d={d} k="text" row={['questions', i]} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {str(d, 'heading') || edit ? (
-          <h2>
-            <Txt d={d} k="heading" />
-          </h2>
-        ) : null}
-        {str(d, 'body') || edit ? (
-          <p className="ask-story">
-            <Txt d={d} k="body" />
-          </p>
-        ) : null}
-        {str(d, 'buttonLabel') && href ? (
-          <a className="btn" href={href} onClick={edit ? (e) => e.preventDefault() : undefined}>
-            <Txt d={d} k="buttonLabel" />
-          </a>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
 function KitSignup({ block }: { block: BlogBlock }) {
   const d = block.data;
   const t = tone(d, 'green');
@@ -605,8 +557,6 @@ export function KitBlockView({ block }: { block: BlogBlock }) {
       return <KitText block={block} />;
     case 'kit_signup':
       return <KitSignup block={block} />;
-    case 'kit_questions':
-      return <KitQuestions block={block} />;
     default:
       return null;
   }

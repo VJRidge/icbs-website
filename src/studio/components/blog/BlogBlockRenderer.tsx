@@ -128,7 +128,6 @@ export default function BlogBlockRenderer({
     case 'kit_closing':
     case 'kit_text':
     case 'kit_signup':
-    case 'kit_questions':
       return <KitBlock block={block} isEditing={isEditing} />;
     default:
       return (
