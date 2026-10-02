@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import Free from '../pages/Free'
 import PublicPage from './PublicPage'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
-import type { BuilderDocument } from './document'
 
 export default function HomeOrKit() {
   const [state, setState] = useState<'load' | 'kit' | 'cms'>('load')
   const [title, setTitle] = useState('')
-  const [doc, setDoc] = useState<BuilderDocument | null>(null)
+  const [doc, setDoc] = useState<unknown>(null)
 
   useEffect(() => {
     const sb = supabaseBrowser()
@@ -30,7 +29,7 @@ export default function HomeOrKit() {
         .maybeSingle()
       if (!gone && page?.status === 'published' && page.published_document) {
         setTitle(page.title)
-        setDoc(page.published_document as BuilderDocument)
+        setDoc(page.published_document)
         setState('cms')
         return
       }
@@ -48,6 +47,6 @@ export default function HomeOrKit() {
       </main>
     )
   }
-  if (state === 'cms' && doc) return <PublicPage title={title} document={doc} />
+  if (state === 'cms' && doc) return <PublicPage title={title} document={doc} fallback={<Free />} />
   return <Free />
 }

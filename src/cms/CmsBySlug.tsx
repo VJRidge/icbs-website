@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import PublicPage from './PublicPage'
+import PublicPage, { isStudioDocument } from './PublicPage'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
-import type { BuilderDocument } from './document'
 
 export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: ReactNode }) {
   const [node, setNode] = useState<ReactNode>(null)
@@ -23,8 +22,8 @@ export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: 
         .eq('status', 'published')
         .maybeSingle()
       if (gone) return
-      if (data?.published_document) {
-        setNode(<PublicPage title={data.title} document={data.published_document as BuilderDocument} />)
+      if (isStudioDocument(data?.published_document)) {
+        setNode(<PublicPage title={data.title} document={data.published_document} fallback={fallback} />)
       }
       setReady(true)
     })()

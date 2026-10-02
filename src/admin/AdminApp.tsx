@@ -1,44 +1,23 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
-import { ADMIN_NAV } from './nav'
 import Login from './Login'
-import Dashboard from './Dashboard'
-import ComingSoon from './ComingSoon'
-import PagesList from './pages/PagesList'
-import PageEditor from './pages/PageEditor'
-import MediaLibrary from './media/MediaLibrary'
+import type { UserProfile } from '../studio/types'
 import './admin.css'
 
-type Profile = { role: string; display_name: string | null; staff_approved: boolean }
+const StudioApp = lazy(() => import('../studio/StudioApp'))
 
-function adminPath() {
-  return window.location.pathname.replace(/\/+$/, '') || '/admin'
-}
-
-function titleFor(path: string) {
-  if (path === '/admin') return 'Dashboard'
-  if (path === '/admin/pages/new') return 'Editor'
-  if (path.startsWith('/admin/pages/')) return 'Editor'
-  if (path.startsWith('/admin/pages')) return 'Pages'
-  return ADMIN_NAV.find((n) => n.href === path)?.label ?? 'Studio'
-}
-
-function screen(path: string, profile: Profile | null) {
-  if (path === '/admin') return <Dashboard profile={profile} />
-  if (path === '/admin/pages') return <PagesList />
-  if (path === '/admin/pages/new') return <PageEditor id="new" />
-  const edit = path.match(/^\/admin\/pages\/([^/]+)$/)
-  if (edit) return <PageEditor id={edit[1]} />
-  if (path === '/admin/media') return <MediaLibrary />
-  return <ComingSoon path={path} />
+function Loading({ label }: { label: string }) {
+  return (
+    <div className="ad-login">
+      <p>{label}</p>
+    </div>
+  )
 }
 
 export default function AdminApp() {
   const [ready, setReady] = useState(false)
-  const [authed, setAuthed] = useState(false)
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [denied, setDenied] = useState('')
-  const path = adminPath()
 
   useEffect(() => {
     const sb = supabaseBrowser()
@@ -53,7 +32,7 @@ export default function AdminApp() {
       const user = sessionData.session?.user
       if (!user) {
         if (!gone) {
-          setAuthed(false)
+          setProfile(null)
           setReady(true)
         }
         return
@@ -66,17 +45,23 @@ export default function AdminApp() {
             ? 'Could not read your profile. Run the CMS migration, then approve this user as owner.'
             : 'This account is signed in but not approved for the studio. Ask the owner to set staff_approved = true.',
         )
-        setAuthed(false)
+        setProfile(null)
         setReady(true)
         return
       }
-      setProfile(data)
-      setAuthed(true)
+      setProfile({
+        id: user.id,
+        email: user.email ?? undefined,
+        display_name: data.display_name,
+        role: data.role,
+        is_admin: true,
+        admin_tier: data.role === 'owner' ? 'super_admin' : 'admin',
+      })
       setReady(true)
     }
     load()
-    const { data: sub } = client.auth.onAuthStateChange(() => {
-      load()
+    const { data: sub } = client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') load()
     })
     return () => {
       gone = true
@@ -84,77 +69,32 @@ export default function AdminApp() {
     }
   }, [])
 
-  if (!ready) {
+  if (!ready) return <Loading label="Loading studio…" />
+
+  if (!profile) {
+    if (!denied) return <Login />
     return (
       <div className="ad-login">
-        <p>Loading studio…</p>
-      </div>
-    )
-  }
-
-  if (!authed) {
-    return (
-      <>
-        {denied ? (
-          <div className="ad-login">
-            <form onSubmit={(e) => e.preventDefault()}>
-              <h1>Access pending</h1>
-              <p>{denied}</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  await supabaseBrowser()?.auth.signOut()
-                  window.location.reload()
-                }}
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        ) : (
-          <Login />
-        )}
-      </>
-    )
-  }
-
-  return (
-    <div className="ad-root">
-      <aside className="ad-side">
-        <div className="ad-brand">
-          <b>I Call BS</b>
-          <span>Studio</span>
-        </div>
-        <nav className="ad-nav">
-          {ADMIN_NAV.map((item) => (
-            <a key={item.href} href={item.href} className={path === item.href || (item.href !== '/admin' && path.startsWith(item.href)) ? 'on' : undefined}>
-              {item.label}
-              {item.phase > 1 ? <i>P{item.phase}</i> : null}
-            </a>
-          ))}
-        </nav>
-        <div className="ad-side-foot">
-          {profile?.display_name || profile?.role}
+        <form onSubmit={(e) => e.preventDefault()}>
+          <h1>Access pending</h1>
+          <p>{denied}</p>
           <button
             type="button"
             onClick={async () => {
               await supabaseBrowser()?.auth.signOut()
-              window.location.assign('/admin')
+              window.location.reload()
             }}
           >
             Sign out
           </button>
-        </div>
-      </aside>
-      <div className="ad-main">
-        <header className="ad-top">
-          <h1>{titleFor(path)}</h1>
-          <a className="pub" href="/" target="_blank" rel="noreferrer">
-            View site
-          </a>
-        </header>
-        <div className={path.startsWith('/admin/pages/') ? 'ad-body ad-body-flush' : 'ad-body'}>{screen(path, profile)}</div>
+        </form>
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <Suspense fallback={<Loading label="Opening studio…" />}>
+      <StudioApp userProfile={profile} />
+    </Suspense>
   )
 }

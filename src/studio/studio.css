@@ -1,0 +1,12 @@
+/* Full Tailwind (with preflight) — loaded only by the /admin studio chunk. */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:wght@400;700;900&family=Inter:wght@400;500;600;700;900&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "./studio-theme.css";
+@import "./studio-blocks.css";
+
+body:has(.studio-root) {
+  font-family: var(--font-sans);
+  color: rgb(15 23 42);
+  background: #04190f;
+}

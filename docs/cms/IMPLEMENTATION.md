@@ -167,11 +167,25 @@ Admin chrome: left sidebar, top toolbar (save state, preview, viewport), central
 
 ### Phase 4 — Visual builder (starter modules)
 
-- [x] Document canvas (Clubhouse-style): title, format toolbar, in-place blocks, + Add block picker
-- [x] Module inspector + page settings
-- Desktop / tablet / mobile (later)
-- Drag-drop, undo/redo, autosave (later; Up/Down + Save draft now)
-- [x] Blocks: Paragraph, Heading, Quote, Callout, Image, Divider, Spacer, Button, CTA, Kit signup
+- [x] Ported the HBCU Clubhouse block editor into `src/studio/` (TipTap + dnd-kit + zustand + Tailwind v4)
+- [x] + Add block picker: Text, Media, Layout, Marketing, Story, Special tabs (40+ blocks)
+- [x] Full format toolbar, left module panel (Content / Style / Advanced), right Page settings
+  (public URL, short link, homepage toggle, cover image, SEO)
+- [x] Drag-drop reorder, undo/redo, server autosave + local draft backup
+- [x] Media library page + in-editor library picker (`media-public/<userId>/`)
+- Desktop / tablet / mobile preview (later)
+
+Studio data rules (migration `20261003_studio_editor.sql`):
+
+- Pages are `contents` rows with `kind = 'page'`. Working copy: `body`, `content_blocks`,
+  `featured_image_*`, `seo_title`, `seo_description`.
+- Autosave never touches `published_document`. Save or Publish with status Published writes
+  `published_document = { format: 'blocks', blocks, html, featured_image_url, featured_image_alt }`.
+  Unpublish sets it to null. Each manual save adds a `content_revisions` row.
+- Short links: `cms_short_links` (staff RLS) + `resolve_cms_short_link(code)` (public, published only), served at `/s/:code`.
+- CSS: `/admin` loads `studio.css` (full Tailwind). Public pages load `studio-public.css`
+  (no global preflight; reset scoped to `.studio-public`). Kit element defaults in `styles.css`
+  live in `@layer kit-base` so Tailwind utilities win. The kit bundle contains no Tailwind or TipTap.
 
 ### Phase 5 — Blog + templates
 
