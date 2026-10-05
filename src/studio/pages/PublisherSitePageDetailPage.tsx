@@ -6,6 +6,8 @@ import { KitBlockView } from '../components/blog/blocks/brand/KitBlocks';
 import { isKitBlockType, type BlogBlock } from '../lib/blog/blogBlockTypes';
 import Footer from '../../components/Footer';
 import SiteHeader from '../../components/SiteHeader';
+import BrandChrome from '../../brand/BrandChrome';
+import BrandWidgetSection, { chunkBrandSections } from '../../brand/BrandWidgetSection';
 import type { PublishedPageDocument } from '../types';
 import '../studio-public.css';
 
@@ -39,6 +41,29 @@ const PROSE_CLASSES = [
 
 /** Kit blocks run edge to edge; runs of regular blocks sit in a centered cream column between them. */
 function LandingLayout({ blocks }: { blocks: BlogBlock[] }) {
+  if (blocks.some((block) => String(block.data.section ?? ''))) {
+    return (
+      <BrandChrome cta={{ label: 'Explore Resources', href: '/resources' }}>
+        {chunkBrandSections(blocks).map((chunk, index) =>
+          chunk.section ? (
+            <BrandWidgetSection key={`${chunk.section}-${index}`} blocks={chunk.blocks} />
+          ) : (
+            <section key={index} className="vj-sec">
+              <div className="vj-wrap">
+                {chunk.blocks.map((block) =>
+                  isKitBlockType(block.type) ? (
+                    <KitBlockView key={block.id} block={block} />
+                  ) : (
+                    <BlogBlockRenderer key={block.id} block={block} isEditing={false} />
+                  ),
+                )}
+              </div>
+            </section>
+          ),
+        )}
+      </BrandChrome>
+    );
+  }
   const groups: { kit: boolean; blocks: BlogBlock[] }[] = [];
   for (const b of blocks) {
     const kit = isKitBlockType(b.type);

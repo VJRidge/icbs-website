@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { BlogBlock } from '../../lib/blog/blogBlockTypes';
 import BlogParagraphBlock from './blocks/BlogParagraphBlock';
 import BlogHeadingBlock from './blocks/BlogHeadingBlock';
@@ -37,6 +38,29 @@ import BlogAnimatedHeadlineBlock from './blocks/BlogAnimatedHeadlineBlock';
 import BlogSocialEmbedBlock from './blocks/BlogSocialEmbedBlock';
 import BlogColumnsBlock from './blocks/BlogColumnsBlock';
 import KitBlock from './blocks/brand/KitBlockCanvas';
+import BrandBlockCanvas from './blocks/brand/BrandBlockCanvas';
+import { isBrandBlockType } from '../../../brand/brandBlockTypes';
+import { applyDevice } from '../../lib/blog/blockStyle';
+import { useBlogEditorStore } from '../../lib/blog/useBlogEditorStore';
+
+function useRenderDevice() {
+  const previewActive = useBlogEditorStore((s) => s.previewActive);
+  const previewDevice = useBlogEditorStore((s) => s.previewDevice);
+  const [live, setLive] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 767px)');
+    const tablet = window.matchMedia('(min-width: 768px) and (max-width: 1024px)');
+    const read = () => setLive(mobile.matches ? 'mobile' : tablet.matches ? 'tablet' : 'desktop');
+    read();
+    mobile.addEventListener('change', read);
+    tablet.addEventListener('change', read);
+    return () => {
+      mobile.removeEventListener('change', read);
+      tablet.removeEventListener('change', read);
+    };
+  }, []);
+  return previewActive ? previewDevice : live;
+}
 
 export default function BlogBlockRenderer({
   block,
@@ -47,81 +71,83 @@ export default function BlogBlockRenderer({
   isEditing: boolean;
   toolbarSource?: boolean;
 }) {
-  switch (block.type) {
+  const device = useRenderDevice();
+  const view = applyDevice(block, device);
+  switch (view.type) {
     case 'paragraph':
-      return <BlogParagraphBlock block={block} isEditing={isEditing} toolbarSource={toolbarSource} />;
+      return <BlogParagraphBlock block={view} isEditing={isEditing} toolbarSource={toolbarSource} />;
     case 'heading':
-      return <BlogHeadingBlock block={block} isEditing={isEditing} />;
+      return <BlogHeadingBlock block={view} isEditing={isEditing} />;
     case 'image':
-      return <BlogImageBlock block={block} isEditing={isEditing} />;
+      return <BlogImageBlock block={view} isEditing={isEditing} />;
     case 'youtube':
-      return <BlogYoutubeBlock block={block} isEditing={isEditing} />;
+      return <BlogYoutubeBlock block={view} isEditing={isEditing} />;
     case 'social_embed':
-      return <BlogSocialEmbedBlock block={block} isEditing={isEditing} />;
+      return <BlogSocialEmbedBlock block={view} isEditing={isEditing} />;
     case 'quote':
-      return <BlogQuoteBlock block={block} isEditing={isEditing} />;
+      return <BlogQuoteBlock block={view} isEditing={isEditing} />;
     case 'callout':
-      return <BlogCalloutBlock block={block} isEditing={isEditing} />;
+      return <BlogCalloutBlock block={view} isEditing={isEditing} />;
     case 'divider':
-      return <BlogDividerBlock block={block} isEditing={isEditing} />;
+      return <BlogDividerBlock block={view} isEditing={isEditing} />;
     case 'spacer':
-      return <BlogSpacerBlock block={block} isEditing={isEditing} />;
+      return <BlogSpacerBlock block={view} isEditing={isEditing} />;
     case 'galaxy':
-      return <BlogGalaxyBlock block={block} isEditing={isEditing} />;
+      return <BlogGalaxyBlock block={view} isEditing={isEditing} />;
     case 'video':
-      return <BlogVideoBlock block={block} isEditing={isEditing} />;
+      return <BlogVideoBlock block={view} isEditing={isEditing} />;
     case 'code':
-      return <BlogCodeBlock block={block} isEditing={isEditing} />;
+      return <BlogCodeBlock block={view} isEditing={isEditing} />;
     case 'tabs':
-      return <BlogTabsBlock block={block} isEditing={isEditing} />;
+      return <BlogTabsBlock block={view} isEditing={isEditing} />;
     case 'accordion':
-      return <BlogAccordionBlock block={block} isEditing={isEditing} />;
+      return <BlogAccordionBlock block={view} isEditing={isEditing} />;
     case 'slideshow':
-      return <BlogSlideshowBlock block={block} isEditing={isEditing} />;
+      return <BlogSlideshowBlock block={view} isEditing={isEditing} />;
     case 'gallery':
-      return <BlogGalleryBlock block={block} isEditing={isEditing} />;
+      return <BlogGalleryBlock block={view} isEditing={isEditing} />;
     case 'carousel':
-      return <BlogCarouselBlock block={block} isEditing={isEditing} />;
+      return <BlogCarouselBlock block={view} isEditing={isEditing} />;
     case 'timeline':
-      return <BlogTimelineBlock block={block} isEditing={isEditing} />;
+      return <BlogTimelineBlock block={view} isEditing={isEditing} />;
     case 'story_metrics':
-      return <BlogStoryMetricsBlock block={block} isEditing={isEditing} />;
+      return <BlogStoryMetricsBlock block={view} isEditing={isEditing} />;
     case 'button':
-      return <BlogButtonBlock block={block} isEditing={isEditing} />;
+      return <BlogButtonBlock block={view} isEditing={isEditing} />;
     case 'banner':
-      return <BlogBannerBlock block={block} isEditing={isEditing} />;
+      return <BlogBannerBlock block={view} isEditing={isEditing} />;
     case 'card':
-      return <BlogCardBlock block={block} isEditing={isEditing} />;
+      return <BlogCardBlock block={view} isEditing={isEditing} />;
     case 'countdown':
-      return <BlogCountdownBlock block={block} isEditing={isEditing} />;
+      return <BlogCountdownBlock block={view} isEditing={isEditing} />;
     case 'stats':
-      return <BlogStatsBlock block={block} isEditing={isEditing} />;
+      return <BlogStatsBlock block={view} isEditing={isEditing} />;
     case 'team':
-      return <BlogTeamBlock block={block} isEditing={isEditing} />;
+      return <BlogTeamBlock block={view} isEditing={isEditing} />;
     case 'table':
-      return <BlogTableBlock block={block} isEditing={isEditing} />;
+      return <BlogTableBlock block={view} isEditing={isEditing} />;
     case 'map_embed':
-      return <BlogMapEmbedBlock block={block} isEditing={isEditing} />;
+      return <BlogMapEmbedBlock block={view} isEditing={isEditing} />;
     case 'testimonial':
-      return <BlogTestimonialBlock block={block} isEditing={isEditing} />;
+      return <BlogTestimonialBlock block={view} isEditing={isEditing} />;
     case 'icon_box':
-      return <BlogIconBoxBlock block={block} isEditing={isEditing} />;
+      return <BlogIconBoxBlock block={view} isEditing={isEditing} />;
     case 'video_playlist':
-      return <BlogVideoPlaylistBlock block={block} isEditing={isEditing} />;
+      return <BlogVideoPlaylistBlock block={view} isEditing={isEditing} />;
     case 'post_teasers':
-      return <BlogPostTeasersBlock block={block} isEditing={isEditing} />;
+      return <BlogPostTeasersBlock block={view} isEditing={isEditing} />;
     case 'contact_cta':
-      return <BlogContactCtaBlock block={block} isEditing={isEditing} />;
+      return <BlogContactCtaBlock block={view} isEditing={isEditing} />;
     case 'price_list':
-      return <BlogPriceListBlock block={block} isEditing={isEditing} />;
+      return <BlogPriceListBlock block={view} isEditing={isEditing} />;
     case 'newsletter':
-      return <BlogNewsletterBlock block={block} isEditing={isEditing} />;
+      return <BlogNewsletterBlock block={view} isEditing={isEditing} />;
     case 'modal_popup':
-      return <BlogModalPopupBlock block={block} isEditing={isEditing} />;
+      return <BlogModalPopupBlock block={view} isEditing={isEditing} />;
     case 'animated_headline':
-      return <BlogAnimatedHeadlineBlock block={block} isEditing={isEditing} />;
+      return <BlogAnimatedHeadlineBlock block={view} isEditing={isEditing} />;
     case 'columns':
-      return <BlogColumnsBlock block={block} isEditing={isEditing} />;
+      return <BlogColumnsBlock block={view} isEditing={isEditing} />;
     case 'kit_hero':
     case 'kit_contents':
     case 'kit_gallery':
@@ -129,11 +155,12 @@ export default function BlogBlockRenderer({
     case 'kit_text':
     case 'kit_signup':
     case 'kit_questions':
-      return <KitBlock block={block} isEditing={isEditing} />;
+      return <KitBlock block={view} isEditing={isEditing} />;
     default:
+      if (isBrandBlockType(block.type)) return <BrandBlockCanvas block={view} isEditing={isEditing} />;
       return (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Unsupported block type: <code className="font-mono">{block.type}</code>. Open in admin to replace or remove.
+          Unsupported block type: <code className="font-mono">{view.type}</code>. Open in admin to replace or remove.
         </div>
       );
   }

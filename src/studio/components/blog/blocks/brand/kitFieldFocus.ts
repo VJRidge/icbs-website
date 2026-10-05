@@ -2,11 +2,25 @@
 export type KitFieldTarget = { blockId: string; field: string };
 
 let pending: KitFieldTarget | null = null;
+let current: KitFieldTarget | null = null;
 const listeners = new Set<(t: KitFieldTarget) => void>();
 
 export function revealKitField(target: KitFieldTarget) {
   pending = target;
+  current = target;
   listeners.forEach((fn) => fn(target));
+}
+
+/** The green bar selects the whole section, so the piece selection has to drop. */
+export function clearKitField(blockId: string) {
+  if (current?.blockId === blockId) current = null;
+  if (pending?.blockId === blockId) pending = null;
+  listeners.forEach((fn) => fn({ blockId, field: '' }));
+}
+
+export function currentKitField(blockId: string): string | null {
+  if (!current || current.blockId !== blockId) return null;
+  return current.field;
 }
 
 /** The panel may mount after the click (block was not selected yet), so it can claim the last target. */

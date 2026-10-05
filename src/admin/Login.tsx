@@ -34,7 +34,7 @@ export default function Login() {
     const sb = supabaseBrowser()
     if (!sb) return
     if (!password) {
-      setErr('Enter a password to sign in, or use Create account / Email me a login link.')
+      setErr('Enter a password to sign in, or email yourself a login link.')
       return
     }
     start()
@@ -43,41 +43,12 @@ export default function Login() {
     if (error) {
       setErr(
         error.message === 'Invalid login credentials'
-          ? 'No account matches that email and password. Use Create account if this is your first time.'
+          ? 'No account matches that email and password.'
           : error.message,
       )
       return
     }
     window.location.assign('/admin')
-  }
-
-  async function createAccount() {
-    const sb = supabaseBrowser()
-    if (!sb) return
-    if (!email || !password) {
-      setErr('Enter an email and a password (at least 6 characters) to create the first studio account.')
-      return
-    }
-    if (password.length < 6) {
-      setErr('Password must be at least 6 characters.')
-      return
-    }
-    start()
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/admin` },
-    })
-    setBusy(false)
-    if (error) {
-      setErr(error.message)
-      return
-    }
-    if (data.session) {
-      window.location.assign('/admin')
-      return
-    }
-    setMsg('Account created. If Supabase requires email confirmation, open the email it sent, then sign in here.')
   }
 
   async function magic() {
@@ -100,11 +71,8 @@ export default function Login() {
   return (
     <div className="ad-login">
       <form onSubmit={signIn}>
-        <h1>I Call BS studio</h1>
-        <p>
-          The public site has no sign-up. This studio is for you. The first account you create
-          becomes the owner.
-        </p>
+        <h1>VettaJimale.Tech Studio</h1>
+        <p>The public site has no sign-up. Sign in with the owner account, or email yourself a login link.</p>
         <label htmlFor="ad-email">Email</label>
         <input
           id="ad-email"
@@ -124,9 +92,6 @@ export default function Login() {
         />
         <button type="submit" disabled={busy}>
           {busy ? 'Please wait…' : 'Sign in'}
-        </button>
-        <button type="button" className="ad-secondary" disabled={busy} onClick={createAccount}>
-          Create account
         </button>
         <button type="button" className="ad-ghost" disabled={busy} onClick={magic}>
           Email me a login link

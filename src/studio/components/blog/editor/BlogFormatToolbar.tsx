@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import type { Editor } from '@tiptap/core';
 import {
   Underline,
   Strikethrough,
@@ -6,6 +7,7 @@ import {
   Superscript as SupIcon,
   Code,
   Link2,
+  Unlink,
   List,
   ListOrdered,
   ListChecks,
@@ -18,8 +20,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Undo2,
-  Redo2,
   Table,
   Image as ImageIcon,
   Youtube as YoutubeIcon,
@@ -75,16 +75,28 @@ const SPECIAL_CHARS = [
   { label: 'Nbsp', ch: '\u00A0' },
 ];
 
+/** True when the caret is in a link, or the selection covers one. */
+function selectionTouchesLink(editor: Editor): boolean {
+  if (editor.isDestroyed || !editor.schema.marks.link) return false;
+  if (editor.isActive('link')) return true;
+  const { from, to } = editor.state.selection;
+  if (from === to) return false;
+  return editor.state.doc.rangeHasMark(from, to, editor.schema.marks.link);
+}
+
 /** Toolbar for the selected paragraph block’s canvas TipTap instance. */
 export default function BlogFormatToolbar() {
   const blocks = useBlogEditorStore((s) => s.blocks);
   const selectedBlockId = useBlogEditorStore((s) => s.selectedBlockId);
+  const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const { activeEditor, getBlogParagraphEditor, blogParagraphEditorVersion } = useActiveEditor();
+  const selectedBlock = selectedBlockId ? findBlockInTree(blocks, selectedBlockId) : null;
+  const headingEditor = selectedBlock?.type === 'heading';
 
   const ed = useMemo(() => {
     if (selectedBlockId) {
       const block = findBlockInTree(blocks, selectedBlockId);
-      if (block?.type === 'paragraph') {
+      if (block?.type === 'paragraph' || block?.type === 'heading') {
         const canvasEditor = getBlogParagraphEditor(selectedBlockId);
         if (canvasEditor && !canvasEditor.isDestroyed) return canvasEditor;
       }
@@ -163,29 +175,32 @@ export default function BlogFormatToolbar() {
     onPress: () => void;
     children: ReactNode;
     disabled?: boolean;
-  }) => (
-    <button
-      type="button"
-      title={label}
-      disabled={disabled ?? !ed}
-      onMouseDown={(e) => {
-        e.preventDefault();
-        if (ed) {
+  }) => {
+    const inactive = Boolean(disabled) || !ed;
+    return (
+      <button
+        type="button"
+        title={label}
+        aria-disabled={inactive || undefined}
+        tabIndex={inactive ? -1 : undefined}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (inactive || !ed) return;
           saveToolbarEditorSelection(ed);
           onPress();
-        }
-      }}
-      className={`rounded border px-1.5 py-1 text-xs font-bold transition-all select-none ${
-        disabled || !ed
-          ? 'cursor-not-allowed border-slate-200/80 bg-white/50 text-slate-300'
-          : active
-            ? 'border-brand-blue bg-brand-blue text-brand-yellow shadow-sm'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-brand-blue/40 hover:text-brand-blue'
-      }`}
-    >
-      {children}
-    </button>
-  );
+        }}
+        className={`rounded border px-1.5 py-1 text-xs font-bold transition-all select-none ${
+          inactive
+            ? 'cursor-not-allowed border-slate-200/80 bg-white/50 text-slate-300'
+            : active
+              ? 'border-brand-blue bg-brand-blue text-brand-yellow shadow-sm'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-brand-blue/40 hover:text-brand-blue'
+        }`}
+      >
+        {children}
+      </button>
+    );
+  };
 
   const lhVal =
     ed?.state.selection.$from.parent.attrs.lineHeight &&
@@ -221,30 +236,25 @@ export default function BlogFormatToolbar() {
     <>
       <div
         data-blog-editor-chrome
-        className="shrink-0 space-y-1 border-b border-slate-200/60 bg-[#F3EDE3] px-2 py-1.5"
+        className="sticky top-0 z-30 -mx-2.5 space-y-1 border-b border-slate-200 bg-white px-2 py-1.5 shadow-sm"
         onMouseDown={onToolbarChromeMouseDown}
       >
         <ToolRow>
-          <Btn label="Undo" active={false} disabled={!ed?.can().undo()} onPress={() => ed!.chain().focus().undo().run()}>
-            <Undo2 size={13} />
-          </Btn>
-          <Btn label="Redo" active={false} disabled={!ed?.can().redo()} onPress={() => ed!.chain().focus().redo().run()}>
-            <Redo2 size={13} />
-          </Btn>
-          {divider}
           {ed ? (
             <RichEditorFontControls editor={ed} compact />
           ) : (
-            <span className="px-1 text-[10px] font-medium text-slate-400">Select a paragraph block</span>
+            <span className="px-1 text-[10px] font-medium text-slate-400">Select text to format</span>
           )}
           {ed ? <BlogToolbarTextColorPicker editor={ed} onApplied={() => tick((n) => n + 1)} /> : null}
           <RichEditorHighlightDropdown
             disabled={!ed}
             size="sm"
+            quickColor={headingEditor ? '#FFF475' : undefined}
             currentHighlightColor={(ed?.getAttributes('highlight') as { color?: string } | undefined)?.color}
             onOpen={rememberSelection}
             onPick={(hex) => {
               if (ed) applyEditorHighlight(ed, hex);
+              if (headingEditor && selectedBlockId) updateBlock(selectedBlockId, { highlightColor: hex });
               tick((n) => n + 1);
             }}
             onClear={() => {
@@ -295,6 +305,15 @@ export default function BlogFormatToolbar() {
             }}
           >
             <Link2 size={13} />
+          </Btn>
+          <Btn
+            label="Unlink"
+            disabled={!ed || !selectionTouchesLink(ed)}
+            onPress={() => {
+              ed!.chain().focus().extendMarkRange('link').unsetLink().run();
+            }}
+          >
+            <Unlink size={13} />
           </Btn>
         </ToolRow>
 

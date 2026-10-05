@@ -11,11 +11,13 @@ const TABS: { id: BlogInspectorTabId; label: string; icon: typeof List }[] = [
 
 export function BlogInspectorTabs({
   defaultTab = 'content',
+  labels,
   content,
   style,
   advanced,
 }: {
   defaultTab?: BlogInspectorTabId;
+  labels?: Partial<Record<BlogInspectorTabId, string>>;
   content: ReactNode;
   style: ReactNode;
   advanced: ReactNode;
@@ -35,7 +37,8 @@ export function BlogInspectorTabs({
         role="tablist"
         aria-label="Module settings"
       >
-        {TABS.map(({ id, label, icon: Icon }) => {
+        {TABS.map(({ id, label: fallback, icon: Icon }) => {
+          const label = labels?.[id] ?? fallback;
           const active = tab === id;
           return (
             <button
@@ -59,14 +62,18 @@ export function BlogInspectorTabs({
           );
         })}
       </div>
-      <div
-        id={`blog-inspector-panel-${tab}`}
-        role="tabpanel"
-        aria-labelledby={`blog-inspector-tab-${tab}`}
-        className="p-2.5"
-      >
-        {panels[tab]}
-      </div>
+      {(Object.keys(panels) as BlogInspectorTabId[]).map((id) => (
+        <div
+          key={id}
+          id={`blog-inspector-panel-${id}`}
+          role="tabpanel"
+          aria-labelledby={`blog-inspector-tab-${id}`}
+          hidden={tab !== id}
+          className="p-2.5"
+        >
+          {panels[id]}
+        </div>
+      ))}
     </div>
   );
 }

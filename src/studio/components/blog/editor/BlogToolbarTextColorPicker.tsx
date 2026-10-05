@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { Editor } from '@tiptap/core';
+import { useAnchoredPanel } from '../../RichEditorColorMenus';
 import {
   EDITOR_POST_BASIC_TEXT_COLORS,
   EDITOR_POST_THEME_TEXT_COLORS,
@@ -61,7 +62,13 @@ export default function BlogToolbarTextColorPicker({ editor, disabled, onApplied
 
   const [open, setOpen] = useState(false);
   const [nativeOpen, setNativeOpen] = useState(false);
+  const [hexDraft, setHexDraft] = useState(pickerValue);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const panelStyle = useAnchoredPanel(open, wrapRef);
+
+  useEffect(() => {
+    setHexDraft(pickerValue);
+  }, [pickerValue]);
 
   const lockSelection = () => {
     if (disabled) return;
@@ -139,7 +146,8 @@ export default function BlogToolbarTextColorPicker({ editor, disabled, onApplied
       </button>
       {open ? (
         <div
-          className="absolute left-0 top-full z-[300] mt-1 w-[min(240px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          className="rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          style={panelStyle}
           role="dialog"
           aria-label="Text colors"
           data-toolbar-popover-panel
@@ -177,9 +185,22 @@ export default function BlogToolbarTextColorPicker({ editor, disabled, onApplied
                 aria-label="Adjust color"
               />
             </label>
-            <p className="text-[10px] font-medium leading-snug text-slate-500">
-              Highlight text, then pick a swatch or use the color wheel.
-            </p>
+            <label className="min-w-0 flex-1">
+              <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-slate-500">Hex</span>
+              <input
+                value={hexDraft}
+                spellCheck={false}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setHexDraft(next);
+                  const raw = next.trim().startsWith('#') ? next.trim() : `#${next.trim()}`;
+                  if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(raw)) return;
+                  apply(normalizeHexColor(raw), { refocus: false, close: false });
+                }}
+                className="w-full rounded border border-slate-200 px-2 py-1 font-mono text-xs uppercase"
+                aria-label="Color code"
+              />
+            </label>
           </div>
           <p className="mb-1 px-0.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Theme</p>
           <SwatchRow colors={EDITOR_POST_THEME_TEXT_COLORS} onPick={pickFromDropdown} onMouseDownGuard={guardSelection} />

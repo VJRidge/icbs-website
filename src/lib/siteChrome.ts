@@ -30,6 +30,8 @@ export type SiteChrome = {
   social: SiteSocial
   header: SiteMenuItem[]
   footer: SiteMenuItem[]
+  /** True when `header` came from a saved menu row, not the built-in default. */
+  headerFromMenu?: boolean
 }
 
 export const DEFAULT_SITE_CHROME: SiteChrome = {
@@ -109,11 +111,13 @@ export async function loadSiteChrome(sb: SupabaseClient | null = supabaseBrowser
   const extra = readChromeStyles(settings?.global_styles)
   const headerRow = menus?.find((m) => m.location === 'header')
   const footerRow = menus?.find((m) => m.location === 'footer')
+  const headerItems = parseMenuItems(headerRow?.items)
   return {
     siteName: (settings?.site_name || DEFAULT_SITE_CHROME.siteName).trim() || DEFAULT_SITE_CHROME.siteName,
     ...extra,
-    header: parseMenuItems(headerRow?.items) ?? DEFAULT_SITE_CHROME.header,
+    header: headerItems ?? DEFAULT_SITE_CHROME.header,
     footer: parseMenuItems(footerRow?.items) ?? DEFAULT_SITE_CHROME.footer,
+    headerFromMenu: headerItems !== null,
   }
 }
 

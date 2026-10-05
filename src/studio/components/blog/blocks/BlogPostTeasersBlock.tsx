@@ -56,7 +56,8 @@ export default function BlogPostTeasersBlock({ block, isEditing }: { block: Blog
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const mode: Mode = block.data.mode === 'manual' ? 'manual' : 'latest';
   const items = asItems(block.data.items);
-  const columns = Number(block.data.columns) === 3 ? 3 : 2;
+  const columns = Number(block.data.columns) === 3 ? 3 : Number(block.data.columns) === 1 ? 1 : 2;
+  const limit = Math.min(12, Math.max(1, Number(block.data.limit) || 3));
   const filled = items.filter((it) => it.title.trim() || it.slug.trim());
   const [latest, setLatest] = useState<Item[] | null>(null);
 
@@ -75,7 +76,7 @@ export default function BlogPostTeasersBlock({ block, isEditing }: { block: Blog
       .eq('status', 'published')
       .lte('published_at', new Date().toISOString())
       .order('published_at', { ascending: false })
-      .limit(columns * 2)
+      .limit(limit)
       .then(({ data }) => {
         if (gone) return;
         setLatest(
@@ -93,7 +94,7 @@ export default function BlogPostTeasersBlock({ block, isEditing }: { block: Blog
     return () => {
       gone = true;
     };
-  }, [mode, filled.length, columns]);
+  }, [mode, filled.length, limit]);
 
   const cards = mode === 'manual' && filled.length > 0 ? filled : latest ?? [];
 

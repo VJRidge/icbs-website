@@ -5,10 +5,14 @@ export default function SignupForm({
   id,
   buttonLabel = 'Send me the free kit',
   companion,
+  thanksPath = '/free/thanks',
+  finePrint,
 }: {
   id: string
   buttonLabel?: string
   companion?: ReactNode
+  thanksPath?: string
+  finePrint?: string
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -34,7 +38,7 @@ export default function SignupForm({
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || 'Something went wrong. Please try again.')
       }
-      window.location.assign('/free/thanks')
+      window.location.assign(thanksPath)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setBusy(false)
@@ -67,7 +71,8 @@ export default function SignupForm({
       )}
       {error && <div className="err" role="alert">{error}</div>}
       <div className="fine">
-        Free PDF. You’ll also get a few emails about building with AI. Unsubscribe anytime. <a href="/privacy">Privacy</a>
+        {finePrint ?? 'Free PDF. You’ll also get a few emails about building with AI. Unsubscribe anytime.'}{' '}
+        <a href="/privacy">Privacy</a>
       </div>
     </form>
   )

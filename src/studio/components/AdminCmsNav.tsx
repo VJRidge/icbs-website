@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   ExternalLink,
   FileText,
+  GalleryHorizontal,
   Images,
   LayoutDashboard,
   LayoutTemplate,
@@ -29,6 +30,7 @@ const CONTENT_NAV: NavItem[] = [
   { to: '/admin/posts', label: 'Blog posts', icon: Newspaper },
   { to: '/admin/media', label: 'Media', icon: Images },
   { to: '/admin/templates', label: 'Templates', icon: LayoutTemplate },
+  { to: '/admin/social/carousel', label: 'Social slides', icon: GalleryHorizontal },
 ];
 
 const SITE_NAV: NavItem[] = [

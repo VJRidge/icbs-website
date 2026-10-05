@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { GripVertical, Trash2, Copy, Plus, ChevronUp, ChevronDown, Square, Pencil } from 'lucide-react';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import { BLOG_BLOCK_ICONS, BLOG_BLOCK_LABELS, isKitBlockType, type BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { isBrandBlockType } from '../../../../brand/brandBlockTypes';
 import BlogBlockRenderer from '../BlogBlockRenderer';
 import { useBlogFileDropTargetId } from './BlogEditorFileDrop';
 
@@ -11,11 +12,13 @@ function Btn({
   onClick,
   title,
   icon,
+  label,
   danger,
 }: {
   onClick: () => void;
   title: string;
   icon: ReactNode;
+  label: string;
   danger?: boolean;
 }) {
   return (
@@ -26,11 +29,12 @@ function Btn({
         onClick();
       }}
       title={title}
-      className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${
-        danger ? 'text-red-300 hover:bg-red-50 hover:text-red-500' : 'text-slate-300 hover:bg-slate-100 hover:text-slate-600'
+      className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-black uppercase tracking-widest ${
+        danger ? 'bg-[#F25C19] text-white' : 'bg-white/15 text-white hover:bg-white/25'
       }`}
     >
       {icon}
+      {label}
     </button>
   );
 }
@@ -65,6 +69,7 @@ export default function BlogDraggableBlock({
   const canMoveDown = index < blocks.length - 1;
   const label = BLOG_BLOCK_LABELS[block.type as keyof typeof BLOG_BLOCK_LABELS] ?? block.type;
   const Icon = BLOG_BLOCK_ICONS[block.type as keyof typeof BLOG_BLOCK_ICONS] ?? Square;
+  const brand = isBrandBlockType(block.type);
 
   return (
     <div
@@ -77,55 +82,47 @@ export default function BlogDraggableBlock({
       <div
         {...attributes}
         {...listeners}
-        className={`flex w-5 shrink-0 cursor-grab select-none items-center justify-center rounded-lg active:cursor-grabbing ${
-          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        }`}
+        className="flex w-7 shrink-0 cursor-grab select-none items-center justify-center rounded-lg bg-[#1A5340] text-white active:cursor-grabbing"
         title="Drag to reorder"
       >
-        <GripVertical size={14} className="text-slate-400" />
+        <GripVertical size={16} />
       </div>
 
       <div
-        className={`min-w-0 flex-1 cursor-text rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-all duration-150 ${
-          isSelected ? 'shadow-md ring-2 ring-brand-blue/25' : 'hover:shadow-md hover:ring-brand-blue/15'
-        }`}
+        className={`min-w-0 flex-1 cursor-text rounded-2xl shadow-sm ring-1 ring-black/5 transition-all duration-150 ${
+          brand ? 'bg-transparent' : 'bg-white'
+        } ${isSelected ? 'shadow-md ring-2 ring-brand-blue/25' : 'hover:shadow-md hover:ring-brand-blue/15'}`}
         onClick={onSelect}
         onKeyDown={(e) => e.key === 'Enter' && onSelect()}
         role="presentation"
       >
-        <div
-          className={`flex items-center justify-between px-4 pb-0 pt-3 transition-opacity ${
-            isSelected ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'
-          }`}
-        >
-          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold tracking-wide text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#1A5340] px-3 py-2 text-white">
+          <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold tracking-wide">
             <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden />
             {label}
           </span>
-          <div className="flex items-center gap-0.5">
+          <div className="flex flex-wrap items-center gap-1">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect();
               }}
-              title={isKitBlockType(block.type) ? 'Edit: click any text or image on the canvas, or use the left panel' : 'Edit in the left panel'}
-              className={`mr-1 inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-black uppercase tracking-widest transition-colors ${
-                isSelected ? 'bg-brand-blue text-brand-yellow' : 'bg-slate-100 text-slate-600 hover:bg-brand-blue hover:text-brand-yellow'
-              }`}
+              title={isKitBlockType(block.type) || brand ? 'Edit this section in the left panel. On a brand section, click the photo or cover to change it.' : 'Edit in the left panel'}
+              className="inline-flex h-7 items-center gap-1 rounded-md bg-[#F3D13D] px-2 text-[10px] font-black uppercase tracking-widest text-[#151412]"
             >
               <Pencil size={11} /> Edit
             </button>
-            <Btn onClick={() => duplicateBlock(block.id)} title="Duplicate" icon={<Copy size={11} />} />
-            <Btn onClick={onAddAfter} title="Insert after" icon={<Plus size={11} />} />
-            {canMoveUp ? <Btn onClick={() => moveBlock(index, index - 1)} title="Move up" icon={<ChevronUp size={11} />} /> : null}
+            <Btn onClick={() => duplicateBlock(block.id)} title="Duplicate" label="Copy" icon={<Copy size={11} />} />
+            <Btn onClick={onAddAfter} title="Add an empty container after this section" label="Container" icon={<Plus size={11} />} />
+            {canMoveUp ? <Btn onClick={() => moveBlock(index, index - 1)} title="Move up" label="Up" icon={<ChevronUp size={11} />} /> : null}
             {canMoveDown ? (
-              <Btn onClick={() => moveBlock(index, index + 1)} title="Move down" icon={<ChevronDown size={11} />} />
+              <Btn onClick={() => moveBlock(index, index + 1)} title="Move down" label="Down" icon={<ChevronDown size={11} />} />
             ) : null}
-            <Btn onClick={() => deleteBlock(block.id)} title="Delete" icon={<Trash2 size={11} />} danger />
+            <Btn onClick={() => deleteBlock(block.id)} title="Delete this whole section" label={brand ? 'Delete section' : 'Delete'} icon={<Trash2 size={11} />} danger />
           </div>
         </div>
-        <div className="px-5 pb-4 pt-2">
+        <div className={brand ? '' : 'px-5 pb-4 pt-2'}>
           <BlogBlockRenderer block={block} isEditing />
         </div>
       </div>

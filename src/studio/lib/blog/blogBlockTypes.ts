@@ -1,3 +1,5 @@
+import { BRAND_BLOCK_DEFAULTS, BRAND_BLOCK_ICONS, BRAND_BLOCK_LABELS, BRAND_BLOCK_TYPES } from '../../../brand/brandBlockTypes'
+
 export type ColumnLayoutKey = '100' | '50-50' | '33-33-33' | '25-25-25-25' | '66-33' | '33-66';
 
 /** Default `data` payloads per block type (aligned with hbcu-cms plan). */
@@ -16,7 +18,7 @@ export const BLOG_BLOCK_DEFAULTS = {
     customClass: '',
   },
   heading: {
-    text: '',
+    text: 'This is a title',
     level: 2,
     align: 'left' as 'left' | 'center' | 'right',
     color: '',
@@ -78,7 +80,7 @@ export const BLOG_BLOCK_DEFAULTS = {
   divider: { style: 'line', color: '#E8B800' },
   spacer: { height: 48 },
   tabs: { tabs: [{ label: 'Tab 1', html: '' }, { label: 'Tab 2', html: '' }] },
-  accordion: { items: [{ title: 'Section 1', html: '', open: false }] },
+  accordion: { items: [{ title: 'Section 1', html: '', open: false }], allowMultiple: true },
   slideshow: {
     slides: [{ url: '', alt: '', caption: '', credit: '' }],
     sliderVariant: 'single_focus' as 'peek_strip' | 'single_focus' | 'compact_row',
@@ -388,6 +390,7 @@ export const BLOG_BLOCK_DEFAULTS = {
     buttonHref: '#kit',
     anchor: '',
   },
+  ...BRAND_BLOCK_DEFAULTS,
 } as const;
 
 export type KitTone = 'green' | 'cream' | 'white';
@@ -446,6 +449,7 @@ export const BLOG_EDITOR_PICKER_TYPES: BlogBlockType[] = [
   'modal_popup',
   'animated_headline',
   ...KIT_BLOCK_TYPES,
+  ...BRAND_BLOCK_TYPES,
 ];
 
 export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
@@ -457,7 +461,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   callout: 'Callout',
   divider: 'Divider',
   spacer: 'Spacer',
-  columns: 'Columns',
+  columns: 'Container',
   tabs: 'Tabs',
   accordion: 'Accordion',
   slideshow: 'Slideshow',
@@ -499,6 +503,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   kit_text: 'Text section',
   kit_signup: 'Signup section',
   kit_questions: 'Questions',
+  ...BRAND_BLOCK_LABELS,
 };
 
 // Branded Lucide replacement for the editor's block-type glyphs. The
@@ -604,10 +609,12 @@ export const BLOG_BLOCK_ICONS: Record<BlogBlockType, LucideIcon> = {
   kit_text: TypeIcon,
   kit_signup: Mail,
   kit_questions: ListChecks,
+  ...BRAND_BLOCK_ICONS,
 };
 
 export const BLOG_EDITOR_PICKER_CATEGORIES: Record<string, BlogBlockType[]> = {
   Brand: [...KIT_BLOCK_TYPES],
+  VettaJimale: [...BRAND_BLOCK_TYPES],
   Text: ['paragraph', 'heading', 'animated_headline', 'quote', 'callout', 'code', 'table'],
   Media: ['image', 'video', 'youtube', 'social_embed', 'slideshow', 'gallery', 'carousel', 'video_playlist'],
   Layout: ['columns', 'divider', 'spacer', 'tabs', 'accordion', 'button', 'banner', 'card', 'icon_box', 'modal_popup'],

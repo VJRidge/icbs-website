@@ -9,6 +9,9 @@ export function safeHref(raw: unknown): string | undefined {
   if (value.startsWith('/') && !value.startsWith('//')) {
     return value;
   }
+  if (value.startsWith('#') && !value.includes('\\')) {
+    return value;
+  }
 
   try {
     const url = new URL(value);

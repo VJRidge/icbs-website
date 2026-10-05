@@ -50,7 +50,7 @@ export default function AdminCmsShell({
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-brand-yellow">
             <span className="text-sm font-black leading-none text-brand-blue">BS</span>
           </div>
-          <span className="truncate text-sm font-bold tracking-wide text-brand-yellow">I Call BS Studio</span>
+          <span className="truncate text-xs font-bold tracking-wide text-brand-yellow">VettaJimale.Tech Studio</span>
         </div>
         <div className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
           {backTo ? (

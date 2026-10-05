@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileText, Film, ImageIcon, Images, Loader2, X, Copy, Check } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FileText, Film, ImageIcon, Images, Loader2, Upload, X, Copy, Check } from 'lucide-react';
 import { paginateList, totalListPages } from '../lib/admin/cmsListPagination';
 import { LANDING_MEDIA_BUCKET } from '../lib/landingPageConfig';
 import {
@@ -9,6 +9,9 @@ import {
   type LandingMediaPickerTab,
 } from '../lib/landingMediaLibrary';
 import LandingMediaFileThumb from './LandingMediaFileThumb';
+import { uploadLandingMedia } from '../lib/landingEditorUploadShared';
+import { LANDING_MEDIA_UPLOAD_ACCEPT } from '../lib/landingMediaLibrary';
+import { assertImageUploadSize, assertVideoUploadSize } from '../lib/social/mediaUploadLimits';
 
 const PICKER_PAGE_SIZE = 12;
 
@@ -37,6 +40,7 @@ export function LandingMediaPicker({
   onPick,
   title = 'Landing media library',
   subtitle,
+  purpose,
   overlayZClass = 'z-[100]',
 }: {
   open: boolean;
@@ -45,6 +49,8 @@ export function LandingMediaPicker({
   onPick: (publicUrl: string) => void;
   title?: string;
   subtitle?: string;
+  /** Left-panel field this choice fills, so the editor can keep that field in view. */
+  purpose?: string;
   /** Overlay stacking (e.g. blog admin toolbar uses z-200+). */
   overlayZClass?: string;
 }) {
@@ -55,6 +61,42 @@ export function LandingMediaPicker({
   const [activeTab, setActiveTab] = useState<LandingMediaPickerTab>('all');
   const [page, setPage] = useState(1);
   const [previewVideo, setPreviewVideo] = useState<{ url: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const aside = document.querySelector<HTMLElement>('[data-studio-sidebar]');
+    if (!aside) return;
+    const previous = aside.style.zIndex;
+    aside.style.zIndex = '260';
+    return () => {
+      aside.style.zIndex = previous;
+    };
+  }, [open]);
+
+  const onUpload = async (files: FileList | null) => {
+    const list = files ? Array.from(files) : [];
+    if (!list.length || !userId) return;
+    setUploading(true);
+    setErr(null);
+    try {
+      let lastUrl = '';
+      for (const file of list) {
+        const video = file.type.startsWith('video/') || /\.(mp4|webm|mov|mpe?g)$/i.test(file.name);
+        if (video) assertVideoUploadSize(file);
+        else if (file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) assertImageUploadSize(file);
+        lastUrl = await uploadLandingMedia(userId, file);
+      }
+      await load();
+      if (lastUrl) onPick(lastUrl);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -146,6 +188,23 @@ export function LandingMediaPicker({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-white px-4 py-2.5">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={LANDING_MEDIA_UPLOAD_ACCEPT}
+              className="hidden"
+              onChange={(e) => void onUpload(e.target.files)}
+            />
+            <button
+              type="button"
+              disabled={!userId || uploading}
+              onClick={() => fileInputRef.current?.click()}
+              title={purpose ? `Upload a file for ${purpose}` : 'Upload a photo, video, or audio file'}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#F3D13D] px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#151412] disabled:opacity-50"
+            >
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              {uploading ? 'Uploading' : 'Upload'}
+            </button>
             {TAB_OPTIONS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}

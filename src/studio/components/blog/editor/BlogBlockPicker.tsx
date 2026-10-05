@@ -4,36 +4,59 @@ import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import {
   BLOG_BLOCK_ICONS,
   BLOG_BLOCK_LABELS,
-  BLOG_EDITOR_PICKER_CATEGORIES,
   BLOG_EDITOR_PICKER_TYPES,
   type BlogBlockType,
 } from '../../../lib/blog/blogBlockTypes';
+import { carouselPreset } from '../../../lib/blog/mediaWidgetOptions';
+import { BRAND_BLOCK_TYPES } from '../../../../brand/brandBlockTypes';
 
 const PICKER_SET = new Set<string>(BLOG_EDITOR_PICKER_TYPES);
-const CATEGORY_NAMES = Object.keys(BLOG_EDITOR_PICKER_CATEGORIES);
+const ELEMENT_LABELS: Partial<Record<BlogBlockType, string>> = {
+  slideshow: 'Media Slider',
+  carousel: 'Media carousel',
+  columns: 'Container',
+  paragraph: 'Text',
+  icon_box: 'Icon',
+};
+const ELEMENT_GROUPS: { title: string; types: BlogBlockType[] }[] = [
+  { title: 'Basic', types: ['heading', 'image', 'paragraph', 'video', 'button', 'divider', 'spacer', 'icon_box'] },
+  { title: 'Media', types: ['slideshow', 'carousel', 'gallery', 'youtube'] },
+  { title: 'Layout', types: ['columns'] },
+  { title: 'Content', types: ['accordion'] },
+  { title: 'VettaJimale', types: [...BRAND_BLOCK_TYPES] },
+];
+
+function elementLabel(type: BlogBlockType): string {
+  return ELEMENT_LABELS[type] ?? BLOG_BLOCK_LABELS[type] ?? type;
+}
 
 export default function BlogBlockPicker({ afterId, onClose }: { afterId: string | null; onClose: () => void }) {
-  const [search, setSearch] = useState('');
-  const [active, setActive] = useState(CATEGORY_NAMES[0] ?? 'Text');
   const addBlock = useBlogEditorStore((s) => s.addBlock);
+  const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const handleAdd = (type: BlogBlockType) => {
-    addBlock(type, afterId);
+  const handleAdd = (type: BlogBlockType, preset?: string) => {
+    addBlock(type, afterId, carouselPreset(preset ?? (type === 'carousel' ? 'media' : undefined)));
     onClose();
   };
 
   const labelEntries = Object.entries(BLOG_BLOCK_LABELS).filter(([t]) => PICKER_SET.has(t)) as [BlogBlockType, string][];
 
   const searchResults = search.trim()
-    ? labelEntries.filter(([, label]) => label.toLowerCase().includes(search.trim().toLowerCase()))
+    ? labelEntries.filter(([type, label]) => {
+        const q = search.trim().toLowerCase();
+        return label.toLowerCase().includes(q) || elementLabel(type).toLowerCase().includes(q);
+      })
     : [];
 
-  const categoryBlocks = (BLOG_EDITOR_PICKER_CATEGORIES[active] ?? []).filter((t) => PICKER_SET.has(t));
+  const groups = ELEMENT_GROUPS.map((group) => ({
+    title: group.title,
+    types: group.types.filter((type) => PICKER_SET.has(type)),
+  })).filter((group) => group.types.length > 0);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -55,38 +78,56 @@ export default function BlogBlockPicker({ afterId, onClose }: { afterId: string 
           </button>
         </div>
 
-        {!search.trim() ? (
-          <div className="scrollbar-hide flex gap-1 overflow-x-auto px-4 pb-1 pt-3">
-            {CATEGORY_NAMES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActive(cat)}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  active === cat ? 'bg-brand-blue text-brand-yellow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto p-4 sm:grid-cols-4">
-          {(search.trim() ? searchResults : categoryBlocks.map((t) => [t, BLOG_BLOCK_LABELS[t]] as const)).map(([type, label]) => {
-            const Icon = BLOG_BLOCK_ICONS[type];
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleAdd(type)}
-                className="flex flex-col items-center gap-1 rounded-xl border border-slate-100 bg-slate-50/80 px-2 py-3 text-center transition hover:border-brand-blue/40 hover:bg-brand-blue/5"
-              >
-                <Icon className="h-5 w-5 text-slate-700" strokeWidth={1.75} aria-hidden />
-                <span className="text-xs font-bold text-slate-800">{label}</span>
-              </button>
-            );
-          })}
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+          {search.trim() ? (
+            <div className="space-y-1">
+              {searchResults.map(([type]) => {
+                const Icon = BLOG_BLOCK_ICONS[type];
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => handleAdd(type)}
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
+                  >
+                    <Icon className="h-4 w-4 text-slate-600" strokeWidth={1.75} aria-hidden />
+                    <span className="text-sm text-slate-800">{elementLabel(type)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            groups.map((group) => (
+              <section key={group.title}>
+                <h3 className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">{group.title}</h3>
+                <div className="grid grid-cols-2 gap-1">
+                  {group.types.map((type) => {
+                    const Icon = BLOG_BLOCK_ICONS[type];
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleAdd(type)}
+                        className="flex items-center gap-2 rounded-lg border border-slate-100 px-2 py-2 text-left hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-slate-600" strokeWidth={1.75} aria-hidden />
+                        <span className="text-xs font-semibold text-slate-800">{elementLabel(type)}</span>
+                      </button>
+                    );
+                  })}
+                  {group.title === 'Media' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleAdd('carousel', 'image')}
+                      className="flex items-center gap-2 rounded-lg border border-slate-100 px-2 py-2 text-left hover:border-slate-300 hover:bg-slate-50"
+                    >
+                      <span className="text-xs font-semibold text-slate-800">Image carousel</span>
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -9,11 +9,21 @@ import {
   saveToolbarEditorSelection,
 } from '../lib/tiptapTextStyleCommands';
 
+type BlockFonts = {
+  fontFamily: string;
+  fontSize: string;
+  families: { label: string; value: string }[];
+  onFontFamily: (value: string) => void;
+  onFontSize: (value: string) => void;
+};
+
 type Props = {
-  editor: Editor;
+  editor?: Editor | null;
   disabled?: boolean;
   /** Match compact charter toolbar height. */
   compact?: boolean;
+  /** Heading style tab: same size presets and px field, stored on the block. */
+  block?: BlockFonts;
 };
 
 /** Compare stacks after normalizing commas and stripping quotes browsers may vary on. */
@@ -35,6 +45,18 @@ function formatSizeDisplay(size: string): string {
     return `${m[1]} ${unit}`;
   }
   return t;
+}
+
+export const FONT_SIZE_PX_MIN = 8;
+export const FONT_SIZE_PX_MAX = 400;
+
+/** Pixel size to send to `applyEditorFontSize`, or null when the draft is incomplete or out of range. */
+export function fontSizePxToApply(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < FONT_SIZE_PX_MIN || n > FONT_SIZE_PX_MAX) return null;
+  return `${Math.round(n)}px`;
 }
 
 function normalizeFontSizeValue(size: string): string {
@@ -97,7 +119,121 @@ function matchPresetSize(storedOrComputed: string): (typeof EDITOR_FONT_SIZE_OPT
   return EDITOR_FONT_SIZE_OPTIONS.find((o) => o.value && normalizeFontSizeValue(o.value) === norm);
 }
 
-export function RichEditorFontControls({ editor, disabled, compact }: Props) {
+function sizeForControl(value: string): string {
+  const raw = value.trim();
+  if (!raw) return '';
+  if (/^\d+(\.\d+)?$/.test(raw)) return `${raw}px`;
+  return raw;
+}
+
+function BlockFontControls({ block, disabled }: { block: BlockFonts; disabled?: boolean }) {
+  const fontSize = sizeForControl(block.fontSize);
+  const [pxDraft, setPxDraft] = useState('');
+  const pxFocused = useRef(false);
+  const pxFromSize = (() => {
+    const match = fontSize.match(/^([\d.]+)px$/i);
+    return match ? match[1] : '';
+  })();
+
+  useEffect(() => {
+    if (!pxFocused.current) setPxDraft(pxFromSize ?? '');
+  }, [pxFromSize]);
+
+  const knownSize = EDITOR_FONT_SIZE_OPTIONS.some((option) => option.value === fontSize);
+  const knownFamily = block.families.some((option) => option.value === block.fontFamily);
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-brand-blue/50';
+
+  const commitPx = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      block.onFontSize('');
+      return;
+    }
+    const next = fontSizePxToApply(trimmed);
+    if (next) block.onFontSize(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Font</span>
+        <select
+          className={field}
+          disabled={disabled}
+          value={block.fontFamily}
+          onChange={(event) => block.onFontFamily(event.target.value)}
+        >
+          {block.families.map((font) => (
+            <option key={font.label + font.value} value={font.value}>
+              {font.label}
+            </option>
+          ))}
+          {!knownFamily && block.fontFamily ? <option value={block.fontFamily}>{block.fontFamily}</option> : null}
+        </select>
+      </label>
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Font size</span>
+        <select
+          className={field}
+          disabled={disabled}
+          value={fontSize}
+          onChange={(event) => block.onFontSize(event.target.value)}
+        >
+          {EDITOR_FONT_SIZE_OPTIONS.map((option) => (
+            <option key={option.label + option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+          {!knownSize && fontSize ? <option value={fontSize}>{fontSize}</option> : null}
+        </select>
+      </label>
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Size in px</span>
+        <input
+          type="number"
+          min={FONT_SIZE_PX_MIN}
+          max={FONT_SIZE_PX_MAX}
+          step={1}
+          disabled={disabled}
+          className={field}
+          placeholder="48"
+          title="Type a pixel size. Values above 36 are allowed."
+          value={pxDraft}
+          onChange={(event) => setPxDraft(event.target.value)}
+          onFocus={() => {
+            pxFocused.current = true;
+          }}
+          onBlur={(event) => {
+            pxFocused.current = false;
+            commitPx(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            commitPx(event.currentTarget.value);
+            event.currentTarget.blur();
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+export function RichEditorFontControls({ editor, disabled, compact, block }: Props) {
+  if (block) return <BlockFontControls block={block} disabled={disabled} />;
+  if (!editor) return null;
+  return <EditorFontControls editor={editor} disabled={disabled} compact={compact} />;
+}
+
+function EditorFontControls({
+  editor,
+  disabled,
+  compact,
+}: {
+  editor: Editor;
+  disabled?: boolean;
+  compact?: boolean;
+}) {
   const [renderTick, bump] = useState(0);
   const [pxDraft, setPxDraft] = useState('');
   const pxInputFocused = useRef(false);
@@ -137,7 +273,8 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
 
   const presetSize = sizeRaw ? matchPresetSize(sizeRaw) : undefined;
   const sizeHasExplicitMark = Boolean(sizeRaw);
-  const sizeSelectValue = sizeHasExplicitMark ? presetSize?.value ?? sizeRaw : '';
+  const normalizedSize = sizeRaw ? normalizeFontSizeValue(sizeRaw) : '';
+  const sizeSelectValue = sizeHasExplicitMark ? presetSize?.value ?? normalizedSize : '';
 
   const inheritedFamilyLabel =
     matchPresetFamilyByPrimaryName(computed.family)?.label ?? primaryFontName(computed.family);
@@ -169,6 +306,7 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
 
   const pxInputRef = useRef<HTMLInputElement>(null);
   const pxCommittingRef = useRef(false);
+  const keepPxFocusRef = useRef(false);
 
   const lockSelectionForControl = () => {
     if (disabled) return;
@@ -199,18 +337,26 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
     if (!pxInputFocused.current) setPxDraft(pxFromMark);
   }, [pxFromMark]);
 
-  const commitCustomPx = (raw: string): boolean => {
-    const trimmed = raw.trim();
-    if (!trimmed) return false;
-    const n = parseFloat(trimmed);
-    if (!Number.isFinite(n) || n < 8 || n > 200) return false;
+  const commitCustomPx = (raw: string, takeFocus = false): boolean => {
+    const next = fontSizePxToApply(raw);
+    if (!next) return false;
 
     freezeToolbarEditorSelection(editor);
-    const applied = applyEditorFontSize(editor, `${n}px`);
-    if (applied) {
-      setPxDraft(String(n));
-      bump((v) => v + 1);
-      editor.chain().focus().run();
+    if (!takeFocus) keepPxFocusRef.current = true;
+    const applied = applyEditorFontSize(editor, next);
+    if (!applied) {
+      keepPxFocusRef.current = false;
+      return false;
+    }
+    setPxDraft(String(parseFloat(next)));
+    bump((v) => v + 1);
+    if (takeFocus) editor.chain().focus().run();
+    else {
+      pxInputFocused.current = true;
+      requestAnimationFrame(() => {
+        pxInputRef.current?.focus({ preventScroll: true });
+        keepPxFocusRef.current = false;
+      });
     }
     return applied;
   };
@@ -253,13 +399,14 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
           <option value={familySelectValue}>{currentFamilyLabel}</option>
         ) : null}
       </select>
-      <div className="flex shrink-0 items-center gap-0.5" title="Font size">
+      <div className="flex shrink-0 items-center gap-1" title="Font size">
+        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Size</span>
         <label className="sr-only" htmlFor="rich-editor-font-size">
-          Size preset
+          Size
         </label>
         <select
           id="rich-editor-font-size"
-          className={selectClass}
+          className={cn(selectClass, 'min-w-[4.5rem] max-w-[6.5rem]')}
           disabled={disabled}
           title={sizeHasExplicitMark ? `Size: ${currentSizeLabel}` : `Inherited size: ${currentSizeLabel}`}
           value={sizeSelectValue}
@@ -296,41 +443,45 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
             'relative flex shrink-0 cursor-text items-center gap-1 rounded-md border border-slate-200 bg-white px-1',
             compact ? 'h-[28px]' : 'h-8',
           )}
-          onMouseDown={armPxInput}
+          onMouseDown={(event) => {
+            if (event.target instanceof HTMLInputElement) return;
+            armPxInput(event);
+          }}
         >
-          <span
-            className={cn(
-              'pointer-events-none select-none text-[10px] font-bold uppercase tracking-wide text-slate-500',
-              compact ? 'hidden sm:inline' : 'inline',
-            )}
-          >
-            Px
+          <span className="pointer-events-none select-none text-[10px] font-bold lowercase tracking-wide text-slate-500">
+            px
           </span>
           <input
             ref={pxInputRef}
             id="rich-editor-font-size-custom"
             type="number"
-            min={8}
-            max={200}
+            min={FONT_SIZE_PX_MIN}
+            max={FONT_SIZE_PX_MAX}
             step={1}
             disabled={disabled}
             data-toolbar-text-input
-            className={cn(inputClass, 'border-0 bg-transparent px-0 shadow-none focus:ring-0')}
+            className={cn(inputClass, 'w-16 border-0 bg-transparent px-0 pr-1 shadow-none focus:ring-0')}
             placeholder="30"
-            title="Custom size in pixels — highlight text, type a number, press Enter"
+            title="Size in pixels. Use the arrows or type a number."
             value={pxDraft}
-            onMouseDown={armPxInput}
-            onChange={(e) => setPxDraft(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setPxDraft(next);
+              const typed = (e.nativeEvent as InputEvent).inputType;
+              if (typed === 'insertText' || typed === 'deleteContentBackward' || typed === 'deleteContentForward') return;
+              commitCustomPx(next, false);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 pxCommittingRef.current = true;
-                commitCustomPx(e.currentTarget.value);
+                commitCustomPx(e.currentTarget.value, true);
                 pxCommittingRef.current = false;
                 e.currentTarget.blur();
               }
             }}
             onBlur={(e) => {
+              if (keepPxFocusRef.current) return;
               pxInputFocused.current = false;
               if (pxCommittingRef.current) return;
               const trimmed = e.target.value.trim();
@@ -339,7 +490,7 @@ export function RichEditorFontControls({ editor, disabled, compact }: Props) {
               if (related instanceof Node && document.querySelector('[data-blog-editor-chrome]')?.contains(related)) {
                 return;
               }
-              commitCustomPx(trimmed);
+              commitCustomPx(trimmed, false);
             }}
             onFocus={() => {
               pxInputFocused.current = true;

@@ -21,15 +21,19 @@ export default function BlogInspectorColorControl({
   value,
   onChange,
   title = 'Color',
+  fallback = '',
 }: {
   value: string;
   onChange: (hex: string) => void;
   title?: string;
+  /** Color to show when none is stored, so an empty heading does not look black. */
+  fallback?: string;
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const normalized = value.trim() ? normalizeHexColor(value, '#0f172a') : '';
-  const preview = normalized || '#ffffff';
+  const fallbackHex = fallback.trim() ? normalizeHexColor(fallback, '#f7f7f2') : '';
+  const preview = normalized || fallbackHex || '#ffffff';
 
   useEffect(() => {
     if (!paletteOpen) return;
@@ -58,7 +62,7 @@ export default function BlogInspectorColorControl({
         className="relative flex h-7 w-7 cursor-pointer items-center justify-center overflow-hidden rounded border border-slate-200 bg-white"
         title={title}
       >
-        {!normalized ? (
+        {!normalized && !fallbackHex ? (
           <span
             className="absolute inset-0 bg-white"
             style={{
@@ -72,7 +76,7 @@ export default function BlogInspectorColorControl({
         )}
         <input
           type="color"
-          value={normalized || '#0f172a'}
+          value={normalized || fallbackHex || '#0f172a'}
           onChange={(e) => onChange(e.target.value)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           aria-label={title}

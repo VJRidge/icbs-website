@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { ChevronDown, Highlighter } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -43,6 +43,7 @@ export const STANDARD_TEXT_COLORS = [
 ] as const;
 
 export const STANDARD_HIGHLIGHT_COLORS = [
+  '#FFF475',
   '#fef08a',
   '#fde047',
   '#facc15',
@@ -105,6 +106,40 @@ function swatchButtonClass(hex: string) {
 }
 
 type Size = 'sm' | 'md';
+
+export function useAnchoredPanel(open: boolean, anchorRef: RefObject<HTMLElement | null>): CSSProperties {
+  const [style, setStyle] = useState<CSSProperties>({ position: 'fixed', zIndex: 80 });
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const width = 280;
+      const height = 360;
+      const below = window.innerHeight - rect.bottom;
+      const top = below < height && rect.top > 200 ? Math.max(8, rect.top - height - 6) : rect.bottom + 6;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      setStyle({
+        position: 'fixed',
+        top,
+        left,
+        width,
+        maxHeight: 'min(420px, 70vh)',
+        overflowY: 'auto',
+        zIndex: 80,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, anchorRef]);
+  return style;
+}
 
 const triggerBase =
   'inline-flex shrink-0 items-center justify-center gap-0.5 rounded-md border border-slate-200 bg-white text-slate-700 transition hover:border-brand-blue/40 hover:text-brand-blue disabled:pointer-events-none disabled:opacity-40';
@@ -341,6 +376,7 @@ export function RichEditorTextColorDropdown({
     };
   }, [open]);
 
+  const panelStyle = useAnchoredPanel(open, wrapRef);
   const underline = normalizeHexColor(currentColor ?? '') ?? '#0f172a';
 
   const toggle = () => {
@@ -376,7 +412,8 @@ export function RichEditorTextColorDropdown({
       </button>
       {open && (
         <div
-          className="absolute left-0 top-full z-[300] mt-1 w-[min(280px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          className="rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          style={panelStyle}
           role="dialog"
           aria-label="Text colors"
           data-toolbar-popover
@@ -417,6 +454,7 @@ export function RichEditorHighlightDropdown({
   onPick,
   onClear,
   onOpen,
+  quickColor,
   size = 'md',
 }: {
   disabled?: boolean;
@@ -424,6 +462,8 @@ export function RichEditorHighlightDropdown({
   onPick: (hex: string) => void;
   onClear: () => void;
   onOpen?: () => void;
+  /** Apply this color on click, then open the palette. Headings use brand yellow. */
+  quickColor?: string;
   size?: Size;
 }) {
   const prepare = () => onOpen?.();
@@ -448,6 +488,7 @@ export function RichEditorHighlightDropdown({
     };
   }, [open]);
 
+  const panelStyle = useAnchoredPanel(open, wrapRef);
   const hasHighlight = Boolean(currentHighlightColor);
   const toggle = () => {
     if (disabled) return;
@@ -467,7 +508,10 @@ export function RichEditorHighlightDropdown({
         onMouseDown={(e) => {
           e.stopPropagation();
         }}
-        onClick={toggle}
+        onClick={() => {
+          if (quickColor) onPick(quickColor);
+          toggle();
+        }}
         className={cn(
           triggerBase,
           open && 'border-brand-blue/50 bg-brand-blue/5 ring-1 ring-brand-blue/20',
@@ -480,7 +524,8 @@ export function RichEditorHighlightDropdown({
       </button>
       {open && (
         <div
-          className="absolute left-0 top-full z-[300] mt-1 w-[min(280px,92vw)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          className="rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+          style={panelStyle}
           role="dialog"
           aria-label="Highlight colors"
           data-toolbar-popover

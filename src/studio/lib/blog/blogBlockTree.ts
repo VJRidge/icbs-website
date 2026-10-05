@@ -86,6 +86,45 @@ export function moveNestedWithinColumn(
   });
 }
 
+/** Move a widget from any column into a column, at a specific index. One level only. */
+export function relocateNestedBlock(
+  blocks: BlogBlock[],
+  blockId: string,
+  targetParentId: string,
+  targetColumn: number,
+  targetIndex: number,
+): BlogBlock[] {
+  let moving: BlogBlock | null = null;
+  const stripped = blocks.map((b) => {
+    if (b.type !== 'columns') return b;
+    const layout = String(b.data.layout ?? '50-50');
+    const zones = normalizeColumnZones(b.data.columns, layout);
+    let changed = false;
+    const nextZones = zones.map((zone) => {
+      const idx = zone.blocks.findIndex((nested) => nested.id === blockId);
+      if (idx < 0) return zone;
+      changed = true;
+      moving = zone.blocks[idx] ?? null;
+      return { blocks: zone.blocks.filter((nested) => nested.id !== blockId) };
+    });
+    return changed ? { ...b, data: { ...b.data, columns: nextZones } } : b;
+  });
+  if (!moving) return blocks;
+  const moved = moving;
+  return stripped.map((b) => {
+    if (b.id !== targetParentId || b.type !== 'columns') return b;
+    const layout = String(b.data.layout ?? '50-50');
+    const zones = normalizeColumnZones(b.data.columns, layout);
+    const dest = zones[targetColumn];
+    if (!dest) return b;
+    const next = [...dest.blocks];
+    const index = Math.max(0, Math.min(targetIndex, next.length));
+    next.splice(index, 0, moved);
+    const nextZones = zones.map((zone, i) => (i === targetColumn ? { blocks: next } : zone));
+    return { ...b, data: { ...b.data, columns: nextZones } };
+  });
+}
+
 /** True if `columnsBlock` is a columns block that contains the nested block id (any column). */
 export function columnsBlockContainsNestedId(columnsBlock: BlogBlock, nestedId: string | null): boolean {
   if (!nestedId || columnsBlock.type !== 'columns') return false;

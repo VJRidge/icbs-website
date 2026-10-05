@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
@@ -17,6 +17,38 @@ function normalizeItems(block: BlogBlock): AccRow[] {
   });
 }
 
+function AccordionView({ items, allowMultiple }: { items: AccRow[]; allowMultiple: boolean }) {
+  const initially = items.findIndex((item) => item.open);
+  const [openIndex, setOpenIndex] = useState(initially === -1 ? 0 : initially);
+  return (
+    <section className="my-6 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+      {items.map((it, i) => (
+        <details
+          key={`acc-${i}-${it.title}`}
+          {...(allowMultiple ? { defaultOpen: it.open } : { open: openIndex === i })}
+          className="group px-4 py-1"
+          onToggle={(event) => {
+            if (allowMultiple) return
+            const opened = event.currentTarget.open
+            setOpenIndex((current) => (opened ? i : current === i ? -1 : current))
+          }}
+        >
+          <summary className="cursor-pointer list-none py-3 font-black text-brand-blue marker:hidden [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex w-full items-center justify-between gap-2">
+              <span>{it.title || `Section ${i + 1}`}</span>
+              <span className="text-slate-400 transition-transform group-open:rotate-180">▾</span>
+            </span>
+          </summary>
+          <div
+            className="prose prose-slate max-w-none pb-4 prose-headings:font-black prose-headings:text-brand-blue"
+            dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(it.html || '<p></p>') || '<p></p>' }}
+          />
+        </details>
+      ))}
+    </section>
+  );
+}
+
 export default function BlogAccordionBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const items = useMemo(() => normalizeItems(block), [block]);
@@ -25,24 +57,7 @@ export default function BlogAccordionBlock({ block, isEditing }: { block: BlogBl
 
   if (!isEditing) {
     if (!items.length) return null;
-    return (
-      <section className="my-6 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-        {items.map((it, i) => (
-          <details key={`acc-${i}-${it.title}`} open={it.open} className="group px-4 py-1">
-            <summary className="cursor-pointer list-none py-3 font-black text-brand-blue marker:hidden [&::-webkit-details-marker]:hidden">
-              <span className="inline-flex w-full items-center justify-between gap-2">
-                <span>{it.title || `Section ${i + 1}`}</span>
-                <span className="text-slate-400 transition-transform group-open:rotate-180">▾</span>
-              </span>
-            </summary>
-            <div
-              className="prose prose-slate max-w-none pb-4 prose-headings:font-black prose-headings:text-brand-blue"
-              dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(it.html || '<p></p>') || '<p></p>' }}
-            />
-          </details>
-        ))}
-      </section>
-    );
+    return <AccordionView items={items} allowMultiple={block.data.allowMultiple !== false} />;
   }
 
   return (

@@ -267,20 +267,8 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         break;
       }
       case 'columns': {
-        const layout = String(d.layout ?? '50-50');
-        const cols = Array.isArray(d.columns) ? d.columns : [];
-        const widthsRaw = Array.isArray(d.columnWidths) ? d.columnWidths.join(',') : '';
-        let inner = '';
-        for (const col of cols) {
-          const o = col && typeof col === 'object' ? (col as Record<string, unknown>) : {};
-          const nested = Array.isArray(o.blocks) ? (o.blocks as BlogBlock[]) : [];
-          inner += `<div class="blog-columns-col">${serializeBlogBlocksToHtml(nested)}</div>`;
-        }
-        parts.push(
-          `<section class="blog-block-columns-static" data-layout="${escapeHtml(layout)}"${
-            widthsRaw ? ` data-column-widths="${escapeHtml(widthsRaw)}"` : ''
-          }>${inner}</section>`,
-        );
+        const payload = encodeURIComponent(JSON.stringify({ id: block.id, type: block.type, data: block.data }));
+        parts.push(`<div data-cms-block="${payload}"></div>`);
         break;
       }
       case 'accordion': {
@@ -662,6 +650,11 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         break;
       }
       default:
+        if (block.type.startsWith('brand_') || block.type.startsWith('kit_')) {
+          const payload = encodeURIComponent(JSON.stringify({ id: block.id, type: block.type, data: block.data }));
+          parts.push(`<div data-cms-block="${payload}"></div>`);
+          break;
+        }
         parts.push(`<!-- unknown block: ${escapeHtml(block.type)} -->`);
     }
   }

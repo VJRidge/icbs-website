@@ -10,16 +10,47 @@ import { useActiveEditor } from '../../../contexts/ActiveEditorContext';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
 import { attachToolbarSelectionMemory, freezeToolbarEditorSelection, saveToolbarEditorSelection } from '../../../lib/tiptapTextStyleCommands';
+import CanvasLiveText from '../../../../brand/CanvasLiveText';
 
 const TIPTAP_PROSE_CLASS =
   'tiptap prose prose-slate max-w-none min-h-[140px] px-1 py-1 leading-relaxed focus:outline-none prose-headings:font-black prose-headings:text-brand-blue prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-h4:text-xl prose-h5:text-lg prose-h6:text-base prose-p:text-[17px] prose-p:font-medium prose-li:marker:text-slate-400 prose-blockquote:border-l-4 prose-blockquote:border-brand-blue prose-blockquote:pl-5 prose-blockquote:italic prose-blockquote:text-slate-700';
 
+const CANVAS_TYPE_CLASS = 'tiptap vj-canvas-type max-w-none min-h-[1.2em] px-0 py-0 leading-relaxed focus:outline-none';
+
+/** Turn stored nbsp entities into a normal space without changing the words. */
+function decodeSpaces(html: string): string {
+  return html
+    .replace(/&amp;nbsp;/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#0*160;/gi, ' ')
+    .replace(/&#x0*a0;/gi, ' ')
+    .replace(/\u00a0/g, ' ');
+}
+
+/** Plain brand copy: keep a space where a paragraph or break used to be, and decode entities. */
+function readablePlain(html: string): string {
+  const spaced = decodeSpaces(html)
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;|&apos;/gi, "'");
+  return spaced.replace(/[ \t]{2,}/g, ' ').trim();
+}
+
 function BlogParagraphBlockEdit({
   block,
   toolbarSource = true,
+  canvasSurface = false,
+  autoFocus = false,
 }: {
   block: BlogBlock;
   toolbarSource?: boolean;
+  canvasSurface?: boolean;
+  autoFocus?: boolean;
 }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const { setActiveEditor, registerBlogParagraphEditor, unregisterBlogParagraphEditor } = useActiveEditor();
@@ -31,11 +62,11 @@ function BlogParagraphBlockEdit({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: blogParagraphExtensions('Start writing…'),
-    content: String(block.data.text ?? '') || '<p></p>',
+    content: decodeSpaces(String(block.data.text ?? '')) || '<p></p>',
     editable: true,
     editorProps: {
       attributes: {
-        class: `${TIPTAP_PROSE_CLASS}${hasBlockTextColor ? '' : ' text-slate-700'}`,
+        class: `${canvasSurface ? CANVAS_TYPE_CLASS : TIPTAP_PROSE_CLASS}${hasBlockTextColor ? '' : ' text-slate-700'}`,
       },
       transformPastedHTML(html) {
         return html
@@ -91,13 +122,20 @@ function BlogParagraphBlockEdit({
       skipExternalSyncRef.current = false;
       return;
     }
-    const next = String(block.data.text ?? '') || '<p></p>';
+    try {
+      if (editor.view.dom.contains(document.activeElement)) return;
+    } catch {
+      return;
+    }
+    const next = decodeSpaces(String(block.data.text ?? '')) || '<p></p>';
     if (next === editor.getHTML()) return;
 
     // Preserve caret/highlight across external HTML sync so toolbar styles stick.
     const { from, to } = editor.state.selection;
     const frozen = { from, to };
-    editor.commands.setContent(next, false);
+    // Syncing saved HTML must not run autolink again. A domain such as
+    // VettaJimale.Tech would otherwise become a link on every update.
+    editor.chain().setMeta('preventAutolink', true).setContent(next, false).run();
     const docSize = editor.state.doc.content.size;
     const safeFrom = Math.max(0, Math.min(frozen.from, docSize));
     const safeTo = Math.max(0, Math.min(frozen.to, docSize));
@@ -109,6 +147,11 @@ function BlogParagraphBlockEdit({
       }
     }
   }, [editor, block.data.text]);
+
+  useEffect(() => {
+    if (!autoFocus || !editor || editor.isDestroyed) return;
+    editor.commands.focus('end');
+  }, [autoFocus, editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -135,21 +178,52 @@ export default function BlogParagraphBlock({
   block,
   isEditing,
   toolbarSource = true,
+  canvasEdit = false,
+  canvasSurface = false,
+  autoFocus = false,
 }: {
   block: BlogBlock;
   isEditing: boolean;
   toolbarSource?: boolean;
+  canvasEdit?: boolean;
+  canvasSurface?: boolean;
+  autoFocus?: boolean;
 }) {
   if (!isEditing) {
     const data = block.data as Record<string, unknown>;
+    const role = String(data.role ?? '');
+    const plain = readablePlain(String(block.data.text ?? ''));
+    if (canvasEdit && (role === 'lede' || role === 'copy' || role === 'note')) {
+      return (
+        <CanvasLiveText
+          blockId={block.id}
+          text={plain}
+          as="p"
+          html
+          className={role === 'lede' ? 'lede' : role === 'note' ? 'vj-note' : undefined}
+        />
+      );
+    }
+    if (role === 'lede' || role === 'copy' || role === 'note') {
+      const className = role === 'lede' ? 'lede' : role === 'note' ? 'vj-note' : undefined;
+      return <p className={className}>{plain}</p>;
+    }
     const hasBlockTextColor = Boolean(String(data.textColor ?? '').trim());
     return (
       <div
         className={`${paragraphBlockWrapperClass(data)} prose prose-slate max-w-none font-medium leading-relaxed prose-headings:font-black prose-headings:text-brand-blue prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-h4:text-xl prose-h5:text-lg prose-h6:text-base prose-p:text-[17px] prose-p:leading-[1.75]${hasBlockTextColor ? '' : ' text-slate-700'}`}
         style={paragraphBlockWrapperStyle(data)}
-        dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(String(block.data.text ?? '')) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(decodeSpaces(String(block.data.text ?? ''))) }}
       />
     );
   }
-  return <BlogParagraphBlockEdit key={block.id} block={block} toolbarSource={toolbarSource} />;
+  return (
+    <BlogParagraphBlockEdit
+      key={block.id}
+      block={block}
+      toolbarSource={toolbarSource}
+      canvasSurface={canvasSurface}
+      autoFocus={autoFocus}
+    />
+  );
 }

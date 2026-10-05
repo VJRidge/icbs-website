@@ -24,8 +24,10 @@ import BlogBlockEditor from '../components/blog/editor/BlogBlockEditor';
 import BlogAdminLeftColumn from '../components/blog/editor/BlogAdminLeftColumn';
 import BlogAdminModuleBay from '../components/blog/editor/BlogAdminModuleBay';
 import BlogAdminPostSettingsAside from '../components/blog/editor/BlogAdminPostSettingsAside';
+import PostCarouselActions from '../components/social/PostCarouselActions';
 import BlogBlockEditModalHost from '../components/blog/editor/BlogBlockEditModalHost';
-import BlogFormatToolbar from '../components/blog/editor/BlogFormatToolbar';
+import StudioHistoryButtons from '../components/blog/editor/StudioHistoryButtons';
+import { addSectionAt, pageUsesBrandCanvas } from '../../brand/sectionActions';
 import BlogPageStructureHeaderControl from '../components/blog/editor/BlogPageStructureHeaderControl';
 import BlogPostTitleField from '../components/blog/editor/BlogPostTitleField';
 import BlogArticleHtmlDisplay from '../components/blog/BlogArticleHtmlDisplay';
@@ -60,6 +62,13 @@ function initialBodyHtml(raw: string | null | undefined): string {
 
 function hasBlocksInDb(row: PublisherSitePage): boolean {
   return Array.isArray(row.content_blocks) && row.content_blocks.length > 0;
+}
+
+function blocksKeepPageSections(blocks: Array<{ type?: string }>): boolean {
+  return blocks.some((block) => {
+    const type = String(block?.type ?? '');
+    return type.startsWith('brand_') || type.startsWith('kit_');
+  });
 }
 
 type ContentMode = 'html' | 'blocks';
@@ -315,7 +324,8 @@ export default function PublisherPageAdminPage({
   const switchToBlocks = () => {
     if (form.contentMode === 'blocks') return;
     const html = form.body || '<p></p>';
-    loadBlocks([{ id: nanoid(), type: 'paragraph', data: { text: html } }]);
+    const parsed = htmlBodyToEditorBlocks(html);
+    loadBlocks(parsed.length ? parsed : [{ id: nanoid(), type: 'paragraph', data: { text: '<p></p>' } }]);
     setForm((f) => ({ ...f, contentMode: 'blocks' }));
   };
 
@@ -424,6 +434,21 @@ export default function PublisherPageAdminPage({
           excerpt,
           ...liveSnapshot,
         });
+
+        const pageSlug = (form.slug.trim() || loadedRow?.slug || slug).toLowerCase();
+        if (form.id && pageSlug.startsWith('vj-') && !blocksKeepPageSections(blocks)) {
+          const { data: currentRow } = await supabase.from('contents').select('content_blocks').eq('id', form.id).maybeSingle();
+          const existing = Array.isArray(currentRow?.content_blocks)
+            ? (currentRow.content_blocks as Array<{ type?: string }>)
+            : [];
+          if (blocksKeepPageSections(existing)) {
+            loadBlocks(existing);
+            setSaveError('Refresh this page. The saved sections are still there, and this copy would erase them.');
+            if (options?.autosave) setAutosaving(false);
+            else setSaving(false);
+            return false;
+          }
+        }
 
         if (!form.id) {
           let insertedId: string | null = null;
@@ -550,6 +575,14 @@ export default function PublisherPageAdminPage({
   };
 
   useEffect(() => {
+    if (!pendingLocalDraft) return;
+    const slug = (form.slug || loadedRow?.slug || '').toLowerCase();
+    if (!slug.startsWith('vj-')) return;
+    if (blocksKeepPageSections(pendingLocalDraft.blocks)) return;
+    dismissLocalDraft();
+  }, [pendingLocalDraft, form.slug, loadedRow?.slug, dismissLocalDraft]);
+
+  useEffect(() => {
     baselineDocRef.current = null;
   }, [draftStorageKey]);
 
@@ -656,7 +689,7 @@ export default function PublisherPageAdminPage({
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-brand-yellow">
                 <span className="text-sm font-black leading-none text-brand-blue">BS</span>
               </div>
-              <span className="truncate text-sm font-bold tracking-wide text-brand-yellow">I Call BS Studio</span>
+              <span className="truncate text-xs font-bold tracking-wide text-brand-yellow">VettaJimale.Tech Studio</span>
             </div>
 
             <div className="flex h-full min-w-0 items-stretch">
@@ -680,6 +713,7 @@ export default function PublisherPageAdminPage({
                 <FileText size={14} className="text-brand-yellow" />
                 Editor
               </div>
+              <StudioHistoryButtons />
             </div>
 
             <div className="ml-auto flex items-center gap-2 px-3">
@@ -867,7 +901,6 @@ export default function PublisherPageAdminPage({
 
                 {form.contentMode === 'blocks' ? (
                   <div data-blog-post-editor-root className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
-                    <BlogFormatToolbar />
                     <div className="blog-editor-scroll flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-2 pr-2">
                       <BlogBlockEditor userId={userProfile?.id ?? null} />
                     </div>
@@ -965,11 +998,14 @@ export default function PublisherPageAdminPage({
                       <>
                         <button
                           type="button"
-                          onClick={() => openBlockPicker(null)}
+                          onClick={() => {
+                            if (pageUsesBrandCanvas(blockList)) addSectionAt(blockList.length);
+                            else openBlockPicker(null);
+                          }}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand-blue shadow-sm transition hover:bg-brand-blue/5"
                         >
                           <Plus className="h-3.5 w-3.5" />
-                          Add block
+                          {pageUsesBrandCanvas(blockList) ? 'Add' : 'Add block'}
                         </button>
                         <span>
                           <span className="font-bold text-slate-700">{blockWordStats.wc}</span> words · ~ {blockWordStats.readMins} min
@@ -1031,6 +1067,15 @@ export default function PublisherPageAdminPage({
                       />
                     </label>
                     <PostCategoriesPanel postId={form.id} />
+                    <PostCarouselActions
+                      title={form.title}
+                      excerpt={form.excerpt}
+                      body={form.body}
+                      contentMode={form.contentMode}
+                      slug={form.slug || previewSlug}
+                      postId={form.id || null}
+                      featuredImageUrl={form.featured_image_url}
+                    />
                   </>
                 ) : (
                   <>

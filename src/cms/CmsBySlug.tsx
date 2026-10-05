@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import PublicPage, { isStudioDocument } from './PublicPage'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import NotFoundPage from './NotFoundPage'
 
-export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: ReactNode }) {
+export default function CmsBySlug({ slug, fallback }: { slug: string; fallback?: ReactNode }) {
   const [node, setNode] = useState<ReactNode>(null)
   const [ready, setReady] = useState(false)
 
@@ -41,5 +42,5 @@ export default function CmsBySlug({ slug, fallback }: { slug: string; fallback: 
       </main>
     )
   }
-  return <>{node ?? fallback}</>
+  return <>{node ?? fallback ?? <NotFoundPage />}</>
 }

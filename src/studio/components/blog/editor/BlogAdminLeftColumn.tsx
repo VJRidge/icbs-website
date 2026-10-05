@@ -5,6 +5,7 @@ import AdminCmsNav from '../../AdminCmsNav';
 import CarouselPanelResizeHandle from '../../social/carousel/CarouselPanelResizeHandle';
 import { useHorizontalPanelResize } from '../../social/carousel/useHorizontalPanelResize';
 import type { UserProfile } from '../../../types';
+import EditorSideChrome from '../../../../brand/BrandEditorChrome';
 
 type Props = {
   userProfile?: UserProfile | null;
@@ -73,6 +74,7 @@ export default function BlogAdminLeftColumn({ userProfile, moduleBay }: Props) {
 
   return (
     <aside
+      data-studio-sidebar
       className="relative flex h-full min-h-0 shrink-0 flex-col border-r border-white/10 bg-[#04190f]"
       style={{ width: columnResize.width }}
     >
@@ -95,6 +97,7 @@ export default function BlogAdminLeftColumn({ userProfile, moduleBay }: Props) {
             </>
           )}
         </div>
+        {moduleBay ? <EditorSideChrome /> : null}
         {moduleBay ? <div className="shrink-0">{moduleBay}</div> : null}
       </div>
 

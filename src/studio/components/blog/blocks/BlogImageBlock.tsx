@@ -1,8 +1,10 @@
 import { SlidersHorizontal } from 'lucide-react';
+import { safeHref } from '../../../lib/blog/safeHref';
 import { useBlogEditorSidebarOptional } from '../../../contexts/BlogEditorSidebarContext';
 import FileUpload from '../../FileUpload';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { alignBoxStyle, imageWidthPx } from '../../../../brand/ImageCornerHandles';
 
 const WIDTH_CLASS: Record<string, string> = {
   full: 'w-full',
@@ -18,20 +20,36 @@ export default function BlogImageBlock({ block, isEditing }: { block: BlogBlock;
   const alt = String(block.data.alt ?? '');
   const caption = String(block.data.caption ?? '');
   const width = String(block.data.width ?? 'full');
-  const widthClass = WIDTH_CLASS[width] ?? 'w-full';
+  const align = String(block.data.align ?? 'center');
+  const widthClass = (WIDTH_CLASS[width] ?? 'w-full').replace(
+    'mx-auto',
+    align === 'left' ? 'mr-auto' : align === 'right' ? 'ml-auto' : 'mx-auto',
+  );
 
   if (!isEditing) {
     if (!url.trim()) return null;
+    const href = safeHref(block.data.link);
+    const px = imageWidthPx(block.data.width);
+    const img = (
+      <img
+        src={url}
+        alt={alt}
+        className="h-auto w-full rounded-xl object-contain shadow-md"
+        referrerPolicy="no-referrer"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+    const sized = px != null;
     return (
-      <figure className={`my-4 ${widthClass}`}>
-        <img
-          src={url}
-          alt={alt}
-          className="w-full rounded-xl object-cover shadow-md"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-          decoding="async"
-        />
+      <figure className={sized ? 'my-4' : `my-4 ${widthClass}`} style={sized ? { width: px, maxWidth: '100%', ...alignBoxStyle(align) } : undefined}>
+        {href ? (
+          <a href={href} className="block">
+            {img}
+          </a>
+        ) : (
+          img
+        )}
         {caption.trim() ? <figcaption className="mt-2 text-center text-xs italic text-slate-500">{caption}</figcaption> : null}
       </figure>
     );

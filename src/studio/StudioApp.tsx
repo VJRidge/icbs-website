@@ -12,6 +12,7 @@ import SiteSeoPage from './pages/SiteSeoPage';
 import SiteSettingsPage from './pages/SiteSettingsPage';
 import SiteUsersPage from './pages/SiteUsersPage';
 import SiteTemplatesPage from './pages/SiteTemplatesPage';
+import SocialCarouselPage from './pages/SocialCarouselPage';
 import type { UserProfile } from './types';
 import './studio.css';
 
@@ -130,6 +131,7 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
           <Route path="/admin/appearance" element={<SiteAppearancePage userProfile={userProfile} />} />
           <Route path="/admin/menus" element={<SiteMenusPage userProfile={userProfile} />} />
           <Route path="/admin/templates" element={<SiteTemplatesPage userProfile={userProfile} />} />
+          <Route path="/admin/social/carousel" element={<SocialCarouselPage userProfile={userProfile} />} />
           <Route path="/admin/seo" element={<SiteSeoPage userProfile={userProfile} />} />
           <Route path="/admin/users" element={<SiteUsersPage userProfile={userProfile} />} />
           <Route path="/admin/settings" element={<SiteSettingsPage userProfile={userProfile} />} />

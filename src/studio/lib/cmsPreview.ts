@@ -10,12 +10,13 @@ export type CmsPreviewPayload = {
 };
 
 export function writeCmsPreview(payload: CmsPreviewPayload): void {
-  sessionStorage.setItem(CMS_PREVIEW_KEY, JSON.stringify(payload));
+  const raw = JSON.stringify(payload);
+  localStorage.setItem(CMS_PREVIEW_KEY, raw);
 }
 
 export function readCmsPreview(): CmsPreviewPayload | null {
   try {
-    const raw = sessionStorage.getItem(CMS_PREVIEW_KEY);
+    const raw = localStorage.getItem(CMS_PREVIEW_KEY) || sessionStorage.getItem(CMS_PREVIEW_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CmsPreviewPayload;
     if (!parsed || typeof parsed.title !== 'string' || !parsed.document) return null;

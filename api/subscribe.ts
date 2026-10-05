@@ -1,5 +1,6 @@
 import { env, supabase, sendEmail } from './_lib.js'
 import { kitEmail } from './_emails.js'
+import { rateLimited, requestAddress } from './_rateLimit.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
@@ -12,6 +13,9 @@ export default async function handler(req: any, res: any) {
 
   // Honeypot: bots fill the hidden "company" field. Pretend it worked.
   if (clip(body.company, 200)) return res.status(200).json({ ok: true })
+  if (rateLimited(`subscribe:${requestAddress(req)}`)) {
+    return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' })
+  }
 
   const email = clip(body.email, 200).toLowerCase()
   const firstName = clip(body.firstName, 80)
@@ -47,6 +51,7 @@ export default async function handler(req: any, res: any) {
       firstName,
       kitUrl: `${site}/downloads/I-Call-BS-Free-Starter-Kit.pdf`,
       unsubscribeUrl: `${site}/api/unsubscribe?token=${sub.unsubscribe_token}`,
+      postalAddress: env('POSTAL_ADDRESS'),
     })
 
     // If the email fails, the signup still counts: the thank-you page has the download.

@@ -11,7 +11,7 @@ const PRIME_DIRECTIVE = `PRIME DIRECTIVE — read twice:
 - If you can run a command yourself, do it — except deleting data, destructive
   database changes, or anything in production. Ask me first on those.`
 
-export function kitEmail(opts: { firstName: string; kitUrl: string; unsubscribeUrl: string }) {
+export function kitEmail(opts: { firstName: string; kitUrl: string; unsubscribeUrl: string; postalAddress: string }) {
   const name = opts.firstName.trim() || 'there'
   const subject = 'Your I Call BS Free Starter Kit'
   const text = `Hi ${name},
@@ -25,9 +25,10 @@ One thing you can use today, from the kit's Toolkit. Paste it at the top of risk
 
 ${PRIME_DIRECTIVE}
 
-V. Jimale Ridgeway
+Vetta Jimale
 
-Unsubscribe: ${opts.unsubscribeUrl}`
+Unsubscribe: ${opts.unsubscribeUrl}
+${opts.postalAddress}`
 
   const html = `<div style="font-family:Georgia,serif;font-size:17px;line-height:26px;color:#0E0D0B;max-width:560px">
 <p>Hi ${escapeHtml(name)},</p>
@@ -36,8 +37,8 @@ Unsubscribe: ${opts.unsubscribeUrl}`
 <p>This is the honest version of “build an app with AI.” No fairy tales. No thirty-minute miracles.</p>
 <p>One thing you can use today, from the kit's Toolkit. Paste it at the top of risky prompts:</p>
 <pre style="font-family:Consolas,Menlo,monospace;font-size:13px;line-height:20px;background:#F4EFE3;border:2px solid #0E0D0B;padding:14px;white-space:pre-wrap">${escapeHtml(PRIME_DIRECTIVE)}</pre>
-<p>V. Jimale Ridgeway</p>
-<p style="font-size:13px;color:#666"><a href="${opts.unsubscribeUrl}" style="color:#666">Unsubscribe</a></p>
+<p>Vetta Jimale</p>
+<p style="font-size:13px;color:#666"><a href="${opts.unsubscribeUrl}" style="color:#666">Unsubscribe</a><br>${escapeHtml(opts.postalAddress)}</p>
 </div>`
   return { subject, text, html }
 }
