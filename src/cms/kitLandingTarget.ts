@@ -1,4 +1,5 @@
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
 
 function hasKitAnchor(value: unknown, depth = 0): boolean {
   if (depth > 8 || value == null || typeof value !== 'object') return false
@@ -17,7 +18,7 @@ export async function kitLandingTarget(): Promise<'/' | '/#kit'> {
     const id = settings?.homepage_content_id
     if (!id) return '/'
     const { data: page } = await sb
-      .from('contents')
+      .from(PUBLISHED_CONTENTS_VIEW)
       .select('published_document, status')
       .eq('id', id)
       .maybeSingle()

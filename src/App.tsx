@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import FreeThanks from './pages/FreeThanks'
 import Legal from './pages/Legal'
 import Contact from './pages/Contact'
+import UpdatesSignup from './pages/UpdatesSignup'
 import AdminApp from './admin/AdminApp'
 import HomeOrKit from './cms/HomeOrKit'
 import CmsBySlug from './cms/CmsBySlug'
@@ -9,11 +10,20 @@ import ShortLinkRedirect from './cms/ShortLinkRedirect'
 import BlogIndex from './cms/BlogIndex'
 import BlogPost from './cms/BlogPost'
 import CmsPreview from './cms/CmsPreview'
+import CustomContentByPath from './cms/CustomContentByPath'
+import PublicSearch from './cms/PublicSearch'
 import RedirectGate from './cms/RedirectGate'
 import { kitLandingTarget } from './cms/kitLandingTarget'
 import BrandPage from './brand/BrandPage'
 import BookPreview from './brand/BookPreview'
 import DesignKit from './brand/DesignKit'
+import {
+  BookUpdatesPage,
+  BuilderQuickReferencePage,
+  TemplatesPage,
+  ToolsAndUpdatesPage,
+} from './pages/resources'
+import LiteracyCheckPage from './literacy/LiteracyCheckPage'
 
 function ToFreeKit({ thanks = false }: { thanks?: boolean }) {
   useEffect(() => {
@@ -64,12 +74,21 @@ function PublicRoutes({ path }: { path: string }) {
   const short = path.match(/^\/s\/([a-z0-9]+)$/i)
   if (short) return <ShortLinkRedirect code={short[1]} />
   if (path === '/preview') return <CmsPreview />
+  if (path === '/search') return <PublicSearch />
   if (path === '/blog') return <BlogIndex />
   const post = path.match(/^\/blog\/([^/]+)$/)
   if (post) return <BlogPost slug={decodeURIComponent(post[1])} />
+  const review = path.match(/^\/reviews\/([^/]+)$/)
+  if (review) return <CustomContentByPath typeKey="tool_review" slug={decodeURIComponent(review[1])} />
   if (path === '/free/thanks') return <FreeThanks />
   if (path === '/free') return <ToLanding />
   if (path === '/contact') return <Contact />
+  if (path === '/updates') return <UpdatesSignup />
+  if (path === '/resources/builder-quick-reference') return <BuilderQuickReferencePage />
+  if (path === '/resources/templates') return <TemplatesPage />
+  if (path === '/resources/tools-and-updates') return <ToolsAndUpdatesPage />
+  if (path === '/resources/vibe-coding-literacy-check') return <LiteracyCheckPage />
+  if (path === '/book/updates') return <BookUpdatesPage />
   if (path === '/privacy' || path === '/terms' || path === '/refunds') {
     return <CmsBySlug slug={path.slice(1)} fallback={<Legal page={path.slice(1)} />} />
   }

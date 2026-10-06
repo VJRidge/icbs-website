@@ -17,13 +17,19 @@ import { BLOG_BLOCK_ICONS, BLOG_BLOCK_LABELS, type BlogBlock, type BlogBlockType
 
 function SortableRootRow({
   block,
+  index,
+  total,
   selectedId,
   onSelectBlock,
+  onMove,
   children,
 }: {
   block: BlogBlock;
+  index: number;
+  total: number;
   selectedId: string | null;
   onSelectBlock: (id: string) => void;
+  onMove: (from: number, to: number) => void;
   children?: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
@@ -42,12 +48,35 @@ function SortableRootRow({
         <button
           type="button"
           className="flex h-7 w-6 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded text-slate-400 hover:bg-slate-100 active:cursor-grabbing"
-          title="Drag to reorder (root blocks)"
+          title="Drag to reorder, or use Up/Down buttons"
+          aria-label={`Drag to reorder ${label}`}
           {...attributes}
           {...listeners}
         >
-          <GripVertical className="h-3.5 w-3.5" />
+          <GripVertical className="h-3.5 w-3.5" aria-hidden />
         </button>
+        <div className="flex shrink-0 flex-col gap-0">
+          <button
+            type="button"
+            disabled={index <= 0}
+            onClick={() => onMove(index, index - 1)}
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+            title="Move up"
+            aria-label={`Move ${label} up`}
+          >
+            <ChevronUp className="h-3 w-3" aria-hidden />
+          </button>
+          <button
+            type="button"
+            disabled={index >= total - 1}
+            onClick={() => onMove(index, index + 1)}
+            className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+            title="Move down"
+            aria-label={`Move ${label} down`}
+          >
+            <ChevronDown className="h-3 w-3" aria-hidden />
+          </button>
+        </div>
         <button
           type="button"
           onClick={() => onSelectBlock(block.id)}
@@ -55,7 +84,7 @@ function SortableRootRow({
             active ? 'bg-brand-blue/10 font-bold text-brand-blue' : 'text-slate-700 hover:bg-slate-50'
           }`}
         >
-          <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
+          <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={1.75} aria-hidden />
           <span className="truncate">{label}</span>
         </button>
       </div>
@@ -96,8 +125,9 @@ function NestedRow({
           onClick={() => reorderNestedBlock(parentId, columnIndex, index, index - 1)}
           className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
           title="Move up in column"
+          aria-label={`Move ${label} up in column ${columnIndex + 1}`}
         >
-          <ChevronUp className="h-3 w-3" />
+          <ChevronUp className="h-3 w-3" aria-hidden />
         </button>
         <button
           type="button"
@@ -105,8 +135,9 @@ function NestedRow({
           onClick={() => reorderNestedBlock(parentId, columnIndex, index, index + 1)}
           className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
           title="Move down in column"
+          aria-label={`Move ${label} down in column ${columnIndex + 1}`}
         >
-          <ChevronDown className="h-3 w-3" />
+          <ChevronDown className="h-3 w-3" aria-hidden />
         </button>
       </div>
       <button
@@ -170,7 +201,8 @@ export default function BlogPageStructurePanel({ compact = false, hideHeader = f
             <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-600">Page structure</h3>
           </div>
           <p className="mt-1 text-[10px] leading-snug text-slate-500">
-            Drag root blocks by the grip. Use arrows to reorder blocks inside a column. Click any row to select it.
+            Reorder with Up/Down buttons or drag the grip (keyboard supported). Use arrows inside columns. Click a row to
+            select it.
           </p>
         </div>
       )}
@@ -181,7 +213,7 @@ export default function BlogPageStructurePanel({ compact = false, hideHeader = f
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-1.5">
-                {blocks.map((block) => {
+                {blocks.map((block, index) => {
                   const layout = block.type === 'columns' ? String(block.data.layout ?? '50-50') : '';
                   const zones =
                     block.type === 'columns' ? normalizeColumnZones(block.data.columns, layout) : [];
@@ -191,8 +223,11 @@ export default function BlogPageStructurePanel({ compact = false, hideHeader = f
                     <SortableRootRow
                       key={block.id}
                       block={block}
+                      index={index}
+                      total={blocks.length}
                       selectedId={selectedBlockId}
                       onSelectBlock={(id) => selectBlock(id)}
+                      onMove={moveBlock}
                     >
                       {block.type === 'columns' ? (
                         <div className="border-t border-slate-100 bg-slate-50/80">

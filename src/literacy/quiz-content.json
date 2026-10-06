@@ -1,0 +1,286 @@
+{
+  "version": "draft-1",
+  "status": "editorial-review-before-publication",
+  "questions": [
+    {
+      "id": "q01",
+      "number": 1,
+      "section": 1,
+      "prompt": "Your app shows a blank white screen on localhost. What's the first thing you check?",
+      "choices": [
+        "Whether the AI broke something",
+        "Whether the server is actually running",
+        "Whether you need to reinstall dependencies",
+        "Whether your database is connected"
+      ],
+      "correct": "b",
+      "explanation": "First confirm that the development server is running and that you opened the correct address. A blank page can also come from a JavaScript error or a routing problem. If the server is running, check the browser console and terminal output next."
+    },
+    {
+      "id": "q02",
+      "number": 2,
+      "section": 1,
+      "prompt": "You ask the AI to change a button color. It returns a diff touching eleven files. What do you do?",
+      "choices": [
+        "Accept it — the AI knows best",
+        "Accept it and test thoroughly",
+        "Reject it and ask for a scoped change",
+        "Ask the AI to explain each file"
+      ],
+      "correct": "c",
+      "explanation": "Pause and inspect the diff before accepting it. Eleven changed files for a button color deserves an explanation. If the change exceeds the agreed scope, reject the extra edits and request a narrower change. File count is a warning signal, not proof by itself."
+    },
+    {
+      "id": "q03",
+      "number": 3,
+      "section": 1,
+      "prompt": "Where should secret keys live?",
+      "choices": [
+        "In client code, hidden in a variable",
+        "In a public repository",
+        "In a gitignored server-side .env file locally, or a server-side secrets manager",
+        "In the AI chat so it remembers them"
+      ],
+      "correct": "c",
+      "explanation": "Keep real secrets server-side. A gitignored .env file can hold local secrets; use the hosting platform’s secret settings or a secrets manager for deployment. A .env file does not protect a secret that your build bundles into browser code. Do not paste real secrets into chat."
+    },
+    {
+      "id": "q04",
+      "number": 4,
+      "section": 1,
+      "prompt": "What does a Git branch let you do?",
+      "choices": [
+        "Save a snapshot without making a commit",
+        "Develop changes on a separate line of history before merging them",
+        "Automatically deploy two versions",
+        "Delete unwanted changes automatically"
+      ],
+      "correct": "b",
+      "explanation": "A branch is a separate line of development, not a backup of every file. Commit the working baseline before risky changes. Uncommitted work, shared databases, and deployments are not automatically isolated by creating a branch."
+    },
+    {
+      "id": "q05",
+      "number": 5,
+      "section": 1,
+      "prompt": "You see this error in your terminal:\n\nTypeError: Cannot read properties of undefined (reading 'name')\nWhat's the first thing you do?",
+      "choices": [
+        "Paste it into the AI and ask it to fix it",
+        "Find the file and line the error points to",
+        "Restart your computer",
+        "Delete the file and start over"
+      ],
+      "correct": "b",
+      "explanation": "The error is a map. It's telling you the file, the line, and the type of problem. Read it before you run from it. Then, if you still need help, paste the error and the surrounding code."
+    },
+    {
+      "id": "q06",
+      "number": 6,
+      "section": 1,
+      "prompt": "You want to try a risky prompt that might rewrite a working feature. What do you do first?",
+      "choices": [
+        "Rely on a screenshot of the current screen",
+        "Save a known-good commit, then create a branch",
+        "Let the AI remember the old version",
+        "Run the prompt and hope undo works"
+      ],
+      "correct": "b",
+      "explanation": "Save a known-good commit and work on a branch before a risky change. Check the diff and test before merging. A branch alone does not preserve uncommitted work or protect shared services."
+    },
+    {
+      "id": "q07",
+      "number": 7,
+      "section": 1,
+      "prompt": "The AI gives you a block of code you don't recognize. What's the right move?",
+      "choices": [
+        "Paste it in and see if it works",
+        "Ask the AI to walk you through it line by line before you use it",
+        "Skip it and try something else",
+        "Trust it — the AI wrote it"
+      ],
+      "correct": "b",
+      "explanation": "You're the editor. Editors don't publish what they can't read. Ask for the walkthrough. Understand it first. Then decide."
+    },
+    {
+      "id": "q08",
+      "number": 8,
+      "section": 2,
+      "prompt": "You use a browser Maps API key in your frontend. Which approach helps reduce misuse?",
+      "choices": [
+        "Nothing — client keys are never safe",
+        "An obscure variable name",
+        "Vendor restrictions + billing budget + alert",
+        "Hiding it in a comment"
+      ],
+      "correct": "c",
+      "explanation": "Use the vendor’s application and API restrictions. Monitor usage and configure quotas or supported spending controls where available. Budget alerts warn about costs; ordinary alerts do not automatically stop usage or cap spending."
+    },
+    {
+      "id": "q09",
+      "number": 9,
+      "section": 2,
+      "prompt": "Which of these is a secret key — the kind that never ships in client code?",
+      "choices": [
+        "A Maps API key",
+        "A service-role database key",
+        "An analytics tracking ID",
+        "A public Stripe publishable key"
+      ],
+      "correct": "b",
+      "explanation": "A service-role database key is a privileged server-side secret and must never be exposed to users. Browser Maps keys, analytics identifiers, and Stripe publishable keys have different purposes and controls; follow each vendor’s guidance rather than treating them as interchangeable."
+    },
+    {
+      "id": "q10",
+      "number": 10,
+      "section": 2,
+      "prompt": "A user clicks logout, but their friend can still access private account data on the same laptop. What needs checking?",
+      "choices": [
+        "Whether logout has a confirmation dialog",
+        "Whether logout ended the relevant session and cleared sensitive client state",
+        "Whether the homepage has a new color",
+        "Whether the password is long enough"
+      ],
+      "correct": "b",
+      "explanation": "Check session handling, authorization, and sensitive cached state on that device. Simply hiding a screen is not logout. Signing out this device and signing out all devices are different product choices. Access tokens may remain valid until expiry, so verify the actual behavior with your auth provider."
+    },
+    {
+      "id": "q11",
+      "number": 11,
+      "section": 2,
+      "prompt": "In a Supabase app where browser clients access a private-message table, what enforces which rows each user can access?",
+      "choices": [
+        "Hiding messages in the interface",
+        "Trusting users not to inspect requests",
+        "Correct database grants and row-level security policies",
+        "Filtering the visible list only"
+      ],
+      "correct": "c",
+      "explanation": "For direct client access in Supabase, configure appropriate grants and RLS policies to enforce row access. Test as different users. Privileged server-side keys can bypass RLS and require their own authorization checks. Other architectures can enforce authorization on a trusted server; frontend hiding alone is insufficient."
+    },
+    {
+      "id": "q12",
+      "number": 12,
+      "section": 2,
+      "prompt": "What does RLS stand for, and what does it do?",
+      "choices": [
+        "Rapid Load System — speeds up your app",
+        "Row Level Security — controls who can read/write which rows",
+        "Runtime Logic Script — runs server code",
+        "Remote Login Service — handles auth"
+      ],
+      "correct": "b",
+      "explanation": "Row Level Security. It's the database rule that says \"User A can only see their own rows.\" Wrong RLS means leaks or \"nothing saves.\" It's load-bearing."
+    },
+    {
+      "id": "q13",
+      "number": 13,
+      "section": 2,
+      "prompt": "You discover that an API key has leaked. What should you do first?",
+      "choices": [
+        "Change only your account password",
+        "Revoke or rotate the key, investigate usage, and restrict the replacement",
+        "Enable a VPN",
+        "Rename the variable"
+      ],
+      "correct": "b",
+      "explanation": "Revoke or rotate the exposed key promptly, review usage, and investigate where it leaked. Restrict the replacement and configure monitoring and supported quotas or spending controls. A budget alert alone does not cap charges."
+    },
+    {
+      "id": "q14",
+      "number": 14,
+      "section": 2,
+      "prompt": "Which of these should never appear in your Git repository?",
+      "choices": [
+        "Your README file",
+        "Your .env file with real secrets",
+        "Your package.json",
+        "Your source code"
+      ],
+      "correct": "b",
+      "explanation": "Your .env file holds real secrets. It stays out of Git. Add it to .gitignore on day one. If you've already committed secrets, rotate them immediately — Git history remembers even after you delete the file."
+    },
+    {
+      "id": "q15",
+      "number": 15,
+      "section": 3,
+      "prompt": "The AI says \"should be working now.\" What's your next move?",
+      "choices": [
+        "Move on to the next feature",
+        "Click the feature yourself",
+        "Ask the AI to confirm",
+        "Commit and push"
+      ],
+      "correct": "b",
+      "explanation": "\"Should be\" is a hypothesis, not a finish line. Click it yourself. Test the edge cases. Sometimes paste a screenshot into the chat. Words plus pixels beat \"it doesn't work\" every time."
+    },
+    {
+      "id": "q16",
+      "number": 16,
+      "section": 3,
+      "prompt": "The AI says \"I fixed the root cause.\" What do you do?",
+      "choices": [
+        "Trust it — it found the root cause",
+        "Check the nearby pages too",
+        "Ask it to double-check its work",
+        "Revert the change and start over"
+      ],
+      "correct": "b",
+      "explanation": "Verify that the original problem is resolved, then check related pages and flows for regressions. The claim that a root cause is fixed still needs evidence."
+    },
+    {
+      "id": "q17",
+      "number": 17,
+      "section": 3,
+      "prompt": "What's the difference between \"it looks like it worked\" and \"I verified it worked\"?",
+      "choices": [
+        "Nothing — they mean the same thing",
+        "\"Looks like\" means you clicked around; \"verified\" means you tested the actual behavior",
+        "\"Verified\" means the AI confirmed it",
+        "\"Looks like\" is what you say when you're not sure"
+      ],
+      "correct": "b",
+      "explanation": "\"Looks like\" is a vibe. \"Verified\" is a test. If you can't tell them apart, \"done\" will lie to you constantly."
+    },
+    {
+      "id": "q18",
+      "number": 18,
+      "section": 3,
+      "prompt": "You are about to change code that handles authentication. What is the safest workflow?",
+      "choices": [
+        "Commit directly to main — it's a small change",
+        "Create a branch, test, then merge",
+        "Ask the AI to commit it for you",
+        "Skip committing — you'll do it later"
+      ],
+      "correct": "b",
+      "explanation": "Start from a known-good committed baseline, create a branch, make the scoped change, and test authentication and related flows before merging. Branches organize changes; testing and review establish whether they work."
+    },
+    {
+      "id": "q19",
+      "number": 19,
+      "section": 3,
+      "prompt": "The AI says \"LGTM\" after reviewing its own code. What does that mean?",
+      "choices": [
+        "The code is ready to ship",
+        "The AI thinks the code is fine, but you still need to verify",
+        "The code has been tested",
+        "The code is production-ready"
+      ],
+      "correct": "b",
+      "explanation": "\"LGTM\" means \"looks good to me.\" But \"me\" is the AI. You're the editor. Verify it yourself. The AI's confidence is not evidence."
+    },
+    {
+      "id": "q20",
+      "number": 20,
+      "section": 3,
+      "prompt": "It is 11pm. Something breaks, and you do not yet know why. What is the most useful first debugging step?",
+      "choices": [
+        "Ask the AI to change code immediately",
+        "Capture the error and reproduction steps, then identify relevant files or share a screenshot",
+        "Restart everything without recording the problem",
+        "Delete the feature"
+      ],
+      "correct": "b",
+      "explanation": "Record what you expected, what happened, how to reproduce it, and any error output or screenshot. Find the file and line if available. You do not need to know the root cause before asking for help; useful evidence is the starting point."
+    }
+  ]
+}

@@ -11,7 +11,8 @@ import {
 } from '../../../lib/blog/blogBlockTypes';
 import {
   COLUMN_LAYOUT_META,
-  normalizeColumnWidths,
+  columnWidthsForZones,
+  layoutForColumnCount,
   normalizeColumnZones,
 } from '../../../lib/blog/columnLayouts';
 import { carouselPreset } from '../../../lib/blog/mediaWidgetOptions';
@@ -48,14 +49,17 @@ export default function BlogColumnsBlock({
   const selectBlock = useBlogEditorStore((s) => s.selectBlock);
   const selectedBlockId = useBlogEditorStore((s) => s.selectedBlockId);
   const columnPick = useColumnPick((s) => s.pick);
-  const layout = (String(block.data.layout ?? '50-50') in COLUMN_LAYOUT_META
+  const requestedLayout = (String(block.data.layout ?? '50-50') in COLUMN_LAYOUT_META
     ? String(block.data.layout)
     : '50-50') as ColumnLayoutKey;
+  const savedColumnCount =
+    Array.isArray(block.data.columns) && block.data.columns.length > 0 ? block.data.columns.length : undefined;
+  const layout = layoutForColumnCount(requestedLayout, savedColumnCount ?? COLUMN_LAYOUT_META[requestedLayout].count);
   const gap = Math.min(64, Math.max(8, Number(block.data.gap) || 24));
   const columnGap = readColumnGap(block.data);
   const rowGap = columnGap ?? gap;
   const zones = normalizeColumnZones(block.data.columns, layout);
-  const columnWidths = normalizeColumnWidths(layout, block.data.columnWidths);
+  const columnWidths = columnWidthsForZones(layout, zones, block.data.columnWidths);
 
   const [pickerCol, setPickerCol] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);

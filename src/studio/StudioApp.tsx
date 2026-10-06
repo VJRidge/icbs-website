@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Construction, FileText, Images, LayoutDashboard, Plus } from 'lucide-react';
+import DashboardOpsPanels from './components/admin/DashboardOpsPanels';
+import DashboardContentHealth from './components/admin/DashboardContentHealth';
+import DashboardPendingReview from './components/admin/DashboardPendingReview';
 import { supabase } from './lib/supabase';
 import AdminCmsShell from './components/admin/AdminCmsShell';
 import PublisherPagesListPage from './pages/PublisherPagesListPage';
@@ -13,6 +16,19 @@ import SiteSettingsPage from './pages/SiteSettingsPage';
 import SiteUsersPage from './pages/SiteUsersPage';
 import SiteTemplatesPage from './pages/SiteTemplatesPage';
 import SocialCarouselPage from './pages/SocialCarouselPage';
+import CustomContentListPage from './pages/CustomContentListPage';
+import CustomContentEditorPage from './pages/CustomContentEditorPage';
+import FormsListPage from './pages/FormsListPage';
+import ContactsListPage from './pages/ContactsListPage';
+import ContactDetailPage from './pages/ContactDetailPage';
+import LeadMagnetsListPage from './pages/LeadMagnetsListPage';
+import LeadMagnetEditorPage from './pages/LeadMagnetEditorPage';
+import NewsletterListPage from './pages/NewsletterListPage';
+import NewsletterEditorPage from './pages/NewsletterEditorPage';
+import AnalyticsPage from './pages/AnalyticsPage';
+import CampaignsListPage from './pages/CampaignsListPage';
+import CampaignEditorPage from './pages/CampaignEditorPage';
+import FormEditorPage from './pages/FormEditorPage';
 import type { UserProfile } from './types';
 import './studio.css';
 
@@ -93,6 +109,9 @@ function Dashboard({ userProfile }: { userProfile: UserProfile }) {
             <Images size={14} /> Media library
           </Link>
         </div>
+        <DashboardOpsPanels userId={userProfile.id} />
+        <DashboardPendingReview />
+        <DashboardContentHealth />
       </div>
     </AdminCmsShell>
   );
@@ -135,6 +154,19 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
           <Route path="/admin/seo" element={<SiteSeoPage userProfile={userProfile} />} />
           <Route path="/admin/users" element={<SiteUsersPage userProfile={userProfile} />} />
           <Route path="/admin/settings" element={<SiteSettingsPage userProfile={userProfile} />} />
+          <Route path="/admin/content/:typeKey" element={<CustomContentListPage userProfile={userProfile} />} />
+          <Route path="/admin/content/:typeKey/:contentId" element={<CustomContentEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/forms" element={<FormsListPage userProfile={userProfile} />} />
+          <Route path="/admin/forms/:formId" element={<FormEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/contacts" element={<ContactsListPage userProfile={userProfile} />} />
+          <Route path="/admin/contacts/:contactId" element={<ContactDetailPage userProfile={userProfile} />} />
+          <Route path="/admin/lead-magnets" element={<LeadMagnetsListPage userProfile={userProfile} />} />
+          <Route path="/admin/lead-magnets/:magnetId" element={<LeadMagnetEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/newsletter" element={<NewsletterListPage userProfile={userProfile} />} />
+          <Route path="/admin/newsletter/:issueId" element={<NewsletterEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/analytics" element={<AnalyticsPage userProfile={userProfile} />} />
+          <Route path="/admin/campaigns" element={<CampaignsListPage userProfile={userProfile} />} />
+          <Route path="/admin/campaigns/:campaignId" element={<CampaignEditorPage userProfile={userProfile} />} />
           <Route path="/admin/*" element={<ComingSoon userProfile={userProfile} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

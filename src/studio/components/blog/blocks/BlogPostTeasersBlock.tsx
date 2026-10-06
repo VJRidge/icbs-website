@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { supabaseBrowser } from '../../../../lib/supabaseBrowser';
+import { PUBLISHED_CONTENTS_VIEW } from '../../../../lib/publishedContent';
 
 type Item = { title: string; slug: string; excerpt: string; imageUrl: string };
 type Mode = 'latest' | 'manual';
@@ -70,7 +71,7 @@ export default function BlogPostTeasersBlock({ block, isEditing }: { block: Blog
     }
     let gone = false;
     void sb
-      .from('contents')
+      .from(PUBLISHED_CONTENTS_VIEW)
       .select('slug, title, published_document')
       .eq('kind', 'post')
       .eq('status', 'published')

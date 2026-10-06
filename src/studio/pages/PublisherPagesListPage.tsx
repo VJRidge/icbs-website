@@ -9,11 +9,15 @@ import { CMS_LIST_PAGE_SIZE, paginateList, totalListPages } from '../lib/admin/c
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import CmsListPagination from '../components/admin/CmsListPagination';
 import { CONTENT_KINDS, type ContentKind, type ContentKindConfig } from '../lib/contentKinds';
+import { restoreFromTrashPatch, trashPatch } from '../lib/cms/pageLifecycle';
+import { recordActivity } from '../lib/cms/activityLog';
 import type { PublisherSitePage, UserProfile } from '../types';
 
-function normalizePageListStatus(raw: unknown): 'draft' | 'published' {
+function normalizePageListStatus(raw: unknown): 'draft' | 'published' | 'trash' {
   const s = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  return s === 'published' ? 'published' : 'draft';
+  if (s === 'published') return 'published';
+  if (s === 'trash') return 'trash';
+  return 'draft';
 }
 
 type QuickEditState = {
@@ -26,15 +30,28 @@ type QuickEditState = {
 function RowActions({
   page,
   cfg,
+  trashView,
   onQuickEdit,
   onTrash,
+  onRestore,
 }: {
   page: PublisherSitePage;
   cfg: ContentKindConfig;
+  trashView?: boolean;
   onQuickEdit: () => void;
   onTrash: () => void;
+  onRestore: () => void;
 }) {
   const sep = <span className="text-slate-300" aria-hidden> | </span>;
+  if (trashView) {
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-x-0 gap-y-0.5 text-xs">
+        <button type="button" onClick={onRestore} className="font-semibold text-brand-blue hover:underline">
+          Restore
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-0 gap-y-0.5 text-xs">
       <Link to={`${cfg.adminBase}/${page.id}`} className="font-semibold text-brand-blue hover:underline">
@@ -80,25 +97,22 @@ export default function PublisherPagesListPage({
   const [rows, setRows] = useState<PublisherSitePage[]>([]);
   const [loading, setLoading] = useState(true);
   const [listSearchQuery, setListSearchQuery] = useState('');
-  const [listStatusFilter, setListStatusFilter] = useState<'all' | 'draft' | 'published'>('all');
+  const [listStatusFilter, setListStatusFilter] = useState<'all' | 'draft' | 'published' | 'trash'>('all');
   const [page, setPage] = useState(1);
   const [quickEdit, setQuickEdit] = useState<QuickEditState | null>(null);
   const [quickSaving, setQuickSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('contents')
-      .select('*')
-      .eq('kind', cfg.kind)
-      .neq('status', 'trash')
-      .order('updated_at', { ascending: false });
+    let query = supabase.from('contents').select('*').eq('kind', cfg.kind).order('updated_at', { ascending: false });
+    query = listStatusFilter === 'trash' ? query.eq('status', 'trash') : query.neq('status', 'trash');
+    const { data, error } = await query;
     if (error) {
       console.error(error);
       setRows([]);
       return;
     }
     setRows((data as PublisherSitePage[]) || []);
-  }, [cfg.kind]);
+  }, [cfg.kind, listStatusFilter]);
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile)) {
@@ -137,22 +151,53 @@ export default function PublisherPagesListPage({
   }, [page, totalPages]);
 
   const onTrash = async (row: PublisherSitePage) => {
-    if (!window.confirm(`Delete "${row.title || 'Untitled'}" permanently?`)) return;
-    const { error } = await supabase.from('contents').delete().eq('kind', cfg.kind).eq('id', row.id);
+    if (!window.confirm(`Move "${row.title || 'Untitled'}" to trash? You can restore it later.`)) return;
+    const { error } = await supabase.from('contents').update(trashPatch()).eq('kind', cfg.kind).eq('id', row.id);
     if (error) {
       window.alert(error.message);
       return;
     }
+    void recordActivity({
+      actorId: userProfile?.id,
+      action: 'content.trash',
+      entity: 'contents',
+      entityId: row.id,
+      meta: { kind: cfg.kind, title: row.title, slug: row.slug },
+    });
     if (quickEdit?.id === row.id) setQuickEdit(null);
     await load();
   };
 
+  const onRestore = async (row: PublisherSitePage) => {
+    if (!window.confirm(`Restore "${row.title || 'Untitled'}" as a draft? It will not go live until you publish again.`)) return;
+    const { error } = await supabase
+      .from('contents')
+      .update(restoreFromTrashPatch())
+      .eq('kind', cfg.kind)
+      .eq('id', row.id);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    void recordActivity({
+      actorId: userProfile?.id,
+      action: 'content.restore',
+      entity: 'contents',
+      entityId: row.id,
+      meta: { kind: cfg.kind, title: row.title, slug: row.slug },
+    });
+    setListStatusFilter('draft');
+    await load();
+  };
+
   const openQuickEdit = (row: PublisherSitePage) => {
+    const status = normalizePageListStatus(row.status);
+    if (status === 'trash') return;
     setQuickEdit({
       id: row.id,
       title: row.title || '',
       slug: row.slug || '',
-      status: normalizePageListStatus(row.status),
+      status,
     });
   };
 
@@ -289,6 +334,14 @@ export default function PublisherPagesListPage({
           >
             Drafts <span className="text-slate-400">({statusCounts.draft})</span>
           </button>
+          <span className="text-slate-300">|</span>
+          <button
+            type="button"
+            onClick={() => setListStatusFilter('trash')}
+            className={`font-semibold ${listStatusFilter === 'trash' ? 'text-slate-900' : 'text-brand-blue hover:underline'}`}
+          >
+            Trash
+          </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -342,14 +395,20 @@ export default function PublisherPagesListPage({
                   <Fragment key={row.id}>
                     <tr className="border-b border-slate-50 align-top hover:bg-slate-50/80">
                       <td className="px-4 py-3">
-                        <Link to={`${cfg.adminBase}/${row.id}`} className="font-bold text-brand-blue hover:underline">
-                          {row.title || 'Untitled'}
-                        </Link>
+                        {listStatusFilter === 'trash' ? (
+                          <span className="font-bold text-slate-800">{row.title || 'Untitled'}</span>
+                        ) : (
+                          <Link to={`${cfg.adminBase}/${row.id}`} className="font-bold text-brand-blue hover:underline">
+                            {row.title || 'Untitled'}
+                          </Link>
+                        )}
                         <RowActions
                           page={row}
                           cfg={cfg}
+                          trashView={listStatusFilter === 'trash'}
                           onQuickEdit={() => openQuickEdit(row)}
                           onTrash={() => void onTrash(row)}
+                          onRestore={() => void onRestore(row)}
                         />
                       </td>
                       <td className="hidden px-4 py-3 font-mono text-xs text-slate-500 sm:table-cell">{cfg.publicPath(row.slug)}</td>

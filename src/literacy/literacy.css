@@ -1,0 +1,138 @@
+.literacy-page {
+  background: #fff;
+  color: #171717;
+  min-height: 100vh;
+}
+.literacy-page .eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f47b35;
+  margin: 0;
+}
+.literacy-main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+.literacy-main h1 {
+  font-family: var(--display, Impact, sans-serif);
+  text-transform: uppercase;
+  color: #165b3b;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  line-height: 0.95;
+  margin: 0.4rem 0 0.75rem;
+}
+.literacy-main h2 {
+  color: #171717;
+  font-size: 1.35rem;
+  margin: 1.5rem 0 0.6rem;
+}
+.literacy-lede {
+  font-size: 1.1rem;
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+.literacy-progress {
+  margin: 1rem 0 1.25rem;
+}
+.literacy-progress-track {
+  height: 0.55rem;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.literacy-progress-fill {
+  height: 100%;
+  background: #f47b35;
+  transition: width 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .literacy-progress-fill {
+    transition: none;
+  }
+}
+.literacy-choice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  padding: 0.85rem 1rem;
+  margin: 0.5rem 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-height: 44px;
+}
+.literacy-choice:hover:not(:disabled) {
+  border-color: #f47b35;
+}
+.literacy-choice[data-selected='true'] {
+  border-color: #f47b35;
+  box-shadow: inset 0 0 0 1px #f47b35;
+}
+.literacy-choice:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.literacy-feedback {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 2px solid #165b3b;
+  background: #f8faf8;
+}
+.literacy-feedback[data-wrong='true'] {
+  border-color: #171717;
+}
+.literacy-highlight {
+  background: #fff176;
+  color: #171717;
+  padding: 0.15rem 0.35rem;
+}
+.literacy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.literacy-actions .btn {
+  width: auto;
+  display: inline-block;
+  min-width: 10rem;
+}
+.literacy-bar {
+  height: 0.45rem;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.35rem 0 0.85rem;
+}
+.literacy-bar > span {
+  display: block;
+  height: 100%;
+  background: #f47b35;
+}
+.literacy-score {
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  font-weight: 800;
+  color: #165b3b;
+  margin: 0.5rem 0;
+}
+.literacy-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+@media print {
+  .site-header,
+  footer,
+  .literacy-actions,
+  .literacy-no-print {
+    display: none !important;
+  }
+}

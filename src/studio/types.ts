@@ -17,7 +17,7 @@ export interface PublisherSitePage {
   body: string;
   featured_image_url?: string | null;
   featured_image_alt?: string | null;
-  status: 'draft' | 'published' | 'scheduled' | 'trash';
+  status: 'draft' | 'pending_review' | 'published' | 'scheduled' | 'trash';
   published_at: string | null;
   author_id: string;
   created_at: string;
@@ -28,6 +28,7 @@ export interface PublisherSitePage {
   published_document?: PublishedPageDocument | null;
   layout?: PageLayout | null;
   excerpt?: string | null;
+  doc_version?: number | null;
 }
 
 /** `article` = title + narrow column; `landing` = full-width kit sections, no title header. */

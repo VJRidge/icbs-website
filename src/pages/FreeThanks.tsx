@@ -45,6 +45,14 @@ export default function FreeThanks() {
             <p className="inbox">
               Check your inbox for an email from V. Jimale Ridgeway. If it’s not there in a few minutes, look in spam or promotions and mark it as “not spam.”
             </p>
+            <p className="inbox" style={{ marginTop: '1.25rem' }}>
+              Next step while the kit is open:{' '}
+              <a href="/resources/vibe-coding-literacy-check">Vibe Coding Literacy Check</a>
+              {' · '}
+              <a href="/resources/builder-quick-reference">Builder Quick Reference</a>
+              {' · '}
+              <a href="/resources/templates">Templates</a>
+            </p>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { ChevronDown, Globe, Loader2, Save, Trash2 } from 'lucide-react';
 
 type CmsEditorActionsMenuProps = {
   saving: boolean;
-  status: 'draft' | 'published';
+  status: 'draft' | 'pending_review' | 'published' | 'scheduled';
   hasTitle: boolean;
   hasId: boolean;
   onSaveDraft: () => void;
@@ -59,7 +59,7 @@ export default function CmsEditorActionsMenu({
       ) : null}
 
       <div className="inline-flex items-stretch">
-        {status === 'draft' ? (
+        {status === 'draft' || status === 'pending_review' || status === 'scheduled' ? (
           <button
             type="button"
             disabled={saving || !hasTitle}
@@ -74,7 +74,7 @@ export default function CmsEditorActionsMenu({
           type="button"
           disabled={saving}
           onClick={() => setOpen((o) => !o)}
-          className={`${menuBtnCls} ${status === 'draft' ? 'rounded-r-lg' : 'rounded-lg'}`}
+          className={`${menuBtnCls} ${status === 'draft' || status === 'pending_review' || status === 'scheduled' ? 'rounded-r-lg' : 'rounded-lg'}`}
           aria-expanded={open}
           aria-haspopup="menu"
         >
@@ -89,7 +89,7 @@ export default function CmsEditorActionsMenu({
         </button>
       </div>
 
-      {status === 'draft' ? (
+      {status === 'draft' || status === 'pending_review' ? (
         <button
           type="button"
           disabled={saving || !hasTitle}
@@ -130,7 +130,7 @@ export default function CmsEditorActionsMenu({
                   onDelete();
                 }}
               >
-                <Trash2 size={12} /> Delete
+                <Trash2 size={12} /> Move to trash
               </button>
             </>
           ) : null}

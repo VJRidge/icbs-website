@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { LANDING_MEDIA_BUCKET } from './landingPageConfig';
+import { assertMediaSafeToDelete, findMediaIdByPath } from './mediaMetadata';
 
 export type LandingMediaFileRow = {
   name: string;
@@ -124,6 +125,22 @@ export async function listLandingMediaFiles(userId: string, limit = 500): Promis
 }
 
 export async function deleteLandingMediaFile(storagePath: string): Promise<void> {
+  let mediaId: string | null = null;
+  try {
+    mediaId = await findMediaIdByPath(LANDING_MEDIA_BUCKET, storagePath);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Fail closed unless the media table/relation is clearly absent.
+    if (!/relation .*media.* does not exist|Could not find the table|42P01|PGRST205/i.test(message)) {
+      throw err instanceof Error ? err : new Error(message);
+    }
+  }
+  if (mediaId) await assertMediaSafeToDelete(mediaId);
+
   const { error } = await supabase.storage.from(LANDING_MEDIA_BUCKET).remove([storagePath]);
   if (error) throw error;
+  if (mediaId) {
+    const { error: metaError } = await supabase.from('media').delete().eq('id', mediaId);
+    if (metaError) throw metaError;
+  }
 }

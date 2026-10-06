@@ -95,6 +95,25 @@ function BlogBlockEditor({ userId }: { userId: string | null }) {
     return () => setPreviewActive(false);
   }, [setPreviewActive]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+      const selectedId = useBlogEditorStore.getState().selectedBlockId;
+      if (!selectedId) return;
+      const list = useBlogEditorStore.getState().blocks;
+      const index = list.findIndex((b) => b.id === selectedId);
+      if (index < 0) return;
+      const next = event.key === 'ArrowUp' ? index - 1 : index + 1;
+      if (next < 0 || next >= list.length) return;
+      event.preventDefault();
+      moveBlock(index, next);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [moveBlock]);
+
   if (branded && blocks.length > 0) {
     return (
       <div className="min-w-0">

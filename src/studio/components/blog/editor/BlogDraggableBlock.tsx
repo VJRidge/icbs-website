@@ -83,9 +83,10 @@ export default function BlogDraggableBlock({
         {...attributes}
         {...listeners}
         className="flex w-7 shrink-0 cursor-grab select-none items-center justify-center rounded-lg bg-[#1A5340] text-white active:cursor-grabbing"
-        title="Drag to reorder"
+        title="Drag to reorder, or use Up/Down"
+        aria-label={`Drag to reorder ${label}`}
       >
-        <GripVertical size={16} />
+        <GripVertical size={16} aria-hidden />
       </div>
 
       <div

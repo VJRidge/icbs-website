@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Footer from '../components/Footer'
 import SiteHeader from '../components/SiteHeader'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
 
 type Category = { slug: string; name: string }
 type PostCard = {
@@ -22,7 +23,7 @@ type Row = {
   excerpt: string | null
   author: string | null
   image: string | null
-  content_taxonomies: { taxonomies: { kind: string; slug: string; name: string } | null }[] | null
+  taxonomies: { kind: string; slug: string; name: string }[] | null
 }
 
 function formatDate(iso: string): string {
@@ -36,6 +37,16 @@ export default function BlogIndex() {
 
   useEffect(() => {
     document.title = 'Blog · I Call BS'
+    let link = document.querySelector<HTMLLinkElement>('link[data-cms-rss]')
+    if (!link) {
+      link = document.createElement('link')
+      link.setAttribute('data-cms-rss', '1')
+      link.rel = 'alternate'
+      link.type = 'application/rss+xml'
+      link.title = 'I Call BS blog'
+      link.href = '/feed.xml'
+      document.head.appendChild(link)
+    }
     const sb = supabaseBrowser()
     if (!sb) {
       setPosts([])
@@ -44,9 +55,9 @@ export default function BlogIndex() {
     let gone = false
     ;(async () => {
       const { data } = await sb
-        .from('contents')
+        .from(PUBLISHED_CONTENTS_VIEW)
         .select(
-          'slug, title, published_at, doc_title:published_document->>title, excerpt:published_document->>excerpt, author:published_document->>author_name, image:published_document->>featured_image_url, content_taxonomies(taxonomies(kind, slug, name))',
+          'slug, title, published_at, doc_title:published_document->>title, excerpt:published_document->>excerpt, author:published_document->>author_name, image:published_document->>featured_image_url, taxonomies',
         )
         .eq('kind', 'post')
         .eq('status', 'published')
@@ -63,15 +74,15 @@ export default function BlogIndex() {
           author: r.author ?? '',
           image: r.image ?? '',
           publishedAt: r.published_at,
-          categories: (r.content_taxonomies ?? [])
-            .map((ct) => ct.taxonomies)
-            .filter((t): t is { kind: string; slug: string; name: string } => !!t && t.kind === 'category')
+          categories: (r.taxonomies ?? [])
+            .filter((t) => t.kind === 'category')
             .map(({ slug, name }) => ({ slug, name })),
         })),
       )
     })()
     return () => {
       gone = true
+      document.querySelector('link[data-cms-rss]')?.remove()
     }
   }, [])
 

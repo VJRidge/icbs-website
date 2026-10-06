@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { BlogBlock } from '../studio/lib/blog/blogBlockTypes'
 import {
-  COLUMN_LAYOUT_META,
   COLUMN_WIDTH_MAX,
   COLUMN_WIDTH_MIN,
-  normalizeColumnWidths,
+  columnWidthsForZones,
   widthsWithColumnPercent,
 } from '../studio/lib/blog/columnLayouts'
 import { cloneBlocks, pushHistory } from '../studio/lib/blog/editorHistory'
@@ -24,11 +23,6 @@ type Session = {
 let session: Session | null = null
 let commitFrame = 0
 let disarm: (() => void) | null = null
-
-function layoutKey(block: BlogBlock): string {
-  const layout = String(block.data.layout ?? '50-50')
-  return layout in COLUMN_LAYOUT_META ? layout : '50-50'
-}
 
 function formatPercent(n: number): string {
   return String(Math.round(n * 10) / 10)
@@ -230,7 +224,11 @@ export default function ColumnWidthSliders({ block }: { block: BlogBlock }) {
   const pick = useColumnPick((s) => s.pick)
   const selectedId = useBlogEditorStore((s) => s.selectedBlockId)
   const [draft, setDraft] = useState<{ index: number; raw: string } | null>(null)
-  const widths = normalizeColumnWidths(layoutKey(block), block.data.columnWidths)
+  const widths = columnWidthsForZones(
+    String(block.data.layout ?? '50-50'),
+    block.data.columns,
+    block.data.columnWidths,
+  )
   const active =
     pick?.parentId === block.id && selectedId === block.id && pick.column >= 0 && pick.column < widths.length
       ? pick.column

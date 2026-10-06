@@ -13,6 +13,7 @@ import {
   unwrapTiptapEscapedFullDocument,
 } from '../lib/opEdManuscript';
 import { serializeBlogBlocksToHtml } from '../lib/blog/blogBlocksSerialize';
+import type { BlogBlock } from '../lib/blog/blogBlockTypes';
 import { useBlogEditorStore, htmlBodyToEditorBlocks, parseBlogBlocks } from '../lib/blog/useBlogEditorStore';
 import { sanitizeBlogBlocksDeep } from '../lib/blog/sanitizeBlogBlockHtml';
 import { ActiveEditorProvider } from '../contexts/ActiveEditorContext';
@@ -21,6 +22,7 @@ import { BlogEditorSidebarProvider } from '../contexts/BlogEditorSidebarContext'
 import OpEdRichEditor from '../components/OpEdRichEditor';
 import FileUpload from '../components/FileUpload';
 import BlogBlockEditor from '../components/blog/editor/BlogBlockEditor';
+import BlogEditorA11yWarnings from '../components/blog/editor/BlogEditorA11yWarnings';
 import BlogAdminLeftColumn from '../components/blog/editor/BlogAdminLeftColumn';
 import BlogAdminModuleBay from '../components/blog/editor/BlogAdminModuleBay';
 import BlogAdminPostSettingsAside from '../components/blog/editor/BlogAdminPostSettingsAside';
@@ -36,10 +38,25 @@ import CmsShortLinkPanel from '../components/admin/CmsShortLinkPanel';
 import HomepageToggle from '../components/admin/HomepageToggle';
 import { clipboardCopy } from '../lib/clipboardCopy';
 import { clearCmsEditorLocalDraft, syncCmsEditorUrlSilently } from '../lib/cms/cmsEditorDraft';
+import { mergeSaveCompletion, wouldEraseStructuredSections } from '../lib/cms/pageSaveSafety';
+import {
+  assertWriteMatchedRow,
+  nextDocVersion,
+  trashPatch,
+} from '../lib/cms/pageLifecycle';
+import { recordActivity } from '../lib/cms/activityLog';
+import { pendingReviewPatch, returnFromReviewPatch } from '../lib/cms/pendingReview';
+import PendingReviewControls from '../components/cms/PendingReviewControls';
+import ContentRevisionsPanel from '../components/admin/ContentRevisionsPanel';
 import { useCmsEditorAutosave } from '../lib/cms/useCmsEditorAutosave';
 import PostCategoriesPanel from '../components/admin/PostCategoriesPanel';
 import { CONTENT_KINDS, type ContentKind } from '../lib/contentKinds';
 import { writeCmsPreview } from '../lib/cmsPreview';
+import {
+  buildSecurePreviewCreateBody,
+  securePreviewPath,
+} from '../lib/cms/securePreview';
+import SchedulePublishControls from '../components/cms/SchedulePublishControls';
 import type { PageLayout, PublishedPageDocument, PublisherSitePage, UserProfile } from '../types';
 
 function bodyHtmlForEditor(raw: string | null | undefined): string {
@@ -64,13 +81,6 @@ function hasBlocksInDb(row: PublisherSitePage): boolean {
   return Array.isArray(row.content_blocks) && row.content_blocks.length > 0;
 }
 
-function blocksKeepPageSections(blocks: Array<{ type?: string }>): boolean {
-  return blocks.some((block) => {
-    const type = String(block?.type ?? '');
-    return type.startsWith('brand_') || type.startsWith('kit_');
-  });
-}
-
 type ContentMode = 'html' | 'blocks';
 
 type FormState = {
@@ -80,7 +90,7 @@ type FormState = {
   body: string;
   featured_image_url: string;
   featured_image_alt: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'pending_review' | 'published' | 'scheduled';
   contentMode: ContentMode;
   seo_title: string;
   seo_description: string;
@@ -131,16 +141,21 @@ function formatPostgrestError(err: unknown): string {
   return 'Something went wrong while saving.';
 }
 
-function normalizeStatus(raw: unknown): 'draft' | 'published' {
+function normalizeStatus(raw: unknown): 'draft' | 'pending_review' | 'published' | 'scheduled' {
   const s = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  return s === 'published' ? 'published' : 'draft';
+  if (s === 'published') return 'published';
+  if (s === 'scheduled') return 'scheduled';
+  if (s === 'pending_review') return 'pending_review';
+  return 'draft';
 }
 
 function StatusDot({ status }: { status: string }) {
   const cfg =
     status === 'published'
       ? { dot: 'bg-green-400', text: 'text-green-400', label: 'PUBLISHED' }
-      : { dot: 'bg-slate-400', text: 'text-slate-300', label: 'DRAFT' };
+      : status === 'scheduled'
+        ? { dot: 'bg-amber-400', text: 'text-amber-300', label: 'SCHEDULED' }
+        : { dot: 'bg-slate-400', text: 'text-slate-300', label: 'DRAFT' };
   return (
     <span className={`flex items-center gap-1.5 text-xs font-bold tracking-wide ${cfg.text}`}>
       <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
@@ -166,7 +181,7 @@ export default function PublisherPageAdminPage({
   const [templateReady, setTemplateReady] = useState(() => !templateId);
 
   const [loadedRow, setLoadedRow] = useState<PublisherSitePage | null>(null);
-  const [hydrating, setHydrating] = useState(false);
+  const [hydrating, setHydrating] = useState(() => Boolean(pageId && pageId !== 'new'));
   const [saving, setSaving] = useState(false);
   const [autosaving, setAutosaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -183,7 +198,7 @@ export default function PublisherPageAdminPage({
   const markClean = useBlogEditorStore((s) => s.markClean);
   const blockCount = useBlogEditorStore((s) => s.blocks.length);
   const blockList = useBlogEditorStore((s) => s.blocks);
-  const saveSuccessRef = useRef<(form: FormState, slugTouched: boolean) => void>(() => {});
+  const saveSuccessRef = useRef<(form: FormState, blocks: BlogBlock[], slugTouched: boolean) => void>(() => {});
   const baselineDocRef = useRef<string | null>(null);
   const blockWordStats = useMemo(() => {
     const html = serializeBlogBlocksToHtml(blockList);
@@ -360,6 +375,7 @@ export default function PublisherPageAdminPage({
         if (!options?.silent) window.alert('You must be signed in as an administrator.');
         return false;
       }
+      if (saving || autosaving) return false;
       setSaveError(null);
 
       const slugBase = (form.slug.trim() || slugifyTitle(form.title)).toLowerCase();
@@ -376,7 +392,9 @@ export default function PublisherPageAdminPage({
       try {
         const prev = form.id && loadedRow?.id === form.id ? loadedRow : undefined;
         let published_at =
-          effectiveStatus === 'published' ? prev?.published_at ?? new Date().toISOString() : null;
+          effectiveStatus === 'published' || effectiveStatus === 'scheduled'
+            ? prev?.published_at ?? new Date().toISOString()
+            : null;
         if (effectiveStatus === 'published' && !published_at) published_at = new Date().toISOString();
         if (isPost && effectiveStatus === 'published' && /^\d{4}-\d{2}-\d{2}$/.test(form.publish_date)) {
           const prevDay = prev?.published_at ? format(new Date(prev.published_at), 'yyyy-MM-dd') : null;
@@ -399,23 +417,24 @@ export default function PublisherPageAdminPage({
         const seoDescription = form.seo_description.trim() || null;
         const featuredUrl = form.featured_image_url.trim() || null;
         const featuredAlt = form.featured_image_alt.trim() || null;
+        const frozenSnapshot = {
+          format: 'blocks' as const,
+          blocks: contentBlocks,
+          html: serialized,
+          layout: form.layout,
+          featured_image_url: featuredUrl,
+          featured_image_alt: featuredAlt,
+          ...(isPost
+            ? { title: form.title.trim(), excerpt, author_name: authorName, published_at }
+            : {}),
+        };
         /** Autosave only touches the working copy; the live snapshot changes on explicit Save / Publish. */
         const liveSnapshot = options?.autosave
           ? {}
           : {
               published_document:
-                effectiveStatus === 'published'
-                  ? {
-                      format: 'blocks',
-                      blocks: contentBlocks,
-                      html: serialized,
-                      layout: form.layout,
-                      featured_image_url: featuredUrl,
-                      featured_image_alt: featuredAlt,
-                      ...(isPost
-                        ? { title: form.title.trim(), excerpt, author_name: authorName, published_at }
-                        : {}),
-                    }
+                effectiveStatus === 'published' || effectiveStatus === 'scheduled'
+                  ? frozenSnapshot
                   : null,
             };
         const buildBase = (nextSlug: string) => ({
@@ -433,15 +452,20 @@ export default function PublisherPageAdminPage({
           layout: form.layout,
           excerpt,
           ...liveSnapshot,
+          ...(form.id ? { doc_version: nextDocVersion(prev?.doc_version) } : {}),
         });
 
-        const pageSlug = (form.slug.trim() || loadedRow?.slug || slug).toLowerCase();
-        if (form.id && pageSlug.startsWith('vj-') && !blocksKeepPageSections(blocks)) {
-          const { data: currentRow } = await supabase.from('contents').select('content_blocks').eq('id', form.id).maybeSingle();
+        if (form.id) {
+          const { data: currentRow, error: currentError } = await supabase
+            .from('contents')
+            .select('content_blocks')
+            .eq('id', form.id)
+            .maybeSingle();
+          if (currentError) throw currentError;
           const existing = Array.isArray(currentRow?.content_blocks)
-            ? (currentRow.content_blocks as Array<{ type?: string }>)
+            ? (currentRow.content_blocks as Array<{ type?: unknown; data?: unknown }>)
             : [];
-          if (blocksKeepPageSections(existing)) {
+          if (wouldEraseStructuredSections(existing, blocks)) {
             loadBlocks(existing);
             setSaveError('Refresh this page. The saved sections are still there, and this copy would erase them.');
             if (options?.autosave) setAutosaving(false);
@@ -450,6 +474,7 @@ export default function PublisherPageAdminPage({
           }
         }
 
+        let savedRow: PublisherSitePage | null = null;
         if (!form.id) {
           let insertedId: string | null = null;
           for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -476,12 +501,17 @@ export default function PublisherPageAdminPage({
           if (!insertedId) throw new Error('Save succeeded but no id returned.');
           nextId = insertedId;
         } else {
-          const { error } = await supabase
+          const expectedVersion = Math.max(1, Number(prev?.doc_version) || 1);
+          const { data: updated, error } = await supabase
             .from('contents')
             .update(buildBase(slug))
             .eq('kind', cfg.kind)
-            .eq('id', form.id);
+            .eq('id', form.id)
+            .eq('doc_version', expectedVersion)
+            .select('*')
+            .maybeSingle();
           if (error) throw error;
+          savedRow = assertWriteMatchedRow(updated) as PublisherSitePage;
           if (
             !options?.autosave &&
             prev &&
@@ -501,32 +531,64 @@ export default function PublisherPageAdminPage({
         }
 
         if (!options?.autosave && nextId) {
-          await supabase.from('content_revisions').insert({
+          const { error: revisionError } = await supabase.from('content_revisions').insert({
             content_id: nextId,
             title: form.title.trim(),
             document: { format: 'blocks', blocks: contentBlocks, html: serialized },
             created_by: userProfile.id,
           });
+          if (revisionError) {
+            console.error('Content saved, but revision history could not be recorded.', revisionError);
+            setSaveError('Saved, but revision history could not be recorded. Try saving again.');
+          }
         }
 
-        markClean();
+        if (useBlogEditorStore.getState().blocks === blocks) markClean();
         const nextForm: FormState = { ...form, id: nextId ?? form.id, status: effectiveStatus, slug };
-        setForm(nextForm);
-        if (nextId) {
+        setForm((current) =>
+          mergeSaveCompletion(current, form, {
+            id: nextId ?? current.id,
+            status: effectiveStatus,
+            slug,
+          }),
+        );
+        if (savedRow) {
+          setLoadedRow(savedRow);
+        } else if (nextId) {
           const { data: refreshed } = await supabase.from('contents').select('*').eq('id', nextId).maybeSingle();
           if (refreshed) {
             setLoadedRow(refreshed as PublisherSitePage);
           }
         }
         if (!wasExisting && nextId) {
-          clearCmsEditorLocalDraft(cfg.draftKind, 'new');
+          clearCmsEditorLocalDraft(cfg.draftKind, `${userProfile.id}:new`);
           if (options?.autosave) {
             syncCmsEditorUrlSilently(`${cfg.adminBase}/${nextId}`);
           } else if (isNewRoute) {
             navigate(`${cfg.adminBase}/${nextId}`, { replace: true });
           }
         }
-        saveSuccessRef.current(nextForm, slugTouched);
+        if (!options?.autosave) saveSuccessRef.current(nextForm, blocks, slugTouched);
+        if (!options?.autosave && nextId) {
+          const prevStatus = prev ? normalizeStatus(prev.status) : 'draft';
+          if (effectiveStatus === 'published' && prevStatus !== 'published') {
+            void recordActivity({
+              actorId: userProfile.id,
+              action: 'content.publish',
+              entity: 'contents',
+              entityId: nextId,
+              meta: { kind: cfg.kind, title: form.title.trim(), slug },
+            });
+          } else if (effectiveStatus === 'draft' && prevStatus === 'published') {
+            void recordActivity({
+              actorId: userProfile.id,
+              action: 'content.unpublish',
+              entity: 'contents',
+              entityId: nextId,
+              meta: { kind: cfg.kind, title: form.title.trim(), slug },
+            });
+          }
+        }
         if (!options?.silent) window.alert(wasExisting ? 'Saved.' : 'Created.');
         return true;
       } catch (err: unknown) {
@@ -539,10 +601,12 @@ export default function PublisherPageAdminPage({
         else setSaving(false);
       }
     },
-    [userProfile, form, loadedRow, markClean, navigate, isNewRoute, slugTouched, cfg, isPost],
+    [userProfile, form, loadedRow, markClean, navigate, isNewRoute, slugTouched, cfg, isPost, saving, autosaving],
   );
 
-  const draftStorageKey = form.id ?? (isNewRoute ? 'new' : pageId ?? 'new');
+  const draftRecordKey = form.id ?? (isNewRoute ? 'new' : pageId ?? 'new');
+  const draftStorageKey = `${userProfile?.id ?? 'anonymous'}:${draftRecordKey}`;
+  const hydrationReady = !hydrating && (isNewRoute || (Boolean(pageId) && loadedRow?.id === pageId));
 
   const {
     autosaveStatus,
@@ -555,7 +619,7 @@ export default function PublisherPageAdminPage({
   } = useCmsEditorAutosave<FormState>({
     kind: cfg.draftKind,
     storageKey: draftStorageKey,
-    enabled: !hydrating && isAnyAdminProfile(userProfile),
+    enabled: hydrationReady && isAnyAdminProfile(userProfile),
     form,
     blocks: blockList,
     slugTouched,
@@ -570,28 +634,28 @@ export default function PublisherPageAdminPage({
     },
   });
 
-  saveSuccessRef.current = (nextForm, nextSlugTouched) => {
-    noteManualSaveSuccess(nextForm, useBlogEditorStore.getState().blocks, nextSlugTouched);
+  saveSuccessRef.current = (nextForm, savedBlocks, nextSlugTouched) => {
+    noteManualSaveSuccess(nextForm, savedBlocks, nextSlugTouched);
   };
 
   useEffect(() => {
     if (!pendingLocalDraft) return;
-    const slug = (form.slug || loadedRow?.slug || '').toLowerCase();
-    if (!slug.startsWith('vj-')) return;
-    if (blocksKeepPageSections(pendingLocalDraft.blocks)) return;
-    dismissLocalDraft();
-  }, [pendingLocalDraft, form.slug, loadedRow?.slug, dismissLocalDraft]);
+    const saved = Array.isArray(loadedRow?.content_blocks)
+      ? (loadedRow.content_blocks as Array<{ type?: unknown; data?: unknown }>)
+      : [];
+    if (wouldEraseStructuredSections(saved, pendingLocalDraft.blocks)) dismissLocalDraft();
+  }, [pendingLocalDraft, loadedRow?.content_blocks, dismissLocalDraft]);
 
   useEffect(() => {
     baselineDocRef.current = null;
   }, [draftStorageKey]);
 
   useEffect(() => {
-    if (hydrating || pendingLocalDraft) return;
+    if (!hydrationReady || pendingLocalDraft) return;
     if (baselineDocRef.current === draftStorageKey) return;
     baselineDocRef.current = draftStorageKey;
     setBaseline(form, blockList, slugTouched);
-  }, [hydrating, pendingLocalDraft, draftStorageKey, form, blockList, slugTouched, setBaseline, loadedRow?.updated_at]);
+  }, [hydrationReady, pendingLocalDraft, draftStorageKey, form, blockList, slugTouched, setBaseline, loadedRow?.updated_at]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -599,32 +663,85 @@ export default function PublisherPageAdminPage({
   };
 
   const onDelete = async (id: string) => {
-    if (!window.confirm(`Delete this ${cfg.singular.toLowerCase()} permanently?`)) return;
-    const { error } = await supabase.from('contents').delete().eq('kind', cfg.kind).eq('id', id);
+    if (!window.confirm(`Move this ${cfg.singular.toLowerCase()} to trash? You can restore it later.`)) return;
+    const expectedVersion = Math.max(1, Number(loadedRow?.doc_version) || 1);
+    const { data, error } = await supabase
+      .from('contents')
+      .update(trashPatch(nextDocVersion(expectedVersion)))
+      .eq('kind', cfg.kind)
+      .eq('id', id)
+      .eq('doc_version', expectedVersion)
+      .select('id')
+      .maybeSingle();
     if (error) {
       window.alert(error.message);
       return;
     }
+    try {
+      assertWriteMatchedRow(data);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Could not move to trash.');
+      return;
+    }
+    void recordActivity({
+      actorId: userProfile?.id,
+      action: 'content.trash',
+      entity: 'contents',
+      entityId: id,
+      meta: { kind: cfg.kind, title: form.title.trim(), slug: form.slug },
+    });
     navigate(cfg.adminBase, { replace: true });
+  };
+
+  const restoreRevision = async (working: { content_blocks: unknown[]; body: string }) => {
+    if (!form.id) return;
+    const expectedVersion = Math.max(1, Number(loadedRow?.doc_version) || 1);
+    const { data, error } = await supabase
+      .from('contents')
+      .update({
+        ...working,
+        doc_version: nextDocVersion(loadedRow?.doc_version),
+      })
+      .eq('kind', cfg.kind)
+      .eq('id', form.id)
+      .eq('doc_version', expectedVersion)
+      .select('*')
+      .maybeSingle();
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    try {
+      const row = assertWriteMatchedRow(data) as PublisherSitePage;
+      setLoadedRow(row);
+      loadBlocks(working.content_blocks as never);
+      setForm((f) => ({ ...f, body: working.body || '<p></p>', contentMode: 'blocks' }));
+      markClean();
+      void recordActivity({
+        actorId: userProfile?.id,
+        action: 'content.revision_restore',
+        entity: 'contents',
+        entityId: form.id,
+        meta: { kind: cfg.kind, title: form.title.trim() },
+      });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Could not restore revision.');
+    }
   };
 
   const previewSlug = (form.slug.trim() || slugifyTitle(form.title)).toLowerCase();
 
-  const openPreviewWindow = () => {
-    if (!form.title.trim()) {
-      window.alert('Add a title first.');
-      return;
-    }
+  const buildPreviewPayload = () => {
     const blocks = useBlogEditorStore.getState().blocks;
     const html = form.contentMode === 'blocks' && blocks.length > 0 ? serializeBlogBlocksToHtml(blocks) : form.body;
     const title = form.title.trim();
     const publishedAt = form.publish_date
       ? new Date(`${form.publish_date}T09:00:00`).toISOString()
       : new Date().toISOString();
-    writeCmsPreview({
+    return {
       title,
       document: {
-        format: 'blocks',
+        format: 'blocks' as const,
         blocks: form.contentMode === 'blocks' ? blocks : [],
         html,
         layout: form.layout,
@@ -641,8 +758,53 @@ export default function PublisherPageAdminPage({
             publishedAt,
           }
         : undefined,
-    });
-    window.open(`${window.location.origin}/preview`, '_blank', 'noopener,noreferrer');
+    };
+  };
+
+  const openPreviewWindow = () => {
+    if (!form.title.trim()) {
+      window.alert('Add a title first.');
+      return;
+    }
+    const payload = buildPreviewPayload();
+    writeCmsPreview(payload);
+    void (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (accessToken) {
+          const res = await fetch('/api/cms-preview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(buildSecurePreviewCreateBody({ ...payload, contentId: form.id })),
+          });
+          if (res.ok) {
+            const created = (await res.json()) as { token?: string };
+            if (created.token) {
+              void recordActivity({
+                actorId: userProfile?.id,
+                action: 'content.preview',
+                entity: 'contents',
+                entityId: form.id,
+                meta: { kind: cfg.kind, title: payload.title },
+              });
+              window.open(
+                `${window.location.origin}${securePreviewPath(created.token)}`,
+                '_blank',
+                'noopener,noreferrer',
+              );
+              return;
+            }
+          }
+        }
+      } catch {
+        /* fall back to local preview */
+      }
+      window.open(`${window.location.origin}/preview`, '_blank', 'noopener,noreferrer');
+    })();
   };
 
   const publishedAtRow = loadedRow?.published_at ?? null;
@@ -746,6 +908,28 @@ export default function PublisherPageAdminPage({
                 <Eye size={12} /> Preview
               </button>
 
+              <SchedulePublishControls
+                contentId={form.id}
+                docVersion={loadedRow?.doc_version}
+                currentStatus={loadedRow?.status || form.status}
+                currentPublishedDocument={loadedRow?.published_document}
+                canSchedule={Boolean(form.id && form.title.trim())}
+                actorId={userProfile?.id}
+                contentKind={cfg.kind}
+                title={form.title.trim()}
+                buildSnapshot={() => {
+                  if (!form.title.trim()) return null;
+                  return buildPreviewPayload().document;
+                }}
+                onScheduled={(row) => {
+                  setLoadedRow(row);
+                  setForm((f) => ({
+                    ...f,
+                    status: row.status === 'scheduled' ? 'scheduled' : normalizeStatus(row.status),
+                  }));
+                }}
+              />
+
               {form.status === 'published' && previewSlug ? (
                 <a
                   href={cfg.publicPath(previewSlug)}
@@ -808,19 +992,80 @@ export default function PublisherPageAdminPage({
                   </div>
                 ) : null}
                 <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pb-2 pt-5">
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as 'draft' | 'published' }))}
-                    aria-describedby="page-status-help"
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
+                  {form.status === 'scheduled' ? (
+                    <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900">
+                      Scheduled
+                    </span>
+                  ) : (
+                    <select
+                      value={form.status === 'published' ? 'published' : 'draft'}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          status: e.target.value as 'draft' | 'published',
+                        }))
+                      }
+                      aria-describedby="page-status-help"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                    </select>
+                  )}
+                  {form.id ? (
+                    <PendingReviewControls
+                      status={form.status}
+                      userProfile={userProfile}
+                      disabled={saving || autosaving}
+                      onSubmitForReview={() => {
+                        void (async () => {
+                          const { error } = await supabase
+                            .from('contents')
+                            .update(pendingReviewPatch())
+                            .eq('id', form.id);
+                          if (error) {
+                            window.alert(error.message);
+                            return;
+                          }
+                          setForm((f) => ({ ...f, status: 'pending_review' }));
+                          void recordActivity({
+                            actorId: userProfile?.id,
+                            action: 'content.submit_review',
+                            entity: 'contents',
+                            entityId: form.id,
+                            meta: { kind: cfg.kind },
+                          });
+                        })();
+                      }}
+                      onReturnToDraft={() => {
+                        void (async () => {
+                          const { error } = await supabase
+                            .from('contents')
+                            .update(returnFromReviewPatch())
+                            .eq('id', form.id);
+                          if (error) {
+                            window.alert(error.message);
+                            return;
+                          }
+                          setForm((f) => ({ ...f, status: 'draft' }));
+                          void recordActivity({
+                            actorId: userProfile?.id,
+                            action: 'content.return_review',
+                            entity: 'contents',
+                            entityId: form.id,
+                            meta: { kind: cfg.kind },
+                          });
+                        })();
+                      }}
+                    />
+                  ) : null}
                   <span id="page-status-help" className="max-w-md text-[11px] font-medium leading-snug text-slate-500">
                     {(() => {
                       const stored = loadedRow?.id === form.id ? loadedRow : undefined;
-                      const storedStatus = stored?.status === 'published' ? 'published' : 'draft';
+                      const storedStatus = stored?.status === 'published' ? 'published' : stored?.status === 'scheduled' ? 'scheduled' : 'draft';
+                      if (form.status === 'scheduled') {
+                        return <>Scheduled — stays private until the due time (use Schedule to change).</>;
+                      }
                       if (stored && storedStatus === 'published' && form.status === 'draft') {
                         return (
                           <>
@@ -901,6 +1146,7 @@ export default function PublisherPageAdminPage({
 
                 {form.contentMode === 'blocks' ? (
                   <div data-blog-post-editor-root className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+                    <BlogEditorA11yWarnings />
                     <div className="blog-editor-scroll flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-2 pr-2">
                       <BlogBlockEditor userId={userProfile?.id ?? null} />
                     </div>
@@ -1094,6 +1340,11 @@ export default function PublisherPageAdminPage({
                     <HomepageToggle pageId={form.id} isPublished={loadedRow?.status === 'published'} target="kit" />
                   </>
                 )}
+                <ContentRevisionsPanel
+                  contentId={form.id}
+                  disabled={saving || autosaving}
+                  onRestore={restoreRevision}
+                />
                 <p className="text-[10px] font-medium leading-snug text-slate-500">
                   {savedSitePageRow?.updated_at
                     ? `Last saved ${format(new Date(savedSitePageRow.updated_at), 'MMM d, yyyy · h:mm a')}`

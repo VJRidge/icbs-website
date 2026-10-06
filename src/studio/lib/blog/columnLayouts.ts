@@ -94,6 +94,13 @@ export function normalizeColumnWidths(layout: string, raw: unknown): number[] {
   return parsed.map((n) => Math.round((n / sum) * 1000) / 10);
 }
 
+/** Resolve stale layout metadata against the actual saved column zones. */
+export function columnWidthsForZones(layout: string, zones: unknown, raw: unknown): number[] {
+  const count = Array.isArray(zones) && zones.length > 0 ? zones.length : columnCountForLayout(layout);
+  const effectiveLayout = layoutForColumnCount(layout, count);
+  return normalizeColumnWidths(effectiveLayout, raw);
+}
+
 export function gridTemplateFromWidths(widths: number[]): string {
   return widths.map((w) => `${Math.max(1, w)}fr`).join(' ');
 }

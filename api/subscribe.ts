@@ -1,6 +1,7 @@
 import { env, supabase, sendEmail } from './_lib.js'
 import { kitEmail } from './_emails.js'
 import { rateLimited, requestAddress } from './_rateLimit.js'
+import { recordConversionEvent } from './_analytics.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
@@ -60,6 +61,15 @@ export default async function handler(req: any, res: any) {
     } catch (err) {
       console.error('kit email failed', err)
     }
+
+    void recordConversionEvent({
+      name: 'kit_subscribe',
+      path: '/free',
+      utm,
+      ip: requestAddress(req),
+      userAgent: typeof req.headers?.['user-agent'] === 'string' ? String(req.headers['user-agent']) : null,
+      meta: { list: 'subscribers' },
+    })
 
     return res.status(200).json({ ok: true })
   } catch (err) {

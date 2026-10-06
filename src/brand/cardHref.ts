@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
 
 const published = new Map<string, boolean>()
 
@@ -22,7 +23,7 @@ async function postIsPublished(slug: string): Promise<boolean> {
     return false
   }
   const { data, error } = await sb
-    .from('contents')
+    .from(PUBLISHED_CONTENTS_VIEW)
     .select('id')
     .eq('kind', 'post')
     .eq('slug', slug)

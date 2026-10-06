@@ -1,9 +1,11 @@
-# I Call BS site
+# VettaJimale.Tech and I Call BS
 
-The lead-capture funnel for *I Call BS: AI Vibe Coding Myths Dispelled*.
-Vite + React on Vercel, Supabase for subscribers (and the CMS underway), Resend for email.
-Server funnel functions still call Supabase and Resend with plain `fetch`. The studio uses the
-anon key only.
+The VettaJimale.Tech public site, the *I Call BS: AI Vibe Coding Myths Dispelled*
+lead-capture funnel, and the VettaJimale.Tech Studio CMS.
+
+Vite + React runs on Vercel. Supabase provides authentication, CMS data, Storage, and
+subscriber data. Resend delivers the existing kit email. Server funnel functions keep
+service credentials server-only; the Studio browser client uses the anon key with RLS.
 
 ## What's here
 
@@ -13,10 +15,15 @@ anon key only.
 | `src/pages/FreeThanks.tsx` | `/free/thanks` — download, one book offer, share buttons |
 | `src/pages/Legal.tsx` | `/refunds` is all sales final. `/privacy` and `/terms` are still placeholders |
 | `src/components/SignupForm.tsx` | The form (name, email, hidden honeypot, UTM source) |
+| `src/studio/` | `/admin` — authenticated Studio, publishing, builder, media, and settings |
+| `src/cms/` | Public CMS page/post routing and rendering |
+| `src/brand/` | VettaJimale brand renderer and design system |
 | `api/subscribe.ts` | Saves the subscriber, sends email 1 with the kit |
+| `api/contact.ts` | Saves and sends contact requests |
 | `api/unsubscribe.ts` | One-click unsubscribe |
 | `api/_emails.ts` | Email 1 wording (draft — review before launch) |
 | `supabase/schema.sql` | The `subscribers` table, RLS on, no public access |
+| `supabase/migrations/` | Versioned CMS schema, RLS, settings, and content migrations |
 | `public/downloads/` | The Free Starter Kit PDF |
 
 ## Setup
@@ -47,12 +54,23 @@ anon key only.
 - [x] Sales page at `/` (thanks-page book button points here). Stripe Checkout still to do.
 - [ ] Confirm the sending address in `EMAIL_FROM` (currently hello@vettajimale.tech)
 
-## CMS (in progress)
+## CMS status
 
-Staff studio at `/admin`. Plan and phases: [`docs/cms/IMPLEMENTATION.md`](docs/cms/IMPLEMENTATION.md).
-`/` is the book sales landing when `settings.homepage_content_id` is set. `/free` stays the kit.
+Approved staff use the Studio at `/admin`. Pages, posts, the visual builder, media,
+templates, site chrome, navigation, SEO/redirects, users, and settings are connected.
+
+The factual status, security gaps, and phased roadmap are in
+[`docs/cms/IMPLEMENTATION.md`](docs/cms/IMPLEMENTATION.md). Product principles are in
+[`PRODUCT.md`](PRODUCT.md). Everyday workflows are in
+[`docs/cms/WORKFLOWS.md`](docs/cms/WORKFLOWS.md). Expansion prerequisites are in
+[`docs/cms/GATES.md`](docs/cms/GATES.md).
+
+`/` uses the assigned published homepage. `/free` remains the established kit route.
 
 ## Not built yet
 
-Stripe Checkout + webhook (`buyer` tag), purchase thank-you (`/thanks`),
-link-in-bio page (`/start`), welcome emails 2–6 (scheduled job).
+Forms builder, contacts/consent CRM, lead-magnet jobs, newsletter campaigns, analytics,
+discovery (sitemap/RSS), Stripe Checkout, and welcome emails 2–6. These stay gated until
+prerequisites in `docs/cms/GATES.md` pass. Soft trash, revision restore, optimistic locking,
+secure token previews, and scheduled publish (cron) are connected in studio; apply pending
+Supabase migrations before relying on them in production.

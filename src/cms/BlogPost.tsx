@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import PublicPage, { isStudioDocument } from './PublicPage'
+import { applyPublicContentSeo } from './applyPublicContentSeo'
 import SiteHeader from '../components/SiteHeader'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
 
 type Taxonomy = { kind: string; slug: string; name: string }
 
@@ -33,10 +35,11 @@ export default function BlogPost({ slug }: { slug: string }) {
       return
     }
     let gone = false
+    let clearSeo: (() => void) | undefined
     ;(async () => {
       const { data } = await sb
-        .from('contents')
-        .select('title, seo_title, published_at, published_document, content_taxonomies(taxonomies(kind, slug, name))')
+        .from(PUBLISHED_CONTENTS_VIEW)
+        .select('title, seo_title, seo_description, published_at, updated_at, published_document, taxonomies')
         .eq('kind', 'post')
         .eq('slug', slug)
         .eq('status', 'published')
@@ -46,12 +49,19 @@ export default function BlogPost({ slug }: { slug: string }) {
       const doc = data?.published_document
       if (data && isStudioDocument(doc)) {
         const title = doc.title || data.title
-        const tab = (data.seo_title || title || '').trim() || title
-        document.title = `${tab} · I Call BS`
-        const links = (data.content_taxonomies ?? []) as unknown as { taxonomies: Taxonomy | null }[]
-        const categories = links
-          .map((l) => l.taxonomies)
-          .filter((t): t is Taxonomy => !!t && t.kind === 'category')
+        clearSeo = applyPublicContentSeo({
+          path: `/blog/${encodeURIComponent(slug)}`,
+          title,
+          seoTitle: data.seo_title,
+          seoDescription: data.seo_description,
+          publishedDocument: doc,
+          kind: 'post',
+          publishedAt: data.published_at,
+          updatedAt: data.updated_at,
+        })
+        const taxonomies = (data.taxonomies ?? []) as unknown as Taxonomy[]
+        const categories = taxonomies
+          .filter((t) => t.kind === 'category')
           .map(({ slug: s, name }) => ({ slug: s, name }))
         setNode(
           <PublicPage
@@ -66,6 +76,7 @@ export default function BlogPost({ slug }: { slug: string }) {
     })()
     return () => {
       gone = true
+      clearSeo?.()
     }
   }, [slug])
 

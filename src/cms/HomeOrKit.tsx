@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import Free from '../pages/Free'
 import PublicPage from './PublicPage'
+import { applyPublicContentSeo } from './applyPublicContentSeo'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
+import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
 
 type Slot = 'homepage_content_id' | 'kit_content_id'
 
@@ -18,6 +20,7 @@ export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slo
       return
     }
     let gone = false
+    let clearSeo: (() => void) | undefined
     ;(async () => {
       const { data: settings } = await sb.from('settings').select(slot).eq('id', 1).maybeSingle()
       const id = (settings as Record<string, unknown> | null)?.[slot] as string | null | undefined
@@ -26,13 +29,22 @@ export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slo
         return
       }
       const { data: page } = await sb
-        .from('contents')
-        .select('title, seo_title, published_document, status')
+        .from(PUBLISHED_CONTENTS_VIEW)
+        .select('title, seo_title, seo_description, published_document, status, published_at, updated_at, kind')
         .eq('id', id)
         .maybeSingle()
       if (!gone && page?.status === 'published' && page.published_document) {
-        const tab = (page.seo_title || page.title || '').trim() || page.title
-        document.title = `${tab}`
+        const path = slot === 'homepage_content_id' ? '/' : '/free'
+        clearSeo = applyPublicContentSeo({
+          path,
+          title: page.title,
+          seoTitle: page.seo_title,
+          seoDescription: page.seo_description,
+          publishedDocument: page.published_document,
+          kind: page.kind || 'page',
+          publishedAt: page.published_at,
+          updatedAt: page.updated_at,
+        })
         setTitle(page.title)
         setDoc(page.published_document)
         setState('cms')
@@ -42,6 +54,7 @@ export default function HomeOrKit({ slot = 'homepage_content_id' }: { slot?: Slo
     })()
     return () => {
       gone = true
+      clearSeo?.()
     }
   }, [slot])
 

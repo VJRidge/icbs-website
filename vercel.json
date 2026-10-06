@@ -1,5 +1,35 @@
 {
+  "crons": [
+    {
+      "path": "/api/cms-publish-due",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/lead-magnet-deliver",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/newsletter-send",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/robots"
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "/api/rss"
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "/api/rss"
+    },
     {
       "source": "/((?!api/|downloads/|img/|assets/|src/|node_modules/|@).*)",
       "destination": "/index.html"

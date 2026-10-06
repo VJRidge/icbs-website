@@ -1,0 +1,128 @@
+/* Additive styles for public resource pages (white editorial surface). */
+.resource-page {
+  background: #fff;
+  color: var(--ink);
+}
+.resource-article {
+  min-height: 70vh;
+  background: #fff !important;
+  color: var(--ink) !important;
+}
+.resource-wrap {
+  max-width: 46rem;
+  padding: 2.5rem 1.25rem 4rem;
+}
+.resource-wrap h1 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  line-height: 0.95;
+  color: var(--g);
+  margin: 0.35rem 0 0.75rem;
+}
+.resource-wrap h2 {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  color: var(--ink);
+  margin: 2rem 0 0.75rem;
+}
+.resource-wrap h3 {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.4rem;
+}
+.resource-lede {
+  font-size: 1.125rem;
+  line-height: 1.55;
+  margin: 0 0 1.25rem;
+}
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0 2rem;
+}
+.resource-actions .btn {
+  width: auto;
+  display: inline-block;
+  min-width: 12rem;
+}
+.resource-loop {
+  background: var(--hl);
+  color: var(--ink);
+  padding: 0.85rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 1rem 0 1.5rem;
+}
+.resource-check {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 1.25rem;
+}
+.resource-check li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.45rem 0;
+  line-height: 1.45;
+}
+.resource-check li::before {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.2rem;
+  border: 2px solid var(--ink);
+  flex: 0 0 auto;
+}
+.resource-card {
+  border: 2px solid var(--ink);
+  padding: 1.1rem 1.15rem;
+  margin: 1rem 0;
+}
+.resource-card .k {
+  margin-bottom: 0.35rem;
+}
+.resource-tool {
+  border-top: 1px solid #e5e7eb;
+  padding: 1.1rem 0;
+}
+.resource-tool:first-of-type {
+  border-top: none;
+}
+.resource-meta {
+  margin-top: 2.5rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+.resource-related {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+.resource-related a {
+  text-decoration: underline;
+}
+.resource-empty {
+  border: 2px dashed #d1d5db;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 1.25rem 0;
+}
+@media print {
+  .site-header,
+  footer,
+  .resource-actions,
+  .resource-book-cta,
+  .resource-related {
+    display: none !important;
+  }
+  .resource-article {
+    padding: 0 !important;
+  }
+}
