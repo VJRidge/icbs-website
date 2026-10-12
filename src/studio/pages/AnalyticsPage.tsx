@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart3 } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BarChart3, Download } from 'lucide-react';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
+import AnalyticsFunnelPanel from '../components/admin/AnalyticsFunnelPanel';
+import AnalyticsNewsletterPanel from '../components/admin/AnalyticsNewsletterPanel';
+import AnalyticsSitePanel from '../components/admin/AnalyticsSitePanel';
 import { supabase } from '../lib/supabase';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
 import { canReadAnalytics } from '../lib/cms/authorization';
@@ -9,9 +13,33 @@ import {
   attributeByContent,
   type ConversionEventRow,
 } from '../../lib/analytics/conversionEvents';
+import {
+  aggregateNewsletterByIssue,
+  aggregateNewsletterDelivery,
+  emptyNewsletterDeliveryTotals,
+  type NewsletterIssueRow,
+  type NewsletterJobRow,
+  type NewsletterProviderEventRow,
+} from '../../lib/analytics/newsletterStats';
+import {
+  sampleFunnel,
+  sampleNewsletterBundle,
+  sampleSiteBundle,
+} from '../../lib/analytics/sampleAnalytics';
+import {
+  aggregateTrafficTotals,
+  aggregateViewsByDay,
+  deviceBreakdown,
+  topPaths,
+  topReferrers,
+  topUtmSources,
+  type DayBucket,
+  type TrafficEventRow,
+} from '../../lib/analytics/siteTraffic';
 import type { UserProfile } from '../types';
 
 type MetricDef = { key: string; label: string; description: string; event_name: string };
+type Tab = 'site' | 'newsletters' | 'funnel';
 
 function daysAgoIso(days: number): string {
   const d = new Date();
@@ -19,10 +47,37 @@ function daysAgoIso(days: number): string {
   return d.toISOString();
 }
 
+function periodLabel(days: number): string {
+  const end = new Date();
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
 export default function AnalyticsPage({ userProfile }: { userProfile: UserProfile | null }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [days, setDays] = useState(30);
+  const tabParam = searchParams.get('tab');
+  const tab: Tab =
+    tabParam === 'newsletters' || tabParam === 'funnel' || tabParam === 'site' ? tabParam : 'site';
+  const setTab = (next: Tab) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (next === 'site') nextParams.delete('tab');
+    else nextParams.set('tab', next);
+    setSearchParams(nextParams, { replace: true });
+  };
+  /** Default on so empty installs still show the mockup layout immediately. */
+  const [useSample, setUseSample] = useState(true);
+  const [sampleForcedOff, setSampleForcedOff] = useState(false);
   const [events, setEvents] = useState<ConversionEventRow[]>([]);
+  const [prevEvents, setPrevEvents] = useState<TrafficEventRow[]>([]);
   const [metrics, setMetrics] = useState<MetricDef[]>([]);
+  const [issues, setIssues] = useState<NewsletterIssueRow[]>([]);
+  const [jobs, setJobs] = useState<NewsletterJobRow[]>([]);
+  const [providerEvents, setProviderEvents] = useState<NewsletterProviderEventRow[]>([]);
+  const [unsubscribed, setUnsubscribed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,31 +87,84 @@ export default function AnalyticsPage({ userProfile }: { userProfile: UserProfil
 
   const load = useCallback(async () => {
     const since = daysAgoIso(days);
-    const { data: metricRows, error: metricError } = await supabase
-      .from('metric_definitions')
-      .select('key, label, description, event_name')
-      .eq('active', true)
-      .order('key');
-    if (metricError) {
-      setError(metricError.message);
+    const prevSince = daysAgoIso(days * 2);
+    const prevUntil = since;
+
+    const [metricRes, eventRes, prevRes, issueRes, jobRes, providerRes, unsubRes] = await Promise.all([
+      supabase.from('metric_definitions').select('key, label, description, event_name').eq('active', true).order('key'),
+      supabase
+        .from('conversion_events')
+        .select(
+          'name, path, referrer, session_id, utm_source, utm_medium, utm_campaign, utm_content, user_agent, bot_suspect, occurred_at',
+        )
+        .gte('occurred_at', since)
+        .order('occurred_at', { ascending: false })
+        .limit(8000),
+      supabase
+        .from('conversion_events')
+        .select('name, path, referrer, session_id, user_agent, bot_suspect, occurred_at')
+        .gte('occurred_at', prevSince)
+        .lt('occurred_at', prevUntil)
+        .eq('name', 'page_view')
+        .limit(8000),
+      supabase
+        .from('newsletter_issues')
+        .select('id, name, subject, status, sent_at, recipient_count, list_id')
+        .in('status', ['sent', 'sending', 'scheduled', 'draft'])
+        .order('sent_at', { ascending: false, nullsFirst: false })
+        .limit(200),
+      supabase
+        .from('newsletter_send_jobs')
+        .select('issue_id, status, sent_at, created_at')
+        .gte('created_at', since)
+        .limit(10000),
+      supabase
+        .from('newsletter_provider_events')
+        .select('event_type, issue_id, email, occurred_at')
+        .gte('occurred_at', since)
+        .limit(10000),
+      supabase
+        .from('contact_consent_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_type', 'suppressed')
+        .gte('occurred_at', since),
+    ]);
+
+    if (metricRes.error) {
+      setError(metricRes.error.message);
       return;
     }
-    setMetrics((metricRows as MetricDef[]) ?? []);
-
-    const { data: eventRows, error: eventError } = await supabase
-      .from('conversion_events')
-      .select('name, path, utm_source, utm_medium, utm_campaign, utm_content, bot_suspect, occurred_at')
-      .gte('occurred_at', since)
-      .order('occurred_at', { ascending: false })
-      .limit(5000);
-    if (eventError) {
-      setError(eventError.message);
+    if (eventRes.error) {
+      setError(eventRes.error.message);
       setEvents([]);
       return;
     }
-    setError(null);
-    setEvents((eventRows as ConversionEventRow[]) ?? []);
-  }, [days]);
+
+    const jobRows = (jobRes.data as NewsletterJobRow[]) ?? [];
+    const issueIdsFromJobs = new Set(jobRows.map((j) => j.issue_id));
+    const issueRows = ((issueRes.data as NewsletterIssueRow[]) ?? []).filter((issue) => {
+      if (issueIdsFromJobs.has(issue.id)) return true;
+      if (issue.sent_at && issue.sent_at >= since) return true;
+      return issue.status === 'draft' || issue.status === 'scheduled';
+    });
+
+    const liveEvents = (eventRes.data as ConversionEventRow[]) ?? [];
+    setMetrics((metricRes.data as MetricDef[]) ?? []);
+    setEvents(liveEvents);
+    setPrevEvents((prevRes.data as TrafficEventRow[]) ?? []);
+    setIssues(issueRows);
+    setJobs(jobRows);
+    setProviderEvents((providerRes.data as NewsletterProviderEventRow[]) ?? []);
+    setUnsubscribed(typeof unsubRes.count === 'number' ? unsubRes.count : 0);
+
+    const liveViews = liveEvents.filter((e) => e.name === 'page_view' && !e.bot_suspect).length;
+    if (!sampleForcedOff && liveViews === 0) setUseSample(true);
+
+    const softErrors = [issueRes.error, jobRes.error, providerRes.error, prevRes.error, unsubRes.error]
+      .filter(Boolean)
+      .map((e) => e!.message);
+    setError(softErrors.length ? softErrors.join(' · ') : null);
+  }, [days, sampleForcedOff]);
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile) || !allowed) {
@@ -67,8 +175,39 @@ export default function AnalyticsPage({ userProfile }: { userProfile: UserProfil
     void load().finally(() => setLoading(false));
   }, [userProfile, allowed, load]);
 
-  const funnel = useMemo(() => aggregateFunnel(events), [events]);
-  const attribution = useMemo(() => attributeByContent(events), [events]);
+  const sampleSite = useMemo(() => sampleSiteBundle(days), [days]);
+  const sampleNl = useMemo(() => sampleNewsletterBundle(), []);
+  const sampleFn = useMemo(() => sampleFunnel(), []);
+
+  const trafficEvents = events as TrafficEventRow[];
+  const liveSiteTotals = useMemo(() => aggregateTrafficTotals(trafficEvents), [trafficEvents]);
+  const livePrevTotals = useMemo(() => aggregateTrafficTotals(prevEvents), [prevEvents]);
+  const liveByDay = useMemo(() => aggregateViewsByDay(trafficEvents), [trafficEvents]);
+  const livePrevByDay = useMemo(() => aggregateViewsByDay(prevEvents), [prevEvents]);
+  const livePaths = useMemo(() => topPaths(trafficEvents), [trafficEvents]);
+  const liveReferrers = useMemo(() => topReferrers(trafficEvents), [trafficEvents]);
+  const liveUtm = useMemo(() => topUtmSources(trafficEvents), [trafficEvents]);
+  const liveDevices = useMemo(() => deviceBreakdown(trafficEvents), [trafficEvents]);
+
+  const liveNewsletterTotals = useMemo(
+    () => aggregateNewsletterDelivery({ jobs, events: providerEvents, unsubscribed }),
+    [jobs, providerEvents, unsubscribed],
+  );
+  const liveNewsletterRows = useMemo(
+    () => aggregateNewsletterByIssue({ issues, jobs, events: providerEvents }),
+    [issues, jobs, providerEvents],
+  );
+
+  const funnel = useMemo(
+    () => (useSample ? sampleFn.funnel : aggregateFunnel(events)),
+    [useSample, sampleFn.funnel, events],
+  );
+  const attribution = useMemo(
+    () => (useSample ? sampleFn.attribution : attributeByContent(events)),
+    [useSample, sampleFn.attribution, events],
+  );
+
+  const emptyDay: DayBucket[] = [];
 
   if (!isAnyAdminProfile(userProfile) || !allowed) {
     return (
@@ -78,106 +217,148 @@ export default function AnalyticsPage({ userProfile }: { userProfile: UserProfil
     );
   }
 
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: 'site', label: 'Overview' },
+    { id: 'newsletters', label: 'Newsletters' },
+    { id: 'funnel', label: 'Conversions' },
+  ];
+
   return (
     <AdminCmsShell
       title="Analytics"
       titleIcon={<BarChart3 size={14} className="text-brand-yellow" />}
       userProfile={userProfile}
     >
-      <div className="mx-auto max-w-5xl p-6 md:p-10">
+      <div className="mx-auto max-w-6xl p-6 md:p-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-serif text-3xl font-black text-slate-900">Analytics</h1>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Workspace / Analytics</p>
+            <h1 className="mt-1 font-serif text-3xl font-black text-slate-900">Analytics</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              First-party conversion events only. Counts are reproducible from stored rows — nothing is invented when
-              data is missing.
+              Understand your audience. See what is working — from stored first-party rows
+              {useSample ? ' (sample preview on)' : ''}.
             </p>
           </div>
-          <label className="text-xs font-black uppercase tracking-widest text-slate-500">
-            Period
-            <select
-              className="mt-1 block rounded-lg border border-slate-200 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900"
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={`rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${
+                useSample
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'border border-slate-300 text-slate-700'
+              }`}
+              onClick={() => {
+                const next = !useSample;
+                setUseSample(next);
+                setSampleForcedOff(!next);
+              }}
             >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-              <option value={90}>Last 90 days</option>
-            </select>
-          </label>
+              Sample data
+            </button>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              Period
+              <select
+                className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold normal-case tracking-normal text-slate-800"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
+            </label>
+            <span className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600">
+              {periodLabel(days)}
+            </span>
+            {tab === 'newsletters' ? (
+              <Link
+                to="/admin/newsletter"
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white"
+              >
+                + Create newsletter
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white"
+                onClick={() => window.print()}
+              >
+                <Download size={12} /> Export report
+              </button>
+            )}
+          </div>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
-        {loading ? <p className="mt-6 text-sm text-slate-500">Loading…</p> : null}
+        <nav className="mt-6 flex flex-wrap gap-1 border-b border-slate-200" aria-label="Analytics sections">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`border-b-2 px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
+                tab === t.id
+                  ? 'border-indigo-600 text-indigo-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
-        {!loading ? (
-          <>
-            <section className="mt-8">
-              <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Funnel</h2>
-              {events.length === 0 ? (
-                <p className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-600">
-                  No conversion events in this period yet. Visit <code>/updates</code> or submit a lead form to create
-                  the first rows.
-                </p>
-              ) : (
-                <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {[
-                    ['Page views', funnel.pageViews],
-                    ['Form starts', funnel.formStarts],
-                    ['Form submits', funnel.formSubmits],
-                    ['Contacts created', funnel.contactsCreated],
-                    ['Kit signups', funnel.kitSubscribes],
-                    ['Bot-filtered events', funnel.botFiltered],
-                  ].map(([label, value]) => (
-                    <div key={String(label)} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                      <dt className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</dt>
-                      <dd className="mt-1 text-2xl font-black text-slate-900">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {funnel.approximate ? (
-                <p className="mt-3 text-xs text-amber-800">
-                  Approximate: {funnel.botFiltered} bot-suspect event(s) excluded from primary funnel counts.
-                </p>
-              ) : null}
-            </section>
+        {error ? <p className="mt-4 text-sm text-amber-800">{error}</p> : null}
+        {loading && !useSample ? <p className="mt-6 text-sm text-slate-500">Loading…</p> : null}
 
-            <section className="mt-10">
-              <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">
-                Content / campaign attribution
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Grouped by utm_content, blog path, or utm_campaign. Unknown when no attribute was stored.
-              </p>
-              {attribution.length === 0 ? (
-                <p className="mt-3 text-sm text-slate-500">No attributed submits in this period.</p>
-              ) : (
-                <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-                  {attribution.map((row) => (
-                    <li key={row.key} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                      <span className="font-semibold text-slate-900">{row.label}</span>
-                      <span className="text-slate-600">
-                        {row.formSubmits} submits · {row.contactsCreated} contacts
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+        {(useSample || !loading) && tab === 'site' ? (
+          <div className="mt-6">
+            <AnalyticsSitePanel
+              totals={useSample ? sampleSite.totals : liveSiteTotals}
+              previousTotals={useSample ? sampleSite.previousTotals : livePrevTotals}
+              byDay={useSample ? sampleSite.byDay : liveByDay}
+              prevByDay={useSample ? sampleSite.prevByDay : livePrevByDay}
+              paths={useSample ? sampleSite.paths : livePaths}
+              referrers={useSample ? sampleSite.referrers : liveReferrers}
+              utm={useSample ? sampleSite.utm : liveUtm}
+              devices={useSample ? sampleSite.devices : liveDevices}
+              locations={useSample ? sampleSite.locations : []}
+              campaigns={useSample ? sampleSite.campaigns : []}
+              subscribers={useSample ? sampleSite.subscribers : funnel.kitSubscribes || funnel.contactsCreated}
+              downloads={useSample ? sampleSite.downloads : funnel.bookPurchases}
+              prevSubscribers={useSample ? sampleSite.prevSubscribers : Math.max(0, (funnel.kitSubscribes || 0) - 20)}
+              prevDownloads={useSample ? sampleSite.prevDownloads : Math.max(0, funnel.bookPurchases - 10)}
+              sampleMode={useSample}
+            />
+          </div>
+        ) : null}
 
-            <section className="mt-10">
-              <h2 className="text-sm font-black uppercase tracking-widest text-slate-700">Metric definitions</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                {metrics.map((m) => (
-                  <li key={m.key} className="rounded-lg border border-slate-100 bg-white px-3 py-2">
-                    <strong>{m.label}</strong> <span className="text-slate-400">({m.event_name})</span>
-                    <div className="text-xs text-slate-500">{m.description}</div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </>
+        {(useSample || !loading) && tab === 'newsletters' ? (
+          <div className="mt-6">
+            <AnalyticsNewsletterPanel
+              totals={useSample ? sampleNl.totals : liveNewsletterTotals}
+              previous={useSample ? sampleNl.previous : emptyNewsletterDeliveryTotals()}
+              rows={useSample ? sampleNl.rows : liveNewsletterRows}
+              topicSubs={useSample ? sampleNl.topicSubs : []}
+              audienceGrowth={useSample ? sampleNl.audienceGrowth : emptyDay}
+              prevAudienceGrowth={useSample ? sampleNl.prevAudienceGrowth : emptyDay}
+              upcoming={
+                useSample
+                  ? sampleNl.upcoming
+                  : liveNewsletterRows
+                      .filter((r) => r.status === 'scheduled')
+                      .slice(0, 3)
+                      .map((r) => ({ title: r.title, when: 'Scheduled' }))
+              }
+              automations={useSample ? sampleNl.automations : []}
+              sampleMode={useSample}
+              activeSubscribers={useSample ? 8420 : undefined}
+            />
+          </div>
+        ) : null}
+
+        {(useSample || !loading) && tab === 'funnel' ? (
+          <div className="mt-6">
+            <AnalyticsFunnelPanel funnel={funnel} attribution={attribution} metrics={metrics} />
+          </div>
         ) : null}
       </div>
     </AdminCmsShell>

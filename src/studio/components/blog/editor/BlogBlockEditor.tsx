@@ -17,14 +17,21 @@ import { clearKitField } from '../blocks/brand/kitFieldFocus';
 import BrandSectionBar from '../../../../brand/BrandSectionBar';
 import BrandSectionGap from '../../../../brand/BrandSectionGap';
 import BrandWidgetSection, { BrandPageCanvas, brandSectionOffsets } from '../../../../brand/BrandWidgetSection';
-import { chunkBrandSections, moveSectionChunk, pageUsesBrandCanvas, sectionAnchorId } from '../../../../brand/sectionActions';
+import {
+  addSectionAt,
+  chunkBrandSections,
+  moveSectionChunk,
+  wrapLooseBlocksInSections,
+  sectionAnchorId,
+} from '../../../../brand/sectionActions';
+import { withoutUnusedEmptySections } from '../../../../brand/sectionEmpty';
 import BlogDraggableBlock from './BlogDraggableBlock';
 import BlogBlockPicker from './BlogBlockPicker';
 import BlogEditorFileDrop from './BlogEditorFileDrop';
 import EditorStructureBar from './EditorStructureBar';
 import { DEVICE_WIDTH } from '../../../lib/blog/blockStyle';
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({ onAdd, email }: { onAdd: () => void; email?: boolean }) {
   return (
     <button
       type="button"
@@ -35,15 +42,21 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         <Plus size={28} className="transition-transform group-hover:scale-110" />
       </div>
       <div className="text-center">
-        <div className="text-base font-semibold">Add an empty container</div>
-        <div className="mt-1 text-sm">Then choose Flexbox or Grid, and a column structure</div>
-        <div className="mt-2 text-xs text-slate-400">You can also drop image files here to start a gallery.</div>
+        <div className="text-base font-semibold">{email ? 'Add an email block' : 'Add an empty container'}</div>
+        <div className="mt-1 text-sm">
+          {email
+            ? 'Text, image, button, footer — same idea as Mailchimp content blocks'
+            : 'Then choose Flexbox or Grid, and a column structure'}
+        </div>
+        {!email ? (
+          <div className="mt-2 text-xs text-slate-400">You can also drop image files here to start a gallery.</div>
+        ) : null}
       </div>
     </button>
   );
 }
 
-function AddBlockBar({ onAdd }: { onAdd: () => void }) {
+function AddBlockBar({ onAdd, email }: { onAdd: () => void; email?: boolean }) {
   return (
     <button
       type="button"
@@ -51,16 +64,39 @@ function AddBlockBar({ onAdd }: { onAdd: () => void }) {
       className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-white/80 py-3 text-sm font-semibold text-slate-500 shadow-sm transition-all hover:border-brand-blue hover:bg-brand-blue/5 hover:text-brand-blue"
     >
       <Plus size={16} className="transition-transform group-hover:scale-110" />
-      Add container
+      {email ? 'Add block' : 'Add container'}
     </button>
   );
 }
 
-function BlogBlockEditor({ userId }: { userId: string | null }) {
+function BlogBlockEditor({
+  userId,
+  palette = 'page',
+}: {
+  userId: string | null;
+  palette?: 'page' | 'email';
+}) {
   const sidebar = useBlogEditorSidebarOptional();
-  const { blocks, selectedBlockId, blockPickerOpen, blockPickerAfter, moveBlock, addBlock, closeBlockPicker, selectBlock } =
-    useBlogEditorStore();
-  const addEmptyContainer = (afterId: string | null) => addBlock('columns', afterId);
+  const {
+    blocks,
+    selectedBlockId,
+    blockPickerOpen,
+    blockPickerAfter,
+    moveBlock,
+    openBlockPicker,
+    closeBlockPicker,
+    selectBlock,
+  } = useBlogEditorStore();
+  const email = palette === 'email';
+  const requestAdd = (afterId: string | null) => {
+    if (email) {
+      openBlockPicker(afterId);
+      return;
+    }
+    const list = useBlogEditorStore.getState().blocks;
+    const at = afterId ? list.findIndex((block) => block.id === afterId) + 1 : list.length;
+    addSectionAt(at < 1 ? list.length : at);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -87,7 +123,19 @@ function BlogBlockEditor({ userId }: { userId: string | null }) {
     moveSectionChunk(oldIdx, newIdx);
   }, []);
 
-  const branded = pageUsesBrandCanvas(blocks);
+  const branded = !email;
+  useEffect(() => {
+    const cleaned = withoutUnusedEmptySections(blocks);
+    const next = email ? cleaned : wrapLooseBlocksInSections(cleaned);
+    if (next === blocks || (next.length === blocks.length && next.every((block, index) => block === blocks[index]))) {
+      return;
+    }
+    const selected = useBlogEditorStore.getState().selectedBlockId;
+    useBlogEditorStore.setState({
+      blocks: next,
+      selectedBlockId: selected && next.some((block) => block.id === selected) ? selected : null,
+    });
+  }, [blocks, email]);
   const previewDevice = useBlogEditorStore((s) => s.previewDevice);
   const setPreviewActive = useBlogEditorStore((s) => s.setPreviewActive);
   useEffect(() => {
@@ -140,7 +188,9 @@ function BlogBlockEditor({ userId }: { userId: string | null }) {
             </DndContext>
           </BrandPageCanvas>
         </BlogEditorFileDrop>
-        {blockPickerOpen ? <BlogBlockPicker afterId={blockPickerAfter} onClose={closeBlockPicker} /> : null}
+        {blockPickerOpen ? (
+          <BlogBlockPicker afterId={blockPickerAfter} onClose={closeBlockPicker} palette={palette} />
+        ) : null}
       </div>
     );
   }
@@ -153,7 +203,7 @@ function BlogBlockEditor({ userId }: { userId: string | null }) {
           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2.5 py-2 pb-3" style={previewDevice === 'desktop' ? undefined : { maxWidth: DEVICE_WIDTH[previewDevice], margin: '0 auto' }}>
               {blocks.length === 0 ? (
-                <EmptyState onAdd={() => addEmptyContainer(null)} />
+                <EmptyState onAdd={() => requestAdd(null)} email={email} />
               ) : (
                 blocks.map((block, index) => (
                   <BlogDraggableBlock
@@ -169,17 +219,21 @@ function BlogBlockEditor({ userId }: { userId: string | null }) {
                         selectBlock(block.id);
                       }
                     }}
-                    onAddAfter={() => addEmptyContainer(block.id)}
+                    onAddAfter={() => requestAdd(block.id)}
                   />
                 ))
               )}
-              {blocks.length > 0 ? <AddBlockBar onAdd={() => addEmptyContainer(selectedBlockId)} /> : null}
+              {blocks.length > 0 ? (
+                <AddBlockBar onAdd={() => requestAdd(selectedBlockId)} email={email} />
+              ) : null}
             </div>
           </SortableContext>
         </DndContext>
       </BlogEditorFileDrop>
 
-      {blockPickerOpen ? <BlogBlockPicker afterId={blockPickerAfter} onClose={closeBlockPicker} /> : null}
+      {blockPickerOpen ? (
+        <BlogBlockPicker afterId={blockPickerAfter} onClose={closeBlockPicker} palette={palette} />
+      ) : null}
     </div>
   );
 }

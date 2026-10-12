@@ -7,6 +7,10 @@ export type LandingMediaFileRow = {
   publicUrl: string;
   storagePath: string;
   createdAt: string | null;
+  /** Packaged under /downloads (site) vs uploaded to media-public (library). */
+  origin?: 'library' | 'site';
+  /** Human label for site-packaged docs. */
+  label?: string;
 };
 
 export function isProbablyGif(name: string): boolean {
@@ -33,11 +37,11 @@ export function isProbablyAudio(name: string): boolean {
   return /\.(mp3|wav|m4a|aac|ogg|oga|flac|weba|opus|aiff?|wma)$/i.test(name);
 }
 
-/** File input `accept` for landing-media uploads (images, video, audio). */
+/** File input `accept` for landing-media uploads (images, video, audio, documents). */
 export const LANDING_MEDIA_UPLOAD_ACCEPT =
-  'image/*,video/*,audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.weba,.opus,.aiff,.wma';
+  'image/*,video/*,audio/*,.pdf,.doc,.docx,.md,.txt,.csv,.zip,application/pdf,.mp3,.wav,.m4a,.aac,.ogg,.flac,.weba,.opus,.aiff,.wma';
 
-export type LandingMediaFileKind = 'image' | 'video' | 'audio' | 'other';
+export type LandingMediaFileKind = 'image' | 'video' | 'audio' | 'doc' | 'other';
 
 /** Tabs shown in the landing media picker modal. */
 export type LandingMediaPickerTab = 'all' | 'image' | 'gif' | 'video' | 'doc';
@@ -54,6 +58,7 @@ export function getLandingMediaFileKind(name: string): LandingMediaFileKind {
   if (isProbablyGif(name) || isProbablyRasterImage(name) || /\.svg$/i.test(name)) return 'image';
   if (isProbablyVideo(name)) return 'video';
   if (isProbablyAudio(name)) return 'audio';
+  if (isProbablyDoc(name)) return 'doc';
   return 'other';
 }
 
@@ -85,21 +90,40 @@ const FILE_KIND_SORT_ORDER: Record<LandingMediaFileKind, number> = {
   image: 0,
   video: 1,
   audio: 2,
-  other: 3,
+  doc: 3,
+  other: 4,
 };
+
+export type LandingMediaSortBy = 'date' | 'name' | 'type';
 
 export function compareLandingMediaRows(
   a: LandingMediaFileRow,
   b: LandingMediaFileRow,
-  sortBy: 'date' | 'type',
+  sortBy: LandingMediaSortBy,
 ): number {
+  if (sortBy === 'name') {
+    const aLabel = (a.label || a.name).toLocaleLowerCase();
+    const bLabel = (b.label || b.name).toLocaleLowerCase();
+    const nameDiff = aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+    if (nameDiff !== 0) return nameDiff;
+  }
   if (sortBy === 'type') {
-    const kindDiff = FILE_KIND_SORT_ORDER[getLandingMediaFileKind(a.name)] - FILE_KIND_SORT_ORDER[getLandingMediaFileKind(b.name)];
+    const kindDiff =
+      FILE_KIND_SORT_ORDER[getLandingMediaFileKind(a.name)] -
+      FILE_KIND_SORT_ORDER[getLandingMediaFileKind(b.name)];
     if (kindDiff !== 0) return kindDiff;
+    const aLabel = (a.label || a.name).toLocaleLowerCase();
+    const bLabel = (b.label || b.name).toLocaleLowerCase();
+    const nameDiff = aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+    if (nameDiff !== 0) return nameDiff;
   }
   const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
   const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-  return bTime - aTime;
+  // Site-packaged rows (no date) stay after dated library uploads when sorting Newest.
+  if (aTime !== bTime) return bTime - aTime;
+  const aLabel = (a.label || a.name).toLocaleLowerCase();
+  const bLabel = (b.label || b.name).toLocaleLowerCase();
+  return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
 }
 
 export async function listLandingMediaFiles(userId: string, limit = 500): Promise<LandingMediaFileRow[]> {

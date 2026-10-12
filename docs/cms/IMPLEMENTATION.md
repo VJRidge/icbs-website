@@ -3,7 +3,7 @@
 Factual baseline for the current CMS and the roadmap approved in `PRODUCT.md`.
 Update the **Status by phase** and **Milestones** sections when work lands. A visible
 screen or an existing database column is not completion; status reflects connected,
-verified behavior.
+verified behavior. Remaining checklist: [`docs/cms/TODO.md`](./TODO.md).
 
 Live production: `https://vettajimale.tech`  
 Repo: `https://github.com/VJRidge/icbs-website`  
@@ -21,7 +21,7 @@ Do not replace the working funnel with an unfinished builder. Hardcoded kit page
 | Framework | Vite 7 + React 19 + TypeScript. `"type": "module"`. |
 | Hosting | Vercel. Pages are a SPA (`vercel.json` rewrite to `index.html`). APIs in `/api/*.ts`. |
 | Routing | React Router serves the Studio, CMS pages/posts, redirects, short links, preview, and public routes. Development-only brand routes remain separate from production routing. |
-| Auth | Supabase Auth with password and magic-link sign-in. `/admin` requires an approved staff profile. |
+| Auth | Supabase Auth with password, magic-link, and open signup via `/api/staff-signup`. `/admin` requires confirmed email + auto-approved, non-disabled profile. |
 | Styling | Public, brand, and Studio styles are separated. Existing public funnel styles remain intact. |
 | Supabase | Browser Studio uses `@supabase/supabase-js` with the anon key and RLS. Server funnel APIs keep the service role server-only. |
 | Storage | Studio media uses Supabase Storage `media-public`. Existing product images and downloads also remain under `public/`. |
@@ -29,7 +29,7 @@ Do not replace the working funnel with an unfinished builder. Hardcoded kit page
 | Secrets | `.env.local` is gitignored. Service credentials must never use a `VITE_` prefix or enter browser bundles. |
 | Connected CMS areas | Dashboard counts, pages, posts, media, templates/reusable sections, social slides, header/footer, menus, SEO/redirects, users, and settings. |
 | Connected funnel | Kit signup, subscriber storage, kit email, contact handling, and unsubscribe. |
-| Not built | Stripe checkout, import/migration jobs, and welcome emails 2–6. Forms through Campaigns are Open. See `docs/cms/GATES.md`. |
+| Not built | Welcome emails 2–6. Forms through Sales (incl. Stripe Checkout) are Open. See `docs/cms/GATES.md`. |
 
 ### Required configuration (do not invent values)
 
@@ -42,7 +42,11 @@ set role = 'owner', staff_approved = true
 where id = '<auth user uuid>';
 ```
 
-New Auth users get a profile with `staff_approved = false` and cannot open `/admin` until approved.
+Studio signup is open via `/api/staff-signup` (CAPTCHA, honeypot, disposable-email block, rate limit).
+New profiles are auto-approved (`staff_approved = true`); `/admin` still requires a **confirmed email**
+and a non-disabled profile. In Supabase Auth, **disable public “Allow new users to sign up”** so bots
+cannot bypass the API with the anon key — only the service-role signup path creates users. Magic-link
+sign-in uses `shouldCreateUser: false`.
 3. Apply all versioned migrations under `supabase/migrations/` in order. Do not rerun content seed migrations against working drafts without checking their effects.
 4. Confirm Storage buckets `media-public` and `media-private` exist after migration.
 
@@ -200,7 +204,7 @@ Status terms:
 - Applied: `kind=custom`, type registry, structured fields, relationships, media links,
   validators, RLS, seed types, and `published_contents` projection (`20261009` + `20261010`
   chunks + `20261013` EXECUTE revoke). Existing page/post rows, routes, and editors unchanged.
-- Studio Tool Review list/editor at `/admin/content/tool_review`. Other custom types stay unpublished.
+- Studio Reviews list/editor at `/admin/content/tool_review`. Other custom types stay unpublished.
 - Seeded types: `resource`, `tool_review` (publication enabled), `event`, `interview`, `sponsor_profile`.
 - Pre-publish checklist blocks publish until disclosure is affirmed, required evidence fields are
   present, and pricing verification is fresh; publish writes a frozen `/reviews/:slug` snapshot and
@@ -279,7 +283,7 @@ Studio data rules:
   signs private URL and sends once with retries; studio `/admin/lead-magnets`.
 - Campaign blueprints: `campaigns` + `campaign_steps` link pages/forms/lead magnets/newsletter
   issues; readiness checklist; Contacts eligibility snapshot; studio `/admin/campaigns`.
-  No auto-send. Stripe not required.
+  No auto-send.
 - Content track (no Forms required): Resources package + Literacy Check shipped as client-side
   tools (no Forms/CRM). Optional email-my-results still gated on consent + delivery jobs.
 - Gate: a test resource request is stored, delivered once, attributed correctly, and never creates
@@ -287,19 +291,33 @@ Studio data rules:
 
 ### Phase 8 — Newsletter, analytics, and campaigns
 
-**Status: Partial; Newsletter + Analytics + Campaigns Open (2026-10-05). Stripe deferred.**
+**Status: Partial; Newsletter + Segments + Analytics + Campaigns + Imports + Stripe Checkout Open (2026-10-06).**
 
-- Newsletter: `newsletter_issues` + `newsletter_send_jobs` + `newsletter_provider_events`;
-  studio `/admin/newsletter`; cron `/api/newsletter-send` freezes eligible Contacts, sends via
-  Resend with List-Unsubscribe → `/api/contact-unsubscribe`; webhook
-  `/api/newsletter-webhook` suppresses on bounce/complaint. Kit `subscribers` unused.
+- Newsletter: `newsletter_issues` (+ `document` block tree + optional `segment_id`) +
+  `newsletter_send_jobs` + `newsletter_provider_events`; studio `/admin/newsletter` uses the
+  same block builder as pages/posts and compiles email-safe `body_html`/`body_text` on save;
+  cron `/api/newsletter-send` freezes Contacts (all marketing or by segment), sends via Resend
+  with List-Unsubscribe → `/api/contact-unsubscribe`; webhook `/api/newsletter-webhook`
+  suppresses on bounce/complaint. Kit `subscribers` unused.
+- Contact lists: `audience_segments` (`list_kind` dynamic|static) + `audience_segment_members`
+  + `contact_tags` / links; rule match (tag, source form, lead magnet) or CSV membership;
+  studio `/admin/segments`; CSV dry-run/commit via `/api/import-contact-list-csv` (consent
+  checkbox required for new contacts; never re-opts-in suppressed); auto-tags from
+  form-submit (`newsletter`), kit import (`kit`), Stripe (`buyer`), CSV (`csv-import`).
 - Analytics: `conversion_events` + `metric_definitions`; public `/api/analytics-track`
-  (page_view/form_start); server events for form_submit/contact_created/kit_subscribe;
+  (page_view/form_start); server events for form_submit/contact_created/kit_subscribe/book_purchase;
   studio `/admin/analytics` aggregates stored rows only (empty state when none; bot filter labeled).
-- Campaigns: blueprints link existing records with readiness + eligibility snapshot; no auto-send;
-  Stripe can connect later without blocking this gate.
+- Campaigns: blueprints link existing records with readiness + eligibility snapshot; no auto-send.
+- Imports: `import_jobs` + `import_job_rows` + `import_applied_keys`; staff dry-run/commit
+  kit `subscribers` → `contacts` via `/api/import-kit-subscribers`; studio `/admin/imports`;
+  suppression preserved; kit table never mutated.
+- Stripe: Checkout Session for book Price (`/api/checkout`); webhook fulfillment
+  (`/api/stripe-webhook`) writes `purchases`, tags kit `subscribers` with `buyer`, emails
+  `BOOK_DOWNLOAD_URL`; studio `/admin/sales`; success page `/buy/thanks` is not the fulfiller.
+  Keys are runtime env only.
 - Gate: eligible contacts receive scheduled issues; opt-outs honored; funnel counts reproducible;
-  campaign Ready only when form + delivery path checks pass.
+  campaign Ready only when form + delivery path checks pass; import dry-run writes nothing and
+  commit is idempotent; paid sessions fulfill once via webhook.
 
 
 ### Content growth track (separate from Forms)
@@ -320,7 +338,7 @@ lead-magnet jobs).
 ### Explicitly deferred
 
 - Plugin marketplace, multitenancy, general automation canvas, arbitrary executable widgets,
-  membership, Stripe, sponsor pipeline, AI auto-publish/send, and welcome emails 2–6.
+  membership subscriptions, sponsor pipeline, AI auto-publish/send, and welcome emails 2–6.
 
 ---
 
@@ -381,8 +399,16 @@ lead-magnet jobs).
 | 2026-10-05 | Contacts Open: identity + consent events, form-submit upsert, `/api/contact-unsubscribe`, `/admin/contacts` |
 | 2026-10-05 | Lead Magnets Open: versions + delivery outbox, `/api/lead-magnet-deliver`, `/admin/lead-magnets` |
 | 2026-10-05 | Newsletter Open: issues + send jobs + provider webhook, `/api/newsletter-send`, `/admin/newsletter` |
+| 2026-10-06 | Newsletter block builder: `document` jsonb + email serializer; editor reuses BlogBlockEditor |
 | 2026-10-05 | Analytics Open: conversion_events + metric_definitions, `/api/analytics-track`, `/admin/analytics` |
 | 2026-10-05 | Campaigns Open: blueprints + readiness checklist, `/admin/campaigns` (Stripe deferred) |
+| 2026-10-05 | Imports Open: kit→Contacts dry-run/commit, `/admin/imports`, `/api/import-kit-subscribers` |
+| 2026-10-05 | Stripe Checkout Open: `/api/checkout`, webhook fulfill, `purchases`, `/admin/sales` |
+| 2026-10-06 | Audience segments Open: tags + rule segments, `/admin/segments`, newsletter `segment_id` freeze |
+| 2026-10-06 | Contact lists CSV: static membership + `/api/import-contact-list-csv` dry-run/commit |
+| 2026-10-06 | Newsletter templates: starter gallery + save-as-template, `/admin/newsletter/templates` |
+| 2026-10-06 | Categories + Series + newsletter prefs: taxonomies fields, `series`/`content_series`, `newsletter_lists`/`contact_subscriptions`/`contact_interests`; studio `/admin/categories`, `/admin/series`, `/admin/newsletter/lists`; issue `list_id` freeze; public `/topics/:slug` |
+| 2026-10-06 | Newsletter Management workflow: pick/create newsletter, then issue; editor steps Details → Audience → Design → Review → Schedule; chrome subtitle is the selected newsletter name |
 
 ---
 

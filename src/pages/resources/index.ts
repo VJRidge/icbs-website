@@ -1,4 +1,7 @@
 export { default as BuilderQuickReferencePage } from './BuilderQuickReferencePage'
 export { default as TemplatesPage } from './TemplatesPage'
+export { default as RoadmapFormPage } from './RoadmapFormPage'
+export { default as ProjectRulesFormPage } from './ProjectRulesFormPage'
+export { default as BeforeDoneFormPage } from './BeforeDoneFormPage'
 export { default as ToolsAndUpdatesPage } from './ToolsAndUpdatesPage'
 export { default as BookUpdatesPage } from './BookUpdatesPage'

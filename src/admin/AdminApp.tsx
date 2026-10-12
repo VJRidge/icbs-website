@@ -37,13 +37,31 @@ export default function AdminApp() {
         }
         return
       }
-      const { data, error } = await client.from('profiles').select('role, display_name, staff_approved').eq('id', user.id).maybeSingle()
-      if (gone) return
-      if (error || !data?.staff_approved) {
+      if (!user.email_confirmed_at) {
         setDenied(
-          error
-            ? 'Could not read your profile. Run the CMS migration, then approve this user as owner.'
-            : 'This account is signed in but not approved for the studio. Ask the owner to set staff_approved = true.',
+          'Confirm your email before opening the studio. Check your inbox for the confirmation link, then sign in again.',
+        )
+        setProfile(null)
+        setReady(true)
+        return
+      }
+      const { data, error } = await client.from('profiles').select('role, display_name, staff_approved, disabled_at').eq('id', user.id).maybeSingle()
+      if (gone) return
+      if (error) {
+        setDenied('Could not read your profile. Run the CMS migrations, then try again.')
+        setProfile(null)
+        setReady(true)
+        return
+      }
+      if (data?.disabled_at) {
+        setDenied('This account has been disabled. Contact an owner if you need access restored.')
+        setProfile(null)
+        setReady(true)
+        return
+      }
+      if (!data?.staff_approved) {
+        setDenied(
+          'This account is signed in but not approved for the studio. An owner can re-enable it under Users.',
         )
         setProfile(null)
         setReady(true)

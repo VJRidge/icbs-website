@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import Footer from '../components/Footer'
-import { BOOK_CTA_LABEL, BOOK_SALES_PATH } from '../lib/bookOffer'
+import { BOOK_CHECKOUT_PATH, BOOK_CTA_LABEL } from '../lib/bookOffer'
+import { useManagedDownloadUrl } from '../lib/site/useManagedDownloads'
 
-const KIT_PDF = '/downloads/I-Call-BS-Free-Starter-Kit.pdf'
+const KIT_PDF_DEFAULT = '/downloads/I-Call-BS-Free-Starter-Kit.pdf'
 
 // Wording from the kit's "Where to Go from Here" page.
 const INCLUDES = [
@@ -12,6 +13,7 @@ const INCLUDES = [
 ]
 
 export default function FreeThanks() {
+  const kitPdf = useManagedDownloadUrl('starter_kit_pdf', KIT_PDF_DEFAULT)
   const [copied, setCopied] = useState(false)
   const shareUrl = `${window.location.origin}/#kit`
   const shareText = 'The honest version of “build an app with AI.” Free starter kit:'
@@ -39,7 +41,7 @@ export default function FreeThanks() {
               Your kit is <span className="y">on its way.</span>
             </h1>
             <p className="sub">It’s also right here, so you don’t have to wait for the email.</p>
-            <a className="btn" href={KIT_PDF} download>
+            <a className="btn" href={kitPdf} download>
               Download the free kit
             </a>
             <p className="inbox">
@@ -68,7 +70,7 @@ export default function FreeThanks() {
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <a className="btn" href={BOOK_SALES_PATH}>
+            <a className="btn" href={BOOK_CHECKOUT_PATH}>
               {BOOK_CTA_LABEL}
             </a>
           </div>

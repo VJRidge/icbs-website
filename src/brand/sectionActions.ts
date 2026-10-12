@@ -9,6 +9,7 @@ import {
 } from '../studio/lib/blog/columnLayouts'
 import { createBlogBlock, useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { shiftColumnLayout } from './columnLayout'
+import { keepAddedEmptySection, withoutUnusedEmptySections } from './sectionEmpty'
 
 const LAYOUT_FOR_COUNT: Record<number, ColumnLayoutKey> = {
   1: '100',
@@ -40,8 +41,13 @@ export const useColumnPick = create<{
   setPick: (pick) => set({ pick }),
 }))
 
-export function pageUsesBrandCanvas(blocks: { data: Record<string, unknown> }[]) {
-  return blocks.some((block) => String(block.data.section ?? '').trim() || String(block.data.skin ?? '').trim())
+export function pageUsesBrandCanvas(blocks: { type?: string; data: Record<string, unknown> }[]) {
+  return blocks.some(
+    (block) =>
+      block.type === 'columns' ||
+      String(block.data.section ?? '').trim() ||
+      String(block.data.skin ?? '').trim(),
+  )
 }
 
 export function emptySectionBlock(layout: ColumnLayoutKey = '100'): BlogBlock {
@@ -57,9 +63,42 @@ export function emptySectionBlock(layout: ColumnLayoutKey = '100'): BlogBlock {
   return { ...block, data: { ...block.data, section: `sec-${block.id}` } }
 }
 
+/** Loose headings/paragraphs become real sections so white-space clicks can select the container. */
+export function wrapLooseBlocksInSections(blocks: BlogBlock[]): BlogBlock[] {
+  let changed = false
+  const next = blocks.map((block) => {
+    if (block.type === 'columns') {
+      if (String(block.data.section ?? '').trim()) return block
+      changed = true
+      return {
+        ...block,
+        data: { ...block.data, section: `sec-${block.id}`, flowColumns: block.data.flowColumns ?? true },
+      }
+    }
+    changed = true
+    const section = emptySectionBlock('100')
+    return {
+      ...section,
+      data: {
+        ...section.data,
+        structureChosen: true,
+        columns: [{ blocks: [block] }],
+      },
+    }
+  })
+  return changed ? next : blocks
+}
+
 export function addSectionAt(at: number) {
+  const { blocks, commitBlocks, insertBlocks } = useBlogEditorStore.getState()
+  const cleaned = withoutUnusedEmptySections(blocks, null)
+  if (cleaned.length !== blocks.length) {
+    commitBlocks(cleaned, 'Removed unused container')
+  }
   const block = emptySectionBlock('100')
-  useBlogEditorStore.getState().insertBlocks([block], at, 'Added section')
+  keepAddedEmptySection(block.id)
+  const list = useBlogEditorStore.getState().blocks
+  insertBlocks([block], Math.max(0, Math.min(at, list.length)), 'Added section')
   useColumnPick.getState().setPick(null)
   return block.id
 }

@@ -8,6 +8,9 @@ import {
   canManageLeadMagnets,
   canManageMedia,
   canManageCampaigns,
+  canManageImports,
+  canManageSegments,
+  canReadPurchases,
   canManageNewsletter,
   canReadAnalytics,
   canManageShortLinks,
@@ -154,6 +157,12 @@ describe('non-content admin capabilities', () => {
     expect(canReadAnalytics('author')).toBe(false);
     expect(canManageCampaigns('admin', approved)).toBe(true);
     expect(canManageCampaigns('author', approved)).toBe(false);
+    expect(canManageImports('admin', approved)).toBe(true);
+    expect(canManageImports('author', approved)).toBe(false);
+    expect(canManageSegments('admin', approved)).toBe(true);
+    expect(canManageSegments('author', approved)).toBe(false);
+    expect(canReadPurchases('author', approved)).toBe(true);
+    expect(canReadPurchases('author')).toBe(false);
   });
 
   it('lets authors create short links but not retarget them', () => {

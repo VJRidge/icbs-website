@@ -11,6 +11,7 @@ import CmsListPagination from '../components/admin/CmsListPagination';
 import { CONTENT_KINDS, type ContentKind, type ContentKindConfig } from '../lib/contentKinds';
 import { restoreFromTrashPatch, trashPatch } from '../lib/cms/pageLifecycle';
 import { recordActivity } from '../lib/cms/activityLog';
+import { managedPublicPageBySlug } from '../../lib/site/managedPublicPages';
 import type { PublisherSitePage, UserProfile } from '../types';
 
 function normalizePageListStatus(raw: unknown): 'draft' | 'published' | 'trash' {
@@ -52,24 +53,18 @@ function RowActions({
       </div>
     );
   }
+  const managed = cfg.kind === 'page' ? managedPublicPageBySlug(page.slug) : null;
+  const editTo = managed?.adminEditPath ?? `${cfg.adminBase}/${page.id}`;
+  const viewHref = managed?.publicPath ?? cfg.publicPath(page.slug);
+  const showView = page.status === 'published' || !!managed;
+  const showEdit = !managed || !!managed.adminEditPath;
+
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-0 gap-y-0.5 text-xs">
-      <Link to={`${cfg.adminBase}/${page.id}`} className="font-semibold text-brand-blue hover:underline">
-        Edit
-      </Link>
-      {sep}
-      <button type="button" onClick={onQuickEdit} className="font-semibold text-brand-blue hover:underline">
-        Quick Edit
-      </button>
-      {sep}
-      <button type="button" onClick={onTrash} className="font-semibold text-red-600 hover:underline">
-        Trash
-      </button>
-      {page.status === 'published' ? (
+      {showView ? (
         <>
-          {sep}
           <a
-            href={cfg.publicPath(page.slug)}
+            href={viewHref}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 font-semibold text-brand-blue hover:underline"
@@ -77,8 +72,28 @@ function RowActions({
             <Eye size={12} />
             View
           </a>
+          {sep}
         </>
       ) : null}
+      {showEdit ? (
+        <>
+          <Link to={editTo} className="font-semibold text-brand-blue hover:underline">
+            Edit
+          </Link>
+          {sep}
+        </>
+      ) : null}
+      {!managed ? (
+        <>
+          <button type="button" onClick={onQuickEdit} className="font-semibold text-brand-blue hover:underline">
+            Quick Edit
+          </button>
+          {sep}
+        </>
+      ) : null}
+      <button type="button" onClick={onTrash} className="font-semibold text-red-600 hover:underline">
+        Trash
+      </button>
     </div>
   );
 }
@@ -281,15 +296,6 @@ export default function PublisherPagesListPage({
       backTo="/admin"
       backLabel="Dashboard"
       userProfile={userProfile}
-      headerExtra={
-        <Link
-          to={`${cfg.adminBase}/new`}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-3 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90"
-        >
-          <Plus size={14} />
-          Add new
-        </Link>
-      }
     >
       <div className="mx-auto max-w-6xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">All {nouns}</h1>
@@ -357,7 +363,17 @@ export default function PublisherPagesListPage({
           </div>
         </div>
 
-        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="mt-4">
+          <Link
+            to={`${cfg.adminBase}/new`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-3 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90"
+          >
+            <Plus size={14} />
+            Add new
+          </Link>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <tr>
@@ -398,9 +414,30 @@ export default function PublisherPagesListPage({
                         {listStatusFilter === 'trash' ? (
                           <span className="font-bold text-slate-800">{row.title || 'Untitled'}</span>
                         ) : (
-                          <Link to={`${cfg.adminBase}/${row.id}`} className="font-bold text-brand-blue hover:underline">
-                            {row.title || 'Untitled'}
-                          </Link>
+                          (() => {
+                            const managed = cfg.kind === 'page' ? managedPublicPageBySlug(row.slug) : null;
+                            // Managed public surfaces: title opens the live page; Edit goes to admin tools.
+                            if (managed) {
+                              return (
+                                <a
+                                  href={managed.publicPath}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-bold text-brand-blue hover:underline"
+                                >
+                                  {row.title || 'Untitled'}
+                                </a>
+                              );
+                            }
+                            return (
+                              <Link
+                                to={`${cfg.adminBase}/${row.id}`}
+                                className="font-bold text-brand-blue hover:underline"
+                              >
+                                {row.title || 'Untitled'}
+                              </Link>
+                            );
+                          })()
                         )}
                         <RowActions
                           page={row}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>VettaJimale.Tech — Design kit</title>
+  <style>
+    body { margin: 0; background: #fff; color: #151412; font-family: Georgia, serif; }
+    main { width: min(880px, calc(100% - 40px)); margin: 40px auto 64px; }
+    h1, h2 { font-family: Impact, sans-serif; font-weight: 400; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.1; }
+    h1 { font-size: 48px; margin: 0 0 12px; }
+    h2 { font-size: 28px; color: #1a5340; margin: 36px 0 12px; }
+    p { font-size: 18px; line-height: 1.5; }
+    .k { font-family: "Courier New", monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #b53d0d; }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .swatch { border: 1px solid #d4d8d3; }
+    .chip { height: 72px; }
+    .meta { padding: 10px 12px; font-size: 14px; }
+    .meta strong { display: block; font-family: Impact, sans-serif; font-weight: 400; letter-spacing: 0.03em; text-transform: uppercase; }
+    code { font-family: "Courier New", monospace; }
+    .btn { display: inline-block; background: #f3d13d; color: #151412; text-decoration: none; font-family: Impact, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; padding: 12px 18px; margin-right: 8px; }
+    .ghost { background: transparent; border: 2px solid #151412; }
+    mark { background: #fff475; padding: 0 0.12em; }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="k">VettaJimale.Tech · 3 October 2026</p>
+    <h1>Design kit</h1>
+    <p>Personal brand site. The book, <em>I Call BS: AI Vibe Coding Myths Dispelled</em>, is the lead product and sits in the first screen. The free kit stays available and does not require a purchase.</p>
+    <p>Green is the brand color. Forest is the middle tone used for panels, the footer, and headings. The brighter green is an accent, used on the photo placeholder. Deep purple was reviewed and set aside.</p>
+
+    <h2>Color</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#1A5340"></div><div class="meta"><strong>Forest</strong><code>#1A5340</code><br>Panels, footer, headings, book card</div></div>
+      <div class="swatch"><div class="chip" style="background:#1C6B48"></div><div class="meta"><strong>Green accent</strong><code>#1C6B48</code><br>Photo placeholder and small green hits</div></div>
+      <div class="swatch"><div class="chip" style="background:#F3D13D"></div><div class="meta"><strong>Button yellow</strong><code>#F3D13D</code><br>Primary buttons. Ink text.</div></div>
+      <div class="swatch"><div class="chip" style="background:#FFF475"></div><div class="meta"><strong>Highlighter</strong><code>#FFF475</code><br>Short phrases inside headlines</div></div>
+      <div class="swatch"><div class="chip" style="background:#F25C19"></div><div class="meta"><strong>Orange</strong><code>#F25C19</code><br>Small marks</div></div>
+      <div class="swatch"><div class="chip" style="background:#B53D0D"></div><div class="meta"><strong>Dark orange</strong><code>#B53D0D</code><br>Labels on white</div></div>
+      <div class="swatch"><div class="chip" style="background:#151412"></div><div class="meta"><strong>Ink</strong><code>#151412</code><br>Body text</div></div>
+      <div class="swatch"><div class="chip" style="background:#FFFFFF"></div><div class="meta"><strong>Paper</strong><code>#FFFFFF</code><br>Page background</div></div>
+      <div class="swatch"><div class="chip" style="background:#F7F7F2"></div><div class="meta"><strong>Surface</strong><code>#F7F7F2</code><br>Cards</div></div>
+      <div class="swatch"><div class="chip" style="background:#D4D8D3"></div><div class="meta"><strong>Divider</strong><code>#D4D8D3</code><br>Rules and borders</div></div>
+    </div>
+
+    <h2>Type</h2>
+    <p>Anton for large headlines. Newsreader for body copy. IBM Plex Mono for small labels. Headlines use a line height of 1.15 so a highlighted phrase does not sit on the line above it.</p>
+    <p>Example: Curious about tech. Serious about <mark>making it useful</mark>.</p>
+
+    <h2>Buttons</h2>
+    <p><a class="btn" href="#">Explore the book</a> <a class="btn ghost" href="#">Meet VJ</a></p>
+    <p>The Meet VJ control on the homepage is a photo placeholder in the accent green. It links to About. Yellow buttons use ink text.</p>
+
+    <h2>Not in this kit</h2>
+    <p>The earlier dark green was <code>#173021</code>. The brighter trial green is now the accent, <code>#1C6B48</code>. Deep purple <code>#3C206B</code> with gold <code>#E4C15A</code> was reviewed and not chosen.</p>
+  </main>
+</body>
+</html>

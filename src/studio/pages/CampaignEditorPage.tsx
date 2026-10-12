@@ -290,7 +290,7 @@ export default function CampaignEditorPage({ userProfile }: { userProfile: UserP
           <>
             <h1 className="mt-4 font-serif text-3xl font-black text-slate-900">Blueprint</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Status: <strong>{campaign.status}</strong>. Stripe is not required for blueprints.
+              Status: <strong>{campaign.status}</strong>. Blueprints do not charge cards (book checkout is separate).
             </p>
 
             <label className="mt-6 block text-xs font-bold uppercase tracking-widest text-slate-400">

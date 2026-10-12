@@ -1,9 +1,9 @@
+import { useBookUpdates } from '../../lib/site/useBookUpdates'
 import ResourcePageShell, { ResourceFooterMeta } from './ResourcePageShell'
-import { BOOK_UPDATE_ENTRIES } from './bookUpdates'
 
 /** Published book companion notes. Empty until real correction entries exist. */
 export default function BookUpdatesPage() {
-  const entries = BOOK_UPDATE_ENTRIES
+  const { entries } = useBookUpdates()
 
   return (
     <ResourcePageShell title="Book Updates & Corrections">

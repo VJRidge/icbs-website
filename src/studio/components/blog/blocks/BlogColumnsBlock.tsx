@@ -163,7 +163,7 @@ export default function BlogColumnsBlock({
         <ColumnLayoutFields block={block} />
         <LayoutChooser variant="side" activeLayout={layout} onPick={(mode, next) => setLayout(next, mode)} />
         <p className="text-xs leading-relaxed text-slate-600">
-          Choose the column count, then drag a widget into that section.
+          Drag a widget into this section after you pick a layout.
         </p>
         <div className="grid grid-cols-2 gap-2">
           {COLUMN_WIDGETS.map((widget) => (
@@ -270,7 +270,9 @@ export default function BlogColumnsBlock({
                 e.stopPropagation();
                 selectBlock(nested.id);
               }}
-              className={`w-full cursor-pointer rounded-lg border p-2 transition ${
+              className={`w-full rounded-lg border p-2 transition ${
+                nested.type === 'heading' || nested.type === 'paragraph' ? 'cursor-text' : 'cursor-pointer'
+              } ${
                 selectedBlockId === nested.id
                   ? 'border-[#7c3aed] bg-[#7c3aed]/5 ring-2 ring-[#7c3aed]/40'
                   : 'border-transparent hover:border-slate-300'

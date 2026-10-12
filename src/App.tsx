@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
+import { trackPublicEvent } from './lib/analytics/trackClient'
 import FreeThanks from './pages/FreeThanks'
+import BuyThanks from './pages/BuyThanks'
 import Legal from './pages/Legal'
 import Contact from './pages/Contact'
 import UpdatesSignup from './pages/UpdatesSignup'
@@ -9,17 +11,22 @@ import CmsBySlug from './cms/CmsBySlug'
 import ShortLinkRedirect from './cms/ShortLinkRedirect'
 import BlogIndex from './cms/BlogIndex'
 import BlogPost from './cms/BlogPost'
+import TopicArchive from './cms/TopicArchive'
 import CmsPreview from './cms/CmsPreview'
 import CustomContentByPath from './cms/CustomContentByPath'
 import PublicSearch from './cms/PublicSearch'
 import RedirectGate from './cms/RedirectGate'
+import LocalPreviewBanner from './components/LocalPreviewBanner'
 import { kitLandingTarget } from './cms/kitLandingTarget'
 import BrandPage from './brand/BrandPage'
 import BookPreview from './brand/BookPreview'
 import DesignKit from './brand/DesignKit'
 import {
+  BeforeDoneFormPage,
   BookUpdatesPage,
   BuilderQuickReferencePage,
+  ProjectRulesFormPage,
+  RoadmapFormPage,
   TemplatesPage,
   ToolsAndUpdatesPage,
 } from './pages/resources'
@@ -76,16 +83,22 @@ function PublicRoutes({ path }: { path: string }) {
   if (path === '/preview') return <CmsPreview />
   if (path === '/search') return <PublicSearch />
   if (path === '/blog') return <BlogIndex />
+  const topic = path.match(/^\/topics\/([^/]+)$/)
+  if (topic) return <TopicArchive slug={decodeURIComponent(topic[1])} />
   const post = path.match(/^\/blog\/([^/]+)$/)
   if (post) return <BlogPost slug={decodeURIComponent(post[1])} />
   const review = path.match(/^\/reviews\/([^/]+)$/)
   if (review) return <CustomContentByPath typeKey="tool_review" slug={decodeURIComponent(review[1])} />
   if (path === '/free/thanks') return <FreeThanks />
+  if (path === '/buy/thanks') return <BuyThanks />
   if (path === '/free') return <ToLanding />
   if (path === '/contact') return <Contact />
   if (path === '/updates') return <UpdatesSignup />
   if (path === '/resources/builder-quick-reference') return <BuilderQuickReferencePage />
   if (path === '/resources/templates') return <TemplatesPage />
+  if (path === '/resources/templates/roadmap') return <RoadmapFormPage />
+  if (path === '/resources/templates/project-rules') return <ProjectRulesFormPage />
+  if (path === '/resources/templates/before-you-accept-done') return <BeforeDoneFormPage />
   if (path === '/resources/tools-and-updates') return <ToolsAndUpdatesPage />
   if (path === '/resources/vibe-coding-literacy-check') return <LiteracyCheckPage />
   if (path === '/book/updates') return <BookUpdatesPage />
@@ -98,9 +111,14 @@ function PublicRoutes({ path }: { path: string }) {
 
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  useEffect(() => {
+    if (path === '/admin' || path.startsWith('/admin/')) return
+    trackPublicEvent('page_view', { path })
+  }, [path])
   if (path === '/admin' || path.startsWith('/admin/')) return <AdminApp />
   return (
     <RedirectGate path={path}>
+      <LocalPreviewBanner />
       <PublicRoutes path={path} />
     </RedirectGate>
   )

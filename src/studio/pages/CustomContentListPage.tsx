@@ -81,7 +81,7 @@ export default function CustomContentListPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-3xl font-black text-slate-900">{type.plural}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">{type.description} Drafts stay private. Publishing a tool review writes a frozen snapshot to `/reviews/:slug`.</p>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600">{type.description} Drafts stay private. Publishing a review writes a frozen snapshot to `/reviews/:slug`.</p>
           </div>
           <Link
             to={`/admin/content/${typeKey}/new`}

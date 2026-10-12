@@ -156,26 +156,25 @@ export default function SiteUsersPage({ userProfile }: { userProfile: UserProfil
                             <button
                               type="button"
                               onClick={() =>
-                                void patch(r.id, { staff_approved: !r.staff_approved, disabled_at: r.staff_approved ? r.disabled_at : null })
-                              }
-                              className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                                r.staff_approved ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                              }`}
-                            >
-                              {r.staff_approved ? 'Approved' : 'Approve'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
                                 void patch(r.id, {
                                   disabled_at: r.disabled_at ? null : new Date().toISOString(),
-                                  staff_approved: r.disabled_at ? r.staff_approved : false,
+                                  // Disable also revokes studio access; re-enable restores auto-approve.
+                                  staff_approved: Boolean(r.disabled_at),
                                 })
                               }
                               className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-red-600 hover:bg-red-50"
                             >
                               {r.disabled_at ? 'Re-enable' : 'Disable'}
                             </button>
+                            {!r.staff_approved && !r.disabled_at ? (
+                              <button
+                                type="button"
+                                onClick={() => void patch(r.id, { staff_approved: true })}
+                                className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600"
+                              >
+                                Restore access
+                              </button>
+                            ) : null}
                           </div>
                         ) : (
                           <span className="text-xs text-slate-500">

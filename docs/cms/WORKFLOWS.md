@@ -11,7 +11,7 @@ Status legend for screens: **Connected** (operable today) · **Specified** (acce
 
 **Start (article):** Studio → Blog posts → Add post. **Connected**
 
-**Start (structured):** Studio → Tool reviews → Add. **Connected** (other custom types stay unpublished)
+**Start (structured):** Studio → Reviews → Add. **Connected** (other custom types stay unpublished)
 
 ### Click path
 
@@ -48,7 +48,7 @@ Status legend for screens: **Connected** (operable today) · **Specified** (acce
 ### Acceptance (screens)
 
 - [x] Post/page editor with autosave, preview, publish, trash, revisions, schedule.
-- [x] Tool review list/editor with structured fields and private drafts.
+- [x] Reviews list/editor with structured fields and private drafts.
 - [x] Relationship picker UI (schema + helpers ready; attached on structured content editor).
 - [x] Automated pre-publish disclosure/verification checklist panel (tool reviews).
 
@@ -86,25 +86,28 @@ Status legend for screens: **Connected** (operable today) · **Specified** (acce
 
 ## 3. Send a newsletter to Creative Tools readers
 
-**Start:** Newsletter → New issue → Creative Tools segment. **Specified / Gated**
+**Start:** Marketing → Newsletter → New issue. **Connected**
 
 ### Click path
 
-1. Compose the issue; insert related articles/resources from shared records.
-2. Review recipient definition, consent source, and suppression count.
-3. Send a test; resolve accessibility/link warnings; approve the recipient snapshot.
-4. Schedule; recheck suppression immediately before delivery.
-5. Send through a durable job with deduplication and retry limits.
+1. (Optional) Marketing → Contact lists: create a rule list or uploaded list (CSV dry-run → commit).
+2. Compose the issue in the same block builder as pages/posts; Save compiles email-safe HTML.
+3. Choose audience: all marketing contacts or a saved contact list.
+4. Set subject + preview text; schedule send (or keep as draft).
+5. Cron freezes the recipient snapshot (segment applied at freeze) and delivers with dedupe + retries.
+6. Provider bounce/complaint webhook suppresses Contacts.
 
 ### Success
 
-- Only eligible test/production recipients receive the issue.
-- Delivery failures are visible with recovery actions.
+- Only eligible recipients in the chosen audience receive the issue.
+- Delivery failures are visible with counts (pending / sent / failed / skipped).
 - Opt-outs are honored at execution time.
 
 ### Acceptance
 
 - [x] Newsletter nav + schedule/send jobs + provider suppress webhook (**Open**).
+- [x] Block document editor + email compile on save (**Open**).
+- [x] Contact lists (rule + CSV upload) + tags + newsletter list picker (**Open**).
 
 ---
 

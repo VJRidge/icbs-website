@@ -2,7 +2,14 @@
 import { createHash } from 'node:crypto'
 import { supabase } from './_lib.js'
 
-const TRACKABLE = new Set(['page_view', 'form_start', 'form_submit', 'contact_created', 'kit_subscribe'])
+const TRACKABLE = new Set([
+  'page_view',
+  'form_start',
+  'form_submit',
+  'contact_created',
+  'kit_subscribe',
+  'book_purchase',
+])
 const BOT_UA =
   /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|wget|curl|python-requests|scrapy/i
 

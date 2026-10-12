@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Eye, Shield, ShieldCheck } from 'lucide-react';
 import AdminCmsNav from '../AdminCmsNav';
 import type { UserProfile } from '../../types';
 import { isSuperAdminProfile } from '../../lib/adminPermissions';
@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 
 type AdminCmsShellProps = {
   title: string;
+  subtitle?: string;
   titleIcon?: ReactNode;
   backTo?: string;
   backLabel?: string;
@@ -19,6 +20,7 @@ type AdminCmsShellProps = {
 /** CMS chrome: top bar + content nav sidebar + main area (no post/page list in sidebar). */
 export default function AdminCmsShell({
   title,
+  subtitle,
   titleIcon,
   backTo,
   backLabel = 'Back',
@@ -64,12 +66,29 @@ export default function AdminCmsShell({
               <span className="hidden sm:inline">{backLabel}</span>
             </button>
           ) : null}
-          <div className="flex items-center gap-2 border-b-2 border-brand-yellow bg-white/10 px-5 text-sm font-semibold text-white">
+          <div className="flex min-w-0 items-center gap-2 border-b-2 border-brand-yellow bg-white/10 px-5 text-sm font-semibold text-white">
             {titleIcon}
-            {title}
+            <span className="min-w-0 truncate">
+              {title}
+              {subtitle ? (
+                <span className="mt-0.5 block truncate text-[10px] font-bold uppercase tracking-widest text-brand-yellow/90">
+                  {subtitle}
+                </span>
+              ) : null}
+            </span>
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2 px-3">
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-brand-yellow"
+            title="View site"
+            aria-label="View site"
+          >
+            <Eye size={18} strokeWidth={2.25} aria-hidden />
+          </a>
           {showRolePill ? (
             <span
               className={

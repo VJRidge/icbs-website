@@ -1,0 +1,1093 @@
+{
+  "reviewedAt": "2026-10-06",
+  "categories": [
+    {
+      "id": "research",
+      "label": "Research & thinking",
+      "title": "Think it through. Check the claim.",
+      "intro": "These tools help you explore ideas, understand information, and draft work. Their features overlap; choose around the task and the evidence you need.",
+      "decision": "For factual decisions, open the original sources. Fluent writing and visible citations are not proof.",
+      "note": "",
+      "tools": [
+        {
+          "id": "chatgpt",
+          "name": "ChatGPT",
+          "experienceStatus": "used-by-vj",
+          "summary": "A conversational workspace for drafting, analysis, and research.",
+          "bestFit": "You want to develop an idea, work through files, or investigate a question.",
+          "features": [
+            "Conversational drafting",
+            "File and data analysis",
+            "Web search where available"
+          ],
+          "pros": [
+            "Several kinds of thinking in one workspace.",
+            "Follow-up questions let you refine the task."
+          ],
+          "cons": [
+            "Capabilities and allowances depend on the account.",
+            "Verify factual claims and review generated output."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://chatgpt.com/",
+          "docsUrl": "https://help.openai.com/en/articles/9260256-chatgpt-capabilities-overview",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://help.openai.com/en/articles/9260256-chatgpt-capabilities-overview"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "claude-chat",
+          "name": "Claude",
+          "experienceStatus": "used-by-vj",
+          "summary": "A conversational AI workspace, distinct from Claude Code.",
+          "bestFit": "You want to work through writing, documents, or an idea.",
+          "features": [
+            "Writing and document analysis",
+            "Conversational iteration",
+            "Artifacts for interactive output"
+          ],
+          "pros": [
+            "Useful for working through a draft in stages.",
+            "Documents and conversation can share context."
+          ],
+          "cons": [
+            "Claude chat and Claude Code have different working environments.",
+            "Generated content still needs your review."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://claude.ai/",
+          "docsUrl": "https://claude.com/product/overview",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://claude.com/product/overview"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "perplexity",
+          "name": "Perplexity",
+          "experienceStatus": "researched-option",
+          "summary": "An AI search and research tool that links to sources.",
+          "bestFit": "You want a sourced starting point for an unfamiliar subject.",
+          "features": [
+            "Web research",
+            "Linked source references",
+            "Follow-up questions"
+          ],
+          "pros": [
+            "Sources are visible for further inspection.",
+            "Research can be refined through conversation."
+          ],
+          "cons": [
+            "A linked source may not support the exact claim.",
+            "Advanced research allowances vary by plan."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://www.perplexity.ai/",
+          "docsUrl": "https://www.perplexity.ai/help-center/en/articles/10352903-what-is-pro-search",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://www.perplexity.ai/help-center/en/articles/10352903-what-is-pro-search"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "gemini",
+          "name": "Gemini",
+          "experienceStatus": "researched-option",
+          "summary": "Google\u2019s conversational AI assistant.",
+          "bestFit": "You want a general AI assistant and supported Google connections.",
+          "features": [
+            "Conversational assistance",
+            "Multimodal input",
+            "Google integrations where supported"
+          ],
+          "pros": [
+            "Another approach to the same writing and thinking tasks.",
+            "Google connections may fit an existing workflow."
+          ],
+          "cons": [
+            "Connections and features depend on account and region.",
+            "Gemini the assistant is different from AI Studio Build mode."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://gemini.google/",
+          "docsUrl": "https://gemini.google/overview/",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://gemini.google/overview/"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "builders",
+      "label": "Guided app builders",
+      "title": "Build from a prompt",
+      "intro": "Guided builders bring code generation, preview, and supporting services into one environment. They overlap with AI editors: both can help create complete apps.",
+      "decision": "Compare the workflow, supported stack, code access, publishing, and cost\u2014not just whether the tool can build an app.",
+      "note": "A guided builder is not limited to prototypes. A code editor is not limited to editing. Neither guarantees a finished, tested product.",
+      "tools": [
+        {
+          "id": "lovable",
+          "name": "Lovable",
+          "experienceStatus": "previously-used",
+          "summary": "A natural-language platform for building and publishing web applications.",
+          "bestFit": "You want a guided web-app workflow with code access and publishing options.",
+          "features": [
+            "Natural-language app generation",
+            "Editable application code and Git sync",
+            "Backend, integrations, and publishing workflows"
+          ],
+          "pros": [
+            "Useful for turning a concept into something you can inspect.",
+            "Git sync provides a route into an external development workflow."
+          ],
+          "cons": [
+            "Generated apps still need real behavior and access checks.",
+            "Build credits and operating services can have separate costs."
+          ],
+          "firstTask": "Prototype one screen without login, payment, or sensitive data.",
+          "officialUrl": "https://lovable.dev/",
+          "docsUrl": "https://docs.lovable.dev/introduction/welcome",
+          "pricingUrl": null,
+          "costNote": "Credit-based plans; check hosting and backend usage separately.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.lovable.dev/introduction/welcome"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "replit",
+          "name": "Replit Agent",
+          "experienceStatus": "researched-option",
+          "summary": "An app-building Agent in an integrated development platform.",
+          "bestFit": "You want a managed workspace rather than setting up everything locally.",
+          "features": [
+            "Natural-language building and Plan mode",
+            "Integrated app development and publishing",
+            "Checkpoints and connected services"
+          ],
+          "pros": [
+            "Planning and implementation can happen in one environment.",
+            "Checkpoints provide a way to revisit earlier project states."
+          ],
+          "cons": [
+            "Agent work and running the published app are separate cost considerations.",
+            "Moving an app elsewhere requires reviewing its service dependencies."
+          ],
+          "firstTask": "Plan one small app, approve a narrow task, then test the output yourself.",
+          "officialUrl": "https://replit.com/",
+          "docsUrl": "https://docs.replit.com/features/agent/overview",
+          "pricingUrl": null,
+          "costNote": "Plan allowances and paid Agent modes vary; review publishing costs separately.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.replit.com/features/agent/overview",
+            "https://replit.com/products/agent"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "bolt",
+          "name": "Bolt",
+          "experienceStatus": "researched-option",
+          "summary": "A prompt-driven builder focused on JavaScript-based applications.",
+          "bestFit": "You want to prototype a JavaScript web app in the browser.",
+          "features": [
+            "Prompt-driven building and preview",
+            "JavaScript / Node.js stack support",
+            "Bolt Cloud database or Supabase connection"
+          ],
+          "pros": [
+            "A browser-based workflow reduces local setup for a prototype.",
+            "A supported database path is available alongside app building."
+          ],
+          "cons": [
+            "It is not a general-purpose Python or PHP backend environment.",
+            "Backend choice, plan limits, and publication still need review."
+          ],
+          "firstTask": "Build one simple screen, then check the supported stack before expanding it.",
+          "officialUrl": "https://bolt.new/",
+          "docsUrl": "https://support.bolt.new/concepts/supported-technologies",
+          "pricingUrl": null,
+          "costNote": "Review current build limits and cloud-service costs before subscribing.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://support.bolt.new/concepts/supported-technologies"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "ai-studio",
+          "name": "Google AI Studio",
+          "experienceStatus": "researched-option",
+          "summary": "An AI development workspace with a prompt-driven Build mode.",
+          "bestFit": "You want to build and test an app, particularly one using Gemini.",
+          "features": [
+            "Full-stack web app generation",
+            "Live preview and code export",
+            "GitHub sync and deployment options"
+          ],
+          "pros": [
+            "Build and inspect generated code in one environment.",
+            "Export provides a path to local development."
+          ],
+          "cons": [
+            "Model usage and deployment may have separate costs.",
+            "Review secrets, access rules, and generated behavior."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://aistudio.google.com/",
+          "docsUrl": "https://ai.google.dev/gemini-api/docs/aistudio-build-mode",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://ai.google.dev/gemini-api/docs/aistudio-build-mode"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "flutterflow",
+          "name": "FlutterFlow",
+          "experienceStatus": "researched-option",
+          "summary": "A visual development platform for Flutter-based apps.",
+          "bestFit": "You want visual screen design for a Flutter app.",
+          "features": [
+            "Visual app building",
+            "Data and API connections",
+            "Custom code and export options"
+          ],
+          "pros": [
+            "Visual controls provide another way to construct screens.",
+            "Flutter provides a path toward multi-platform apps."
+          ],
+          "cons": [
+            "Code export and advanced features depend on the plan.",
+            "Custom behavior and platform testing still require work."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://www.flutterflow.io/",
+          "docsUrl": "https://docs.flutterflow.io/",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.flutterflow.io/"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "editors",
+      "label": "Editors & coding Agents",
+      "title": "Build with the project in your hands",
+      "intro": "An AI editor can help create an app from scratch as well as inspect an existing one. Coding Agents can work inside an editor or through other environments.",
+      "decision": "Start with one main working environment. Compare how you inspect changes, run checks, connect services, and publish.",
+      "note": "Cursor is the editor and includes an Agent. Claude Code is a coding Agent. They can be used together; switching requires a clear handoff and coordinated edits.",
+      "tools": [
+        {
+          "id": "cursor",
+          "name": "Cursor",
+          "experienceStatus": "used-by-vj",
+          "summary": "An editor with an integrated coding Agent.",
+          "bestFit": "You want to build or change an app while working directly with its project files.",
+          "features": [
+            "Project search and multi-file edits",
+            "Terminal tools and diff review",
+            "Project rules and checkpoints"
+          ],
+          "pros": [
+            "AI work and code review share one workspace.",
+            "Project instructions help keep recurring tasks consistent."
+          ],
+          "cons": [
+            "Agent usage and model access depend on the plan.",
+            "Checkpoints undo Agent edits; they do not replace permanent Git history.",
+            "Review the diff and test the actual behavior before accepting done."
+          ],
+          "firstTask": "Ask it to explain one component without editing any files.",
+          "officialUrl": "https://cursor.com/",
+          "docsUrl": "https://cursor.com/docs/agent/overview",
+          "pricingUrl": "https://cursor.com/pricing",
+          "costNote": "Free entry plan with limits; paid plans and additional usage.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://cursor.com/docs/agent/overview"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "vscode",
+          "name": "VS Code + GitHub Copilot",
+          "experienceStatus": "researched-option",
+          "summary": "A general code editor with Copilot-powered AI features.",
+          "bestFit": "You want a familiar editor and a choice of extensions.",
+          "features": [
+            "Code editing, debugging, and extensions",
+            "Copilot chat and agent workflows",
+            "Integrated terminal and change review"
+          ],
+          "pros": [
+            "You can keep editing without relying on one AI feature.",
+            "A broad extension system lets you tailor the workspace."
+          ],
+          "cons": [
+            "Editor setup and Copilot account setup are separate choices.",
+            "AI allowances and capabilities vary by plan and organization settings."
+          ],
+          "firstTask": "Open a small project and ask Copilot to explain its structure.",
+          "officialUrl": "https://code.visualstudio.com/",
+          "docsUrl": "https://code.visualstudio.com/docs/agents/overview",
+          "pricingUrl": "https://github.com/features/copilot/plans",
+          "costNote": "The editor is free; Copilot has separate plans and usage limits.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://code.visualstudio.com/docs/agents/overview",
+            "https://code.visualstudio.com/",
+            "https://github.com/features/copilot/plans"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "devin",
+          "name": "Devin Desktop (Windsurf successor)",
+          "experienceStatus": "researched-option",
+          "summary": "An editor and command center for local and cloud coding agents.",
+          "bestFit": "You want agent session management alongside a full editor.",
+          "features": [
+            "Integrated editor and agent command center",
+            "Cascade code and chat modes",
+            "Planning, terminal tools, and checkpoints"
+          ],
+          "pros": [
+            "Agent sessions and code inspection stay together.",
+            "Cascade offers a path for both questions and implementation."
+          ],
+          "cons": [
+            "More agent-management controls can add complexity for a first project.",
+            "Check the current plan and account requirements before switching."
+          ],
+          "firstTask": "Use Cascade to explain a component; inspect its answer before requesting an edit.",
+          "officialUrl": "https://devin.ai/desktop",
+          "docsUrl": "https://docs.devin.ai/desktop/cascade/cascade",
+          "pricingUrl": null,
+          "costNote": "Check the current product plans; legacy Windsurf terms may differ.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://cognition.com/blog/introducing-devin-desktop",
+            "https://docs.devin.ai/desktop/cascade/cascade"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "claude",
+          "name": "Claude Code",
+          "experienceStatus": "used-by-vj",
+          "summary": "A coding Agent that works across project files and development tools.",
+          "bestFit": "You want task-focused work in your terminal, editor, app, or browser.",
+          "features": [
+            "Code reading and multi-file edits",
+            "Terminal commands and development workflows",
+            "Project instructions, skills, and integrations"
+          ],
+          "pros": [
+            "Several working environments let you keep your existing setup.",
+            "Project instructions provide a place for recurring guidance."
+          ],
+          "cons": [
+            "Permissions and instructions need review before implementation.",
+            "A separate tool can mean separate usage and handoff requirements."
+          ],
+          "firstTask": "Ask it to read project instructions and propose a plan before editing.",
+          "officialUrl": "https://claude.com/product/claude-code",
+          "docsUrl": "https://code.claude.com/docs/en/overview",
+          "pricingUrl": null,
+          "costNote": "Account, subscription, or provider usage requirements vary by environment.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://code.claude.com/docs/en/overview"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "codex",
+          "name": "OpenAI Codex",
+          "experienceStatus": "researched-option",
+          "summary": "An Agent for writing, reviewing, and working with code.",
+          "bestFit": "You want an OpenAI coding workflow in an editor, terminal, or supported app.",
+          "features": [
+            "Terminal and IDE workflows",
+            "Code writing and review",
+            "Permission controls and cloud tasks where eligible"
+          ],
+          "pros": [
+            "Several clients provide different ways into the same family of tools.",
+            "You can review task output and code changes in your workflow."
+          ],
+          "cons": [
+            "Local and cloud access are not identical across accounts.",
+            "Usage limits, permissions, and available clients depend on your setup."
+          ],
+          "firstTask": "Ask for a read-only explanation of a small bug and a proposed fix.",
+          "officialUrl": "https://openai.com/codex/",
+          "docsUrl": "https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan",
+          "pricingUrl": null,
+          "costNote": "Plan-based usage varies; API-key use has separate billing.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan",
+            "https://github.com/openai/codex"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "frameworks",
+      "label": "App frameworks",
+      "title": "Choose what the app is built with",
+      "intro": "A framework provides the structure used to make an app. It is a different layer from an editor or a prompt-driven builder.",
+      "decision": "For this text-rich personal-brand website, keep the existing web approach. Compare mobile frameworks when you have a mobile-app requirement.",
+      "note": "Flutter is the framework; FlutterFlow is a visual builder that works with Flutter. React Native and React for the web are also different choices.",
+      "tools": [
+        {
+          "id": "flutter",
+          "name": "Flutter",
+          "experienceStatus": "previously-explored",
+          "summary": "A Dart-based framework for multi-platform applications.",
+          "bestFit": "You want a shared codebase with mobile apps central to the project.",
+          "features": [
+            "Android, iOS, web, and desktop targets",
+            "Custom interface widgets",
+            "Hot reload"
+          ],
+          "pros": [
+            "Much application code can be shared.",
+            "Flexible control over the interface."
+          ],
+          "cons": [
+            "Dart and Flutter have their own learning curve.",
+            "Each platform needs testing; text-heavy marketing sites are a poor fit."
+          ],
+          "firstTask": "Run one screen on the intended device before expanding the project.",
+          "officialUrl": "https://flutter.dev/",
+          "docsUrl": "https://docs.flutter.dev/resources/faq",
+          "pricingUrl": null,
+          "costNote": "Free and open source; hosting, stores, services, and development still have costs.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.flutter.dev/resources/faq",
+            "https://docs.flutter.dev/platform-integration/web/faq"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "expo",
+          "name": "React Native + Expo",
+          "experienceStatus": "researched-option",
+          "summary": "A mobile-app framework with Expo\u2019s development and deployment tooling.",
+          "bestFit": "You want a React and JavaScript/TypeScript route to mobile apps.",
+          "features": [
+            "React Native app development",
+            "Expo SDK and development tools",
+            "Build and update services"
+          ],
+          "pros": [
+            "A useful route for a team already working with React.",
+            "Expo bundles common mobile development tools."
+          ],
+          "cons": [
+            "Web React code is not automatically a complete native app.",
+            "Native requirements and cloud services can add complexity and cost."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://expo.dev/",
+          "docsUrl": "https://docs.expo.dev/",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.expo.dev/"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "backends",
+      "label": "Backends",
+      "title": "Save data and manage access",
+      "intro": "A backend stores information and controls who can use it. Choose it around your data, permissions, and operating needs.",
+      "decision": "Compare the data model first. Changing backend providers later usually means changing application code, permissions, and migration plans.",
+      "note": "Signing in proves identity. Access rules determine which records a signed-in person can read or change.",
+      "tools": [
+        {
+          "id": "supabase",
+          "name": "Supabase",
+          "experienceStatus": "used-by-vj",
+          "summary": "A Postgres-based backend with authentication and file storage.",
+          "bestFit": "Your data has relationships, and you want a SQL database.",
+          "features": [
+            "Postgres database and APIs",
+            "Auth and Storage",
+            "Realtime and Edge Functions"
+          ],
+          "pros": [
+            "SQL gives you a clear way to query related data.",
+            "Database, sign-in, and storage are available in one platform."
+          ],
+          "cons": [
+            "Row Level Security must be designed and tested.",
+            "Cloud quotas, project costs, and backup coverage need review.",
+            "Keep privileged server-side keys out of browser code."
+          ],
+          "firstTask": "Map who can read and change each record, then test two different users.",
+          "officialUrl": "https://supabase.com/",
+          "docsUrl": "https://supabase.com/docs",
+          "pricingUrl": "https://supabase.com/pricing",
+          "costNote": "Free and paid cloud plans; compute, storage, and other usage affect cost.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://supabase.com/docs",
+            "https://supabase.com/docs/guides/database/postgres/row-level-security",
+            "https://supabase.com/pricing"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "firebase",
+          "name": "Firebase",
+          "experienceStatus": "researched-option",
+          "summary": "Google\u2019s app platform with database, sign-in, storage, and hosting services.",
+          "bestFit": "You want managed app services, particularly realtime or mobile workflows.",
+          "features": [
+            "Firestore document database and offline support",
+            "Authentication, Storage, and hosting services",
+            "SQL Connect for a managed PostgreSQL route"
+          ],
+          "pros": [
+            "Firestore supports realtime sync and offline app behavior.",
+            "The platform brings several app services together."
+          ],
+          "cons": [
+            "Firestore models data differently from a relational SQL database.",
+            "Service-specific rules, usage charges, and Google Cloud configuration need attention."
+          ],
+          "firstTask": "Choose Firestore or SQL Connect deliberately; test user access before importing real data.",
+          "officialUrl": "https://firebase.google.com/",
+          "docsUrl": "https://firebase.google.com/docs",
+          "pricingUrl": "https://firebase.google.com/pricing",
+          "costNote": "Free allowances and usage-based services; check each service\u2019s billing requirements.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://firebase.google.com/docs",
+            "https://firebase.google.com/docs/firestore",
+            "https://firebase.google.com/docs/sql-connect",
+            "https://firebase.google.com/pricing"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "appwrite",
+          "name": "Appwrite",
+          "experienceStatus": "researched-option",
+          "summary": "A backend platform with managed cloud and self-hosting options.",
+          "bestFit": "You want a bundled backend and the option to operate it yourself.",
+          "features": [
+            "Authentication, databases, and storage",
+            "Functions, Realtime, and Messaging",
+            "Cloud or self-hosted deployment"
+          ],
+          "pros": [
+            "Several backend jobs share one API-oriented platform.",
+            "Self-hosting gives you an infrastructure choice."
+          ],
+          "cons": [
+            "Self-hosting adds updates, scaling, security, and backup work.",
+            "Its APIs and permission model are not a drop-in Supabase replacement."
+          ],
+          "firstTask": "Start with a test project and verify which user can read one private record.",
+          "officialUrl": "https://appwrite.io/",
+          "docsUrl": "https://appwrite.io/docs",
+          "pricingUrl": "https://appwrite.io/pricing",
+          "costNote": "Cloud plans have limits; self-hosting still has infrastructure and operating costs.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://appwrite.io/docs",
+            "https://appwrite.io/docs/advanced/self-hosting"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "label": "Git & history",
+      "title": "Record and inspect changes",
+      "intro": "Git keeps recorded versions of project files. A visual Git client helps you use that history. These are different layers of the same workflow.",
+      "decision": "Learn what status, diff, commit, and push mean. Then choose the interface that makes those actions easiest to understand.",
+      "note": "Git is the version-control engine. GitHub Desktop, Sourcetree, and GitKraken are clients for using it. GitHub and GitLab host repositories; they are not replacements for Git.",
+      "tools": [
+        {
+          "id": "git",
+          "name": "Git",
+          "experienceStatus": "used-by-vj",
+          "summary": "The underlying version-control system for project files.",
+          "bestFit": "You need recorded changes and separate branches of work.",
+          "features": [
+            "Status and diffs",
+            "Staging and commits",
+            "Branches, merges, and remote synchronization"
+          ],
+          "pros": [
+            "Local history does not require a hosting subscription.",
+            "Many editors and visual clients work with the same repository."
+          ],
+          "cons": [
+            "Uncommitted edits are not a saved version.",
+            "Git history does not automatically back up a hosted database or untracked media."
+          ],
+          "firstTask": "Inspect status and diff; make an intentional commit after reviewing what it includes.",
+          "officialUrl": "https://git-scm.com/",
+          "docsUrl": "https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository",
+          "pricingUrl": null,
+          "costNote": "Free, open-source software; repository hosting is a separate decision.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://git-scm.com/",
+            "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control",
+            "https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "desktop",
+          "name": "GitHub Desktop",
+          "experienceStatus": "researched-option",
+          "summary": "A visual Git client with a straightforward commit-and-sync workflow.",
+          "bestFit": "You want fewer terminal commands for everyday Git work.",
+          "features": [
+            "Visual diffs and selective commits",
+            "Branches and repository synchronization",
+            "GitHub authentication and pull-request checkout"
+          ],
+          "pros": [
+            "The visual workflow can make changes easier to inspect.",
+            "It works alongside your existing code editor."
+          ],
+          "cons": [
+            "Official releases are for Windows and macOS.",
+            "Advanced Git tasks may still call for another interface or the terminal."
+          ],
+          "firstTask": "Open a test repository and review the diff before committing a small change.",
+          "officialUrl": "https://github.com/apps/desktop",
+          "docsUrl": "https://docs.github.com/en/desktop/overview/about-github-desktop",
+          "pricingUrl": null,
+          "costNote": "Free, open-source client; hosting limits are separate.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.github.com/en/desktop/overview/about-github-desktop"
+          ],
+          "comparisonRole": "complement"
+        }
+      ]
+    },
+    {
+      "id": "email",
+      "label": "Application email",
+      "title": "Send the emails your app owes people",
+      "intro": "Password resets, confirmations, and download messages need a delivery service connected to your application.",
+      "decision": "Test a real message and the failure path. A successful API response does not guarantee inbox placement.",
+      "note": "Email delivery, newsletter management, and an email inbox are different jobs. SMTP is a sending protocol; it is not a competing product. Mailbox provider: VJ to confirm before publication.",
+      "tools": [
+        {
+          "id": "resend",
+          "name": "Resend",
+          "experienceStatus": "used-by-vj",
+          "summary": "An email delivery platform with API, SMTP, and marketing capabilities.",
+          "bestFit": "You are connecting email delivery to a custom website or app.",
+          "features": [
+            "Email API and SMTP",
+            "Delivery events and webhooks",
+            "Marketing broadcasts"
+          ],
+          "pros": [
+            "Fits a custom application workflow.",
+            "Supports sending through API or SMTP."
+          ],
+          "cons": [
+            "Verify the sending domain and handle failures and bounces.",
+            "A delivery service does not by itself build your entire custom CRM or preference system."
+          ],
+          "firstTask": "Send a test download email; verify the link and delivery event.",
+          "officialUrl": "https://resend.com/",
+          "docsUrl": "https://resend.com/docs",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://resend.com/docs",
+            "https://www.resend.com/pricing?product=marketing",
+            "https://www.resend.com/changelog/smtp-service"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "postmark",
+          "name": "Postmark",
+          "experienceStatus": "researched-option",
+          "summary": "An application email service with transactional and broadcast streams.",
+          "bestFit": "You want delivery and tracking for messages triggered by your app.",
+          "features": [
+            "Email API and SMTP",
+            "Templates and delivery tracking",
+            "Separate message streams"
+          ],
+          "pros": [
+            "Message streams distinguish operational and bulk sending.",
+            "Templates can be maintained separately from application code."
+          ],
+          "cons": [
+            "Sender verification and stream selection require setup.",
+            "Your application must still process errors and delivery events."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://postmarkapp.com/",
+          "docsUrl": "https://postmarkapp.com/developer",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://postmarkapp.com/developer"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "sendgrid",
+          "name": "Twilio SendGrid",
+          "experienceStatus": "researched-option",
+          "summary": "An email platform with developer sending and marketing products.",
+          "bestFit": "You want API-driven delivery and optional campaign tooling.",
+          "features": [
+            "Email API and SMTP",
+            "Delivery events",
+            "Marketing campaign products"
+          ],
+          "pros": [
+            "Can support both developer and marketing workflows.",
+            "Integration documentation covers sending and tracking."
+          ],
+          "cons": [
+            "Products and plans need separate review.",
+            "Authentication, list quality, and delivery monitoring remain your responsibility."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://sendgrid.com/",
+          "docsUrl": "https://www.twilio.com/docs/sendgrid",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://www.twilio.com/docs/sendgrid"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "newsletters",
+      "label": "Newsletters",
+      "title": "Manage the audience and the message",
+      "intro": "A newsletter platform manages subscribers, campaigns, and follow-up sequences. Your custom interface can use a delivery provider underneath.",
+      "decision": "Compare topic preferences, unsubscribe handling, segmentation, editor controls, and ongoing maintenance.",
+      "note": "VJ is building a custom newsletter system with Resend. Describe it as in development until its signup, preference, sending, and unsubscribe paths are verified. Do not imply it is available as a product.",
+      "tools": [
+        {
+          "id": "mailchimp",
+          "name": "Mailchimp",
+          "experienceStatus": "researched-option",
+          "summary": "A hosted marketing platform with campaign and audience tools.",
+          "bestFit": "You want a managed campaign workspace rather than building your own.",
+          "features": [
+            "Campaign creation",
+            "Audience segmentation",
+            "Marketing automation"
+          ],
+          "pros": [
+            "Campaign and audience tools are bundled.",
+            "Managed features reduce the amount of custom software to maintain."
+          ],
+          "cons": [
+            "Plan limits and contact-based costs need review.",
+            "Existing preferences and consent need deliberate migration."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://mailchimp.com/",
+          "docsUrl": "https://mailchimp.com/features/",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://mailchimp.com/features/"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "kit",
+          "name": "Kit",
+          "experienceStatus": "researched-option",
+          "summary": "A creator-focused email marketing platform.",
+          "bestFit": "You publish regularly and want subscriber tools and sequences.",
+          "features": [
+            "Forms and landing pages",
+            "Tags and subscriber segments",
+            "Visual automations"
+          ],
+          "pros": [
+            "Creator-oriented tools support publishing workflows.",
+            "Tags and sequences can organize follow-up."
+          ],
+          "cons": [
+            "Advanced capabilities vary by plan.",
+            "Contact growth affects the plan decision."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://kit.com/",
+          "docsUrl": "https://kit.com/features",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://kit.com/features"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "brevo",
+          "name": "Brevo",
+          "experienceStatus": "researched-option",
+          "summary": "A marketing platform with email and automation capabilities.",
+          "bestFit": "You want email campaigns with broader messaging options.",
+          "features": [
+            "Email campaigns",
+            "Marketing automation",
+            "Forms and audience tools"
+          ],
+          "pros": [
+            "Several marketing functions share a platform.",
+            "Supports workflows beyond a single newsletter."
+          ],
+          "cons": [
+            "Breadth adds setup decisions.",
+            "Channel availability and allowances depend on the plan."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://www.brevo.com/",
+          "docsUrl": "https://www.brevo.com/products/marketing-platform/",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://www.brevo.com/products/marketing-platform/"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    },
+    {
+      "id": "automation",
+      "label": "Automation",
+      "title": "Connect the work. Cut the repetition.",
+      "intro": "Automation connects an event in one tool to actions in others. It can move approved content into a publishing workflow.",
+      "decision": "Start with one trigger and one destination. Check permissions, duplicates, failures, and how you stop the workflow.",
+      "note": "VJ uses Make to automate posts. The exact source, publishing destination, and approval step have not been specified; do not invent that workflow.",
+      "tools": [
+        {
+          "id": "make",
+          "name": "Make",
+          "experienceStatus": "used-by-vj",
+          "summary": "A visual automation platform that connects services through scenarios.",
+          "bestFit": "You want to automate a posting workflow or move information between tools.",
+          "features": [
+            "Visual scenarios and mapping",
+            "App connections",
+            "Multi-step workflows"
+          ],
+          "pros": [
+            "Connections and data movement are visible.",
+            "Can coordinate several tools in a publishing process."
+          ],
+          "cons": [
+            "Platform permissions and connector limits still apply.",
+            "Unexpected repeats or bad mappings can publish the wrong content."
+          ],
+          "firstTask": "Use a test post and confirm the destination and approval step before enabling a schedule.",
+          "officialUrl": "https://www.make.com/",
+          "docsUrl": "https://www.make.com/en/automate/social-media-management",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://www.make.com/en/automate/social-media-management"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "zapier",
+          "name": "Zapier",
+          "experienceStatus": "researched-option",
+          "summary": "A managed automation platform using triggers and actions.",
+          "bestFit": "You want to connect commonly used services with a hosted workflow.",
+          "features": [
+            "App integrations",
+            "Triggers and actions",
+            "Filters, paths, and webhooks"
+          ],
+          "pros": [
+            "Managed operation avoids running your own server.",
+            "Integration choices can suit straightforward workflows."
+          ],
+          "cons": [
+            "Premium features and task allowances depend on the plan.",
+            "Multi-step volume changes the cost calculation."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://zapier.com/",
+          "docsUrl": "https://help.zapier.com/hc/en-us/articles/37518970271245-What-is-Zapier",
+          "pricingUrl": null,
+          "costNote": "Check current plans, included allowances, and usage charges.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://help.zapier.com/hc/en-us/articles/37518970271245-What-is-Zapier"
+          ],
+          "comparisonRole": "same-job-option"
+        },
+        {
+          "id": "n8n",
+          "name": "n8n",
+          "experienceStatus": "researched-option",
+          "summary": "A workflow automation platform with cloud and self-hosting options.",
+          "bestFit": "You want flexible workflows and a choice about where they run.",
+          "features": [
+            "Visual workflows",
+            "API and webhook connections",
+            "Cloud or self-hosting"
+          ],
+          "pros": [
+            "Custom logic can extend a workflow.",
+            "Self-hosting is an operating option."
+          ],
+          "cons": [
+            "Self-hosting adds maintenance, security, and backup work.",
+            "Review its license and service costs; it is not unrestricted open-source software."
+          ],
+          "firstTask": "Try one small task with test data before connecting your live workflow.",
+          "officialUrl": "https://n8n.io/",
+          "docsUrl": "https://docs.n8n.io/",
+          "pricingUrl": null,
+          "costNote": "Cloud plans or self-hosting costs; paid capabilities and license conditions vary.",
+          "affiliateUrl": null,
+          "isAffiliate": false,
+          "reviewedAt": "2026-10-06",
+          "sources": [
+            "https://docs.n8n.io/"
+          ],
+          "comparisonRole": "same-job-option"
+        }
+      ]
+    }
+  ],
+  "updates": [
+    {
+      "date": "2026-10-06",
+      "title": "The full workflow is now on the shelf",
+      "body": "Added research, frameworks, email, newsletters, and automation. Make and Resend are confirmed tools in VJ\u2019s stack.",
+      "source": "https://resend.com/docs"
+    },
+    {
+      "date": "2026-10-06",
+      "title": "Windsurf naming updated",
+      "body": "Listed Devin Desktop as the successor to Windsurf, with current Cascade documentation.",
+      "source": "https://cognition.com/blog/introducing-devin-desktop"
+    },
+    {
+      "date": "2026-10-06",
+      "title": "Firebase comparison clarified",
+      "body": "Separated Firestore\u2019s document model from the PostgreSQL option now documented as SQL Connect.",
+      "source": "https://firebase.google.com/docs/sql-connect"
+    }
+  ]
+}

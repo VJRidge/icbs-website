@@ -40,8 +40,8 @@ export const CUSTOM_CONTENT_TYPES = {
       .strict(),
   },
   tool_review: {
-    singular: 'Tool review',
-    plural: 'Tool reviews',
+    singular: 'Review',
+    plural: 'Reviews',
     description: 'A structured, evidence-backed review of a product or service.',
     schemaVersion: 1,
     fields: z

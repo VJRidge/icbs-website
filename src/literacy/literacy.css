@@ -44,8 +44,10 @@
 }
 .literacy-progress-fill {
   height: 100%;
+  width: 100%;
+  transform-origin: left center;
   background: #f47b35;
-  transition: width 0.2s ease;
+  transition: transform 0.2s ease;
 }
 @media (prefers-reduced-motion: reduce) {
   .literacy-progress-fill {

@@ -6,6 +6,7 @@ import { deleteBlockFromTree, updateBlockInTree, moveNestedWithinColumn, relocat
 import { sanitizeBlogBlockHtml, sanitizeBlogBlocksDeep } from './sanitizeBlogBlockHtml';
 import { cloneBlocks, pushHistory, type WidgetHistoryEntry } from './editorHistory';
 import { pasteStylePatch, regenerateBlockIds, stylePatchFor, type EditorDevice } from './blockStyle';
+import { keepAddedEmptySection, withoutUnusedEmptySections } from '../../../brand/sectionEmpty';
 
 export function createBlogBlock(type: BlogBlockType, data: Record<string, unknown> = {}): BlogBlock {
   const defaults = (BLOG_BLOCK_DEFAULTS as Record<string, Record<string, unknown>>)[type] ?? {
@@ -147,9 +148,10 @@ export const useBlogEditorStore = create<State>((set) => ({
   previewActive: false,
   styleClipboard: null,
 
-  loadBlocks: (raw) =>
+  loadBlocks: (raw) => {
+    keepAddedEmptySection(null)
     set({
-      blocks: parseBlogBlocks(raw),
+      blocks: withoutUnusedEmptySections(parseBlogBlocks(raw), null),
       selectedBlockId: null,
       blockPickerOpen: false,
       blockPickerAfter: null,
@@ -158,7 +160,8 @@ export const useBlogEditorStore = create<State>((set) => ({
       isDirty: false,
       past: [],
       future: [],
-    }),
+    })
+  },
 
   resetBlocks: () =>
     set({

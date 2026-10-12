@@ -1,0 +1,32 @@
+.local-preview-banner {
+  margin: 0;
+  padding: 8px 16px;
+  background: #f5c518;
+  color: #1c1c1c;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 2px solid #1c1c1c;
+}
+
+.local-preview-banner a {
+  color: #1c1c1c;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media print {
+  .local-preview-banner {
+    display: none !important;
+  }
+}

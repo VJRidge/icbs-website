@@ -9,7 +9,7 @@ import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { attachToolbarSelectionMemory, freezeToolbarEditorSelection, saveToolbarEditorSelection } from '../../../lib/tiptapTextStyleCommands';
 
 const PANEL_CLASS =
-  'tiptap vj-heading-panel max-w-none min-h-[4.5rem] rounded-lg border border-slate-200 px-3 py-2 text-base leading-snug text-slate-800 focus:outline-none [&_p]:m-0 [&_mark]:whitespace-nowrap [&_mark]:!text-[#151412]';
+  'tiptap vj-heading-panel max-w-none min-h-[1.5rem] px-0 py-0 text-base leading-snug text-slate-800 focus:outline-none [&_p]:m-0 [&_mark]:whitespace-nowrap [&_mark]:!text-[#151412]';
 
 const CANVAS_CLASS = 'tiptap vj-heading-editor max-w-none min-h-[1.2em] px-0 py-0 focus:outline-none';
 
@@ -21,7 +21,7 @@ function headingFields(block: BlogBlock) {
   };
 }
 
-/** One TipTap for the heading. The left panel is the toolbar source; the canvas only follows it. */
+/** TipTap heading editor. Left panel and canvas both write the same title field. */
 export default function HeadingRichEditor({
   block,
   toolbarSource = false,
@@ -64,7 +64,9 @@ export default function HeadingRichEditor({
   });
 
   useEffect(() => {
-    if (!editor || !toolbarSource) return;
+    if (!editor) return;
+    const ownsToolbar = toolbarSource || canvasSurface;
+    if (!ownsToolbar) return;
     registerBlogParagraphEditor(block.id, editor);
     const detachSelectionMemory = attachToolbarSelectionMemory(editor);
     const dom = editor.view.dom;
@@ -79,17 +81,31 @@ export default function HeadingRichEditor({
         freezeToolbarEditorSelection(editor);
       }
     };
+    const onFocus = () => {
+      setActiveEditor(editor);
+      registerBlogParagraphEditor(block.id, editor);
+    };
+    editor.on('focus', onFocus);
     dom.addEventListener('mouseup', rememberHighlight);
     dom.addEventListener('keyup', rememberHighlight);
     dom.addEventListener('blur', onBlurToToolbar, true);
     return () => {
+      editor.off('focus', onFocus);
       dom.removeEventListener('mouseup', rememberHighlight);
       dom.removeEventListener('keyup', rememberHighlight);
       dom.removeEventListener('blur', onBlurToToolbar, true);
       detachSelectionMemory();
       unregisterBlogParagraphEditor(block.id, editor);
     };
-  }, [editor, block.id, toolbarSource, registerBlogParagraphEditor, unregisterBlogParagraphEditor]);
+  }, [
+    editor,
+    block.id,
+    toolbarSource,
+    canvasSurface,
+    registerBlogParagraphEditor,
+    unregisterBlogParagraphEditor,
+    setActiveEditor,
+  ]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -118,15 +134,6 @@ export default function HeadingRichEditor({
       }
     }
   }, [editor, fields.text, fields.highlight, fields.highlightColor]);
-
-  useEffect(() => {
-    if (!editor) return;
-    const focus = () => setActiveEditor(editor);
-    editor.on('focus', focus);
-    return () => {
-      editor.off('focus', focus);
-    };
-  }, [editor, setActiveEditor]);
 
   return <EditorContent editor={editor} />;
 }

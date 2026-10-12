@@ -65,7 +65,7 @@ function useRenderDevice() {
 export default function BlogBlockRenderer({
   block,
   isEditing,
-  toolbarSource = true,
+  toolbarSource = false,
 }: {
   block: BlogBlock;
   isEditing: boolean;
@@ -77,7 +77,14 @@ export default function BlogBlockRenderer({
     case 'paragraph':
       return <BlogParagraphBlock block={view} isEditing={isEditing} toolbarSource={toolbarSource} />;
     case 'heading':
-      return <BlogHeadingBlock block={view} isEditing={isEditing} />;
+      return (
+        <BlogHeadingBlock
+          block={view}
+          isEditing={isEditing}
+          canvasEdit={isEditing}
+          toolbarSource={toolbarSource}
+        />
+      )
     case 'image':
       return <BlogImageBlock block={view} isEditing={isEditing} />;
     case 'youtube':

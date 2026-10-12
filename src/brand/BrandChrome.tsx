@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+﻿import { useEffect, useState, type ReactNode } from 'react'
+import SiteBackButton from '../components/SiteBackButton'
 import { loadSiteChromeOnce, SOCIAL_NETWORKS, type SiteChrome, DEFAULT_SITE_CHROME } from '../lib/siteChrome'
 import './brand.css'
 
@@ -36,15 +37,9 @@ export default function BrandChrome({
 
   return (
     <div className="vj">
-      {import.meta.env.DEV ? (
-        <p className="vj-preview" role="status">
-          <strong>Local preview only.</strong>
-          <span>This is not the live site. Nothing here is published.</span>
-          <a href="/design-kit">Design kit</a>
-        </p>
-      ) : null}
       <header className="vj-header">
         <div className="vj-wrap vj-header-row">
+          <SiteBackButton tone="brand" />
           <a className="vj-brand" href="/">
             <strong>VETTAJIMALE.TECH</strong>
             <span>AI / Technology / Creative Possibilities</span>

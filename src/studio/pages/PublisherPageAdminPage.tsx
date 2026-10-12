@@ -29,11 +29,16 @@ import BlogAdminPostSettingsAside from '../components/blog/editor/BlogAdminPostS
 import PostCarouselActions from '../components/social/PostCarouselActions';
 import BlogBlockEditModalHost from '../components/blog/editor/BlogBlockEditModalHost';
 import StudioHistoryButtons from '../components/blog/editor/StudioHistoryButtons';
-import { addSectionAt, pageUsesBrandCanvas } from '../../brand/sectionActions';
+import { addSectionAt } from '../../brand/sectionActions';
 import BlogPageStructureHeaderControl from '../components/blog/editor/BlogPageStructureHeaderControl';
 import BlogPostTitleField from '../components/blog/editor/BlogPostTitleField';
 import BlogArticleHtmlDisplay from '../components/blog/BlogArticleHtmlDisplay';
 import CmsEditorActionsMenu from '../components/admin/CmsEditorActionsMenu';
+import {
+  cmsEditorMissingTitleHint,
+  cmsEditorTitleIsEmpty,
+  focusStudioPostTitle,
+} from '../lib/cms/cmsEditorActions';
 import CmsShortLinkPanel from '../components/admin/CmsShortLinkPanel';
 import HomepageToggle from '../components/admin/HomepageToggle';
 import { clipboardCopy } from '../lib/clipboardCopy';
@@ -50,6 +55,7 @@ import PendingReviewControls from '../components/cms/PendingReviewControls';
 import ContentRevisionsPanel from '../components/admin/ContentRevisionsPanel';
 import { useCmsEditorAutosave } from '../lib/cms/useCmsEditorAutosave';
 import PostCategoriesPanel from '../components/admin/PostCategoriesPanel';
+import PostSeriesPanel from '../components/admin/PostSeriesPanel';
 import { CONTENT_KINDS, type ContentKind } from '../lib/contentKinds';
 import { writeCmsPreview } from '../lib/cmsPreview';
 import {
@@ -185,6 +191,7 @@ export default function PublisherPageAdminPage({
   const [saving, setSaving] = useState(false);
   const [autosaving, setAutosaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [titleAttention, setTitleAttention] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [slugTouched, setSlugTouched] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
@@ -380,7 +387,9 @@ export default function PublisherPageAdminPage({
 
       const slugBase = (form.slug.trim() || slugifyTitle(form.title)).toLowerCase();
       if (!form.title.trim()) {
-        if (!options?.silent) window.alert('Title is required.');
+        setTitleAttention(true);
+        focusStudioPostTitle();
+        if (!options?.silent) setSaveError(cmsEditorMissingTitleHint());
         return false;
       }
 
@@ -761,9 +770,15 @@ export default function PublisherPageAdminPage({
     };
   };
 
+  const promptForTitle = () => {
+    setTitleAttention(true);
+    focusStudioPostTitle();
+    setSaveError(cmsEditorMissingTitleHint());
+  };
+
   const openPreviewWindow = () => {
-    if (!form.title.trim()) {
-      window.alert('Add a title first.');
+    if (cmsEditorTitleIsEmpty(form.title)) {
+      promptForTitle();
       return;
     }
     const payload = buildPreviewPayload();
@@ -901,9 +916,16 @@ export default function PublisherPageAdminPage({
 
               <button
                 type="button"
-                disabled={saving || !form.title.trim()}
+                disabled={saving}
+                title={
+                  cmsEditorTitleIsEmpty(form.title)
+                    ? cmsEditorMissingTitleHint()
+                    : 'Open a preview of this post'
+                }
                 onClick={() => openPreviewWindow()}
-                className="flex items-center gap-1.5 rounded-lg border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white/90 transition-colors hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className={`flex items-center gap-1.5 rounded-lg border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white/90 transition-colors hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${
+                  cmsEditorTitleIsEmpty(form.title) ? 'cursor-pointer opacity-40' : ''
+                }`}
               >
                 <Eye size={12} /> Preview
               </button>
@@ -944,8 +966,10 @@ export default function PublisherPageAdminPage({
               <CmsEditorActionsMenu
                 saving={saving}
                 status={form.status}
-                hasTitle={Boolean(form.title.trim())}
+                hasTitle={!cmsEditorTitleIsEmpty(form.title)}
                 hasId={Boolean(form.id)}
+                onNeedTitle={promptForTitle}
+                missingTitleHint={cmsEditorMissingTitleHint()}
                 onSaveDraft={() => void persistPage('draft')}
                 onSave={() => void persistPage()}
                 onPublish={() => void persistPage('published')}
@@ -1135,7 +1159,12 @@ export default function PublisherPageAdminPage({
                 <BlogPostTitleField
                   placeholder={`${cfg.singular} title`}
                   value={form.title}
+                  needsAttention={titleAttention}
                   onChange={(title) => {
+                    if (title.trim()) {
+                      setTitleAttention(false);
+                      setSaveError((err) => (err === cmsEditorMissingTitleHint() ? null : err));
+                    }
                     setForm((f) => ({
                       ...f,
                       title,
@@ -1245,13 +1274,12 @@ export default function PublisherPageAdminPage({
                         <button
                           type="button"
                           onClick={() => {
-                            if (pageUsesBrandCanvas(blockList)) addSectionAt(blockList.length);
-                            else openBlockPicker(null);
+                            addSectionAt(blockList.length);
                           }}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-brand-blue/30 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand-blue shadow-sm transition hover:bg-brand-blue/5"
                         >
                           <Plus className="h-3.5 w-3.5" />
-                          {pageUsesBrandCanvas(blockList) ? 'Add' : 'Add block'}
+                          Add
                         </button>
                         <span>
                           <span className="font-bold text-slate-700">{blockWordStats.wc}</span> words · ~ {blockWordStats.readMins} min
@@ -1313,6 +1341,7 @@ export default function PublisherPageAdminPage({
                       />
                     </label>
                     <PostCategoriesPanel postId={form.id} />
+                    <PostSeriesPanel postId={form.id} />
                     <PostCarouselActions
                       title={form.title}
                       excerpt={form.excerpt}

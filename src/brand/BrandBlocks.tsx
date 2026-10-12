@@ -448,6 +448,11 @@ function Projects({ data }: { data: Record<string, unknown> }) {
                   <Editable data={data} field={`items.${index}.title`} label="Title" as="h3">{item.title || 'Title'}</Editable>
                   <Editable data={data} field={`items.${index}.text`} label="Description" as="p">{item.text || 'Description'}</Editable>
                 </>
+              ) : item.href.trim() ? (
+                <a className="vj-card-link" href={item.href}>
+                  {isPieceHidden(data, `items.${index}.title`) ? null : <h3>{item.title}</h3>}
+                  {isPieceHidden(data, `items.${index}.text`) ? null : <p>{item.text}</p>}
+                </a>
               ) : (
                 <>
                   {isPieceHidden(data, `items.${index}.title`) ? null : <h3>{item.title}</h3>}
@@ -881,7 +886,7 @@ export default function BrandBlockView({ block }: { block: BlogBlock }) {
       return (
         <section className="vj-sec">
           <div className="vj-wrap vj-faq">
-            <details>
+            <details open>
               <summary>View the full comparison</summary>
               <KitBlockView block={block} />
             </details>

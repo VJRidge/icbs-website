@@ -93,6 +93,33 @@
 
 /* Site chrome (header + footer menus) */
 .site-header .nav { padding-left: 56px; padding-right: 56px; }
+.site-header-start { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.site-back-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  border: 2px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  line-height: 1;
+}
+.site-back-btn--site { color: var(--cr); }
+.site-back-btn--site:hover { color: var(--y); border-color: var(--y); }
+.site-back-btn--brand {
+  color: var(--ink, #111);
+  border-color: var(--ink, #111);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+.site-back-btn--brand:hover { background: var(--yellow, #fff27a); }
 .site-brand { display: flex; align-items: center; gap: 16px; text-decoration: none; min-width: 0; }
 .site-logo { height: 28px; width: auto; }
 .site-header-end { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
@@ -129,7 +156,7 @@
 .cmp thead th:first-child { width: 54%; }
 .cmp-price { display: block; margin-top: 6px; font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: .16em; color: var(--y); }
 .cmp-sec th, .cmp-sec td { background: #fff; }
-.cmp-sec th { font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--o); text-align: left; }
+.cmp-sec th { font-family: var(--mono); font-weight: 800; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--o); text-align: left; }
 .cmp-sec td { text-align: center; font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 32px; color: var(--ink); }
 .cmp-row th { font-weight: 700; font-size: 18px; line-height: 24px; text-align: left; }
 .cmp-row td { text-align: center; width: 23%; }

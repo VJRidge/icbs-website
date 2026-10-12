@@ -9,6 +9,7 @@ import type { ColumnLayoutKey } from '../studio/lib/blog/blogBlockTypes'
 import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { BRAND_BLOCK_LABELS, isBrandBlockType } from './brandBlockTypes'
 import { addSectionAfterChunk, deleteSectionChunk, duplicateSectionChunk, moveSectionChunk } from './sectionActions'
+import { clickIsOnWidget } from './sectionClick'
 
 function storedName(block: BlogBlock) {
   const raw = block.data.sectionName ?? block.data.name
@@ -35,14 +36,12 @@ export function sectionChromeLabel(blocks: BlogBlock[]): string {
   return BLOG_BLOCK_LABELS[first.type as BlogBlockType] ?? 'Section'
 }
 
-function BarButton({
-  label,
+function IconButton({
   title,
   onClick,
   danger,
   children,
 }: {
-  label: string
   title: string
   onClick: () => void
   danger?: boolean
@@ -52,21 +51,21 @@ function BarButton({
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={(event) => {
         event.stopPropagation()
         onClick()
       }}
-      className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[10px] font-black uppercase tracking-widest ${
-        danger ? 'bg-[#F25C19] text-white' : 'bg-white/15 text-white hover:bg-white/25'
+      className={`inline-flex h-6 w-6 items-center justify-center rounded-sm ${
+        danger ? 'bg-[#F25C19] text-white hover:bg-[#d94e12]' : 'text-white/95 hover:bg-white/20'
       }`}
     >
       {children}
-      {label}
     </button>
   )
 }
 
-/** Same section bar as the original editor: label, Edit, Copy, container, up/down, delete. Overlay so it does not add gap. */
+/** Compact Elementor-style section handles: icons only, visible on hover or when this section is selected. */
 export default function BrandSectionBar({
   id,
   index,
@@ -81,9 +80,12 @@ export default function BrandSectionBar({
   children: ReactNode
 }) {
   const sidebar = useBlogEditorSidebarOptional()
+  const selectedBlockId = useBlogEditorStore((s) => s.selectedBlockId)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const label = sectionChromeLabel(chunk)
   const target = chunk.find((block) => block.type === 'columns') ?? chunk[0]
+  const sectionSelected = Boolean(target && selectedBlockId === target.id)
+  const active = sectionSelected || isDragging
 
   const edit = () => {
     if (!target) return
@@ -94,12 +96,19 @@ export default function BrandSectionBar({
   return (
     <div
       ref={setNodeRef}
+      className={`vj-sec-host${active ? ' is-active' : ''}${isDragging ? ' is-dragging' : ''}`}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.45 : 1,
         zIndex: isDragging ? 30 : undefined,
         position: 'relative',
+      }}
+      onClick={(event) => {
+        if (clickIsOnWidget(event.target)) return
+        if (!target) return
+        event.stopPropagation()
+        edit()
       }}
     >
       {children}
@@ -112,41 +121,37 @@ export default function BrandSectionBar({
           {...attributes}
           {...listeners}
         >
-          <GripVertical size={16} />
+          <GripVertical size={14} />
         </button>
         <div className="vj-sec-bar">
           <span className="vj-sec-name">{label}</span>
           <span className="vj-sec-actions">
-            <button
-              type="button"
-              title="Edit this section in the left panel"
-              onClick={(event) => {
-                event.stopPropagation()
-                edit()
-              }}
-              className="inline-flex h-7 items-center gap-1 rounded-md bg-[#F3D13D] px-2 text-[10px] font-black uppercase tracking-widest text-[#151412]"
-            >
-              <Pencil size={11} /> Edit
-            </button>
-            <BarButton label="Copy" title="Copy this section under it" onClick={() => duplicateSectionChunk(chunk)}>
-              <Copy size={11} />
-            </BarButton>
-            <BarButton label="Container" title="Add an empty container under this section" onClick={() => addSectionAfterChunk(chunk)}>
-              <Plus size={11} />
-            </BarButton>
+            <IconButton title="Edit this section in the left panel" onClick={edit}>
+              <Pencil size={12} />
+            </IconButton>
+            <IconButton title="Duplicate this section" onClick={() => duplicateSectionChunk(chunk)}>
+              <Copy size={12} />
+            </IconButton>
+            <IconButton title="Add an empty container under this section" onClick={() => addSectionAfterChunk(chunk)}>
+              <Plus size={12} />
+            </IconButton>
             {index > 0 ? (
-              <BarButton label="Up" title="Move section up" onClick={() => moveSectionChunk(index, index - 1)}>
-                <ChevronUp size={11} />
-              </BarButton>
+              <IconButton title="Move section up" onClick={() => moveSectionChunk(index, index - 1)}>
+                <ChevronUp size={12} />
+              </IconButton>
             ) : null}
             {index < count - 1 ? (
-              <BarButton label="Down" title="Move section down" onClick={() => moveSectionChunk(index, index + 1)}>
-                <ChevronDown size={11} />
-              </BarButton>
+              <IconButton title="Move section down" onClick={() => moveSectionChunk(index, index + 1)}>
+                <ChevronDown size={12} />
+              </IconButton>
             ) : null}
-            <BarButton label="Delete section" title="Delete this whole section" danger onClick={() => deleteSectionChunk(chunk.map((block) => block.id))}>
-              <Trash2 size={11} />
-            </BarButton>
+            <IconButton
+              title="Delete this whole section"
+              danger
+              onClick={() => deleteSectionChunk(chunk.map((block) => block.id))}
+            >
+              <Trash2 size={12} />
+            </IconButton>
           </span>
         </div>
       </div>

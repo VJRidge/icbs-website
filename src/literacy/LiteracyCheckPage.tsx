@@ -293,7 +293,7 @@ function QuestionScreen({
     <>
       <div className="literacy-progress" aria-hidden="true">
         <div className="literacy-progress-track">
-          <div className="literacy-progress-fill" style={{ width: `${progressPct}%` }} />
+          <div className="literacy-progress-fill" style={{ transform: `scaleX(${progressPct / 100})` }} />
         </div>
       </div>
       <p id={liveId} className="literacy-live" aria-live="polite">

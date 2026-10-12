@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vetta redesign — bolder direction</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Georgia, serif;
+        background: #0a1812;
+        color: #f7f7f2;
+        line-height: 1.45;
+      }
+      header {
+        padding: 28px 20px 16px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-family: Impact, Anton, sans-serif;
+        text-transform: uppercase;
+        font-size: clamp(28px, 5vw, 48px);
+        margin: 0 0 10px;
+        color: #f3d13d;
+      }
+      .lede {
+        max-width: 62ch;
+        margin: 0 0 12px;
+      }
+      .compare {
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 24px;
+      }
+      .compare a {
+        color: #f3d13d;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        margin-bottom: 20px;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      nav a {
+        color: #f3d13d;
+      }
+      figure {
+        margin: 0 auto 44px;
+        max-width: 1100px;
+        padding: 0 16px;
+      }
+      figure.phone {
+        max-width: 420px;
+      }
+      figcaption {
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #f3d13d;
+        margin: 0 0 10px;
+      }
+      img {
+        width: 100%;
+        height: auto;
+        display: block;
+        border: 2px solid #f3d13d;
+        box-shadow: 8px 8px 0 #1a5340;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Bolder direction</h1>
+      <p class="lede">
+        Same brand (forest, yellow, receipts) — more poster energy, collage, hard contrast, less empty white.
+        Concept only.
+      </p>
+      <p class="compare">
+        <a href="../index.html">← Plain / sparse set</a>
+      </p>
+      <nav>
+        <a href="#home">Home</a>
+        <a href="#kit">Kit</a>
+        <a href="#blog">Blog</a>
+        <a href="#email">Email</a>
+        <a href="#book">Book</a>
+        <a href="#tools">Tools</a>
+        <a href="#about">About</a>
+      </nav>
+    </header>
+
+    <figure id="home">
+      <figcaption>B01 · Home — poster hero</figcaption>
+      <img src="b01-home.jpg" alt="Bold home" />
+    </figure>
+    <figure id="kit">
+      <figcaption>B02 · Kit — clipboard / stamp</figcaption>
+      <img src="b02-kit.jpg" alt="Bold kit" />
+    </figure>
+    <figure id="blog">
+      <figcaption>B03 · Blog — magazine split</figcaption>
+      <img src="b03-blog.jpg" alt="Bold blog" />
+    </figure>
+    <figure id="email" class="phone">
+      <figcaption>B04 · Newsletter email</figcaption>
+      <img src="b04-email.jpg" alt="Bold email" />
+    </figure>
+    <figure id="book">
+      <figcaption>B05 · Book — retail poster</figcaption>
+      <img src="b05-book.jpg" alt="Bold book" />
+    </figure>
+    <figure id="tools">
+      <figcaption>B06 · Tools — zebra slabs</figcaption>
+      <img src="b06-tools.jpg" alt="Bold tools" />
+    </figure>
+    <figure id="about">
+      <figcaption>B07 · About — cinematic portrait</figcaption>
+      <img src="b07-about.jpg" alt="Bold about" />
+    </figure>
+  </body>
+</html>

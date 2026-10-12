@@ -16,6 +16,8 @@ export type FormSettings = {
   consentText?: string;
   /** Optional published lead magnet to enqueue after consent. */
   leadMagnetId?: string;
+  /** Newsletter publications to subscribe the contact to after marketing consent. */
+  newsletterListIds?: string[];
 };
 
 export const LEAD_CAPTURE_DEFAULT_FIELDS: FormFieldDef[] = [

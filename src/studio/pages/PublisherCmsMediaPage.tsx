@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Check, Copy, ExternalLink, File, Images, Loader2, Music, Search, Trash2, Upload, Video } from 'lucide-react';
+import { Check, Copy, ExternalLink, File, FileText, Images, Loader2, Music, Search, Trash2, Upload, Video } from 'lucide-react';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
 import { CMS_LIST_PAGE_SIZE, paginateList, totalListPages } from '../lib/admin/cmsListPagination';
 import { uploadLandingMedia } from '../lib/landingEditorUploadShared';
@@ -10,6 +10,7 @@ import {
   deleteLandingMediaFile,
   getLandingMediaFileKind,
   isProbablyAudio,
+  isProbablyDoc,
   isProbablyImage,
   isProbablyVideo,
   LANDING_MEDIA_UPLOAD_ACCEPT,
@@ -19,24 +20,29 @@ import {
 } from '../lib/landingMediaLibrary';
 import { LANDING_MEDIA_BUCKET } from '../lib/landingPageConfig';
 import { clipboardCopy } from '../lib/clipboardCopy';
+import { supabase } from '../lib/supabase';
+import { DOWNLOAD_MAP_KEY } from '../../lib/site/siteManagedContent';
+import { parseDownloadMapDocument, sitePackagedMediaRows } from '../../lib/site/siteMediaRows';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import CmsListPagination from '../components/admin/CmsListPagination';
 import type { UserProfile } from '../types';
 
 type MediaTypeFilter = 'all' | LandingMediaFileKind;
-type MediaSortMode = 'date' | 'type';
+type MediaSortMode = 'date' | 'name' | 'type';
 
 const TYPE_FILTER_OPTIONS: { id: MediaTypeFilter; label: string; icon: typeof Images }[] = [
   { id: 'all', label: 'All', icon: Images },
   { id: 'image', label: 'Images', icon: Images },
   { id: 'video', label: 'Videos', icon: Video },
   { id: 'audio', label: 'Audio', icon: Music },
+  { id: 'doc', label: 'Docs', icon: FileText },
   { id: 'other', label: 'Other', icon: File },
 ];
 
 const SORT_OPTIONS: { id: MediaSortMode; label: string }[] = [
   { id: 'date', label: 'Newest' },
-  { id: 'type', label: 'File type' },
+  { id: 'name', label: 'A–Z' },
+  { id: 'type', label: 'Type' },
 ];
 
 function filterButtonClass(isActive: boolean): string {
@@ -69,8 +75,22 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
     setLoading(true);
     setError(null);
     try {
-      const list = await listLandingMediaFiles(userId);
-      setRows(list);
+      const [list, mapRes] = await Promise.all([
+        listLandingMediaFiles(userId),
+        supabase.from('site_managed_content').select('document').eq('key', DOWNLOAD_MAP_KEY).maybeSingle(),
+      ]);
+      const map = parseDownloadMapDocument(mapRes.data?.document);
+      const siteRows: LandingMediaFileRow[] = sitePackagedMediaRows(map).map((r) => ({
+        name: r.name,
+        publicUrl: r.publicUrl,
+        storagePath: r.storagePath,
+        createdAt: r.createdAt,
+        origin: 'site',
+        label: r.label,
+      }));
+      const libraryRows = list.map((r) => ({ ...r, origin: 'library' as const }));
+      // Site packaged docs first so Docs is never empty when public/downloads files exist.
+      setRows([...siteRows, ...libraryRows]);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load media library.');
       setRows([]);
@@ -94,7 +114,12 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
       list = list.filter((r) => getLandingMediaFileKind(r.name) === typeFilter);
     }
     if (q) {
-      list = list.filter((r) => r.name.toLowerCase().includes(q));
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.label && r.label.toLowerCase().includes(q)) ||
+          r.publicUrl.toLowerCase().includes(q),
+      );
     }
     return [...list].sort((a, b) => compareLandingMediaRows(a, b, sortMode));
   }, [rows, searchQuery, typeFilter, sortMode]);
@@ -128,6 +153,12 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
   };
 
   const onDelete = async (row: LandingMediaFileRow) => {
+    if (row.origin === 'site' || row.storagePath.startsWith('site:')) {
+      window.alert(
+        'This file ships with the site under /downloads. Upload a replacement into the library if you need a new version, then point the public Templates page at that media URL from Admin → Templates (for Markdown) or by updating the live link.',
+      );
+      return;
+    }
     if (!window.confirm(`Delete "${row.name}" from the media library?`)) return;
     try {
       await deleteLandingMediaFile(row.storagePath);
@@ -188,9 +219,13 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
       <div className="mx-auto max-w-6xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">Media library</h1>
         <p className="mt-2 max-w-2xl text-sm font-medium text-slate-600">
-          Images, videos, and audio for posts, pages, and landing content. Files live in{' '}
-          <span className="font-mono text-brand-blue">{LANDING_MEDIA_BUCKET}</span> under your account folder — the
-          same library used in the post editor’s “Insert from media library” picker.
+          Uploads live in <span className="font-mono text-brand-blue">{LANDING_MEDIA_BUCKET}</span>. Site PDFs and
+          template Markdown that already ship under <span className="font-mono text-brand-blue">/downloads</span> also
+          appear under <span className="font-semibold text-slate-800">Docs</span> (labeled Site). Use{' '}
+          <Link to="/admin/templates" className="font-semibold text-brand-blue hover:underline">
+            Templates
+          </Link>{' '}
+          to replace starter Markdown files.
         </p>
 
         <div className="mt-6 space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -205,41 +240,40 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                 aria-label="Search media"
               />
             </div>
-            <p className="text-xs font-medium text-slate-500">
+            <label className="flex shrink-0 flex-col gap-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Sort
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as MediaSortMode)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-slate-700 outline-none focus:border-brand-blue/40"
+                aria-label="Sort media files"
+              >
+                {SORT_OPTIONS.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="shrink-0 pb-2.5 text-xs font-medium text-slate-500">
               {filtered.length} file{filtered.length === 1 ? '' : 's'}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Type</span>
-              {TYPE_FILTER_OPTIONS.map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTypeFilter(id)}
-                  className={filterButtonClass(typeFilter === id)}
-                  aria-pressed={typeFilter === id}
-                >
-                  <Icon size={12} />
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sort</span>
-              {SORT_OPTIONS.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSortMode(id)}
-                  className={filterButtonClass(sortMode === id)}
-                  aria-pressed={sortMode === id}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Type</span>
+            {TYPE_FILTER_OPTIONS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTypeFilter(id)}
+                className={filterButtonClass(typeFilter === id)}
+                aria-pressed={typeFilter === id}
+              >
+                <Icon size={12} />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -304,6 +338,13 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                           onClick={(e) => e.stopPropagation()}
                         />
                       </div>
+                    ) : isProbablyDoc(row.name) ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4">
+                        <FileText size={28} className="text-brand-blue" />
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                          {/\.pdf$/i.test(row.name) ? 'PDF' : 'Doc'}
+                        </span>
+                      </div>
                     ) : (
                       <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-bold text-slate-500 break-all">
                         {row.name}
@@ -311,10 +352,15 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                     )}
                   </div>
                   <div className="flex flex-1 flex-col gap-2 border-t border-slate-200 bg-white p-2.5">
-                    <p className="truncate font-mono text-[10px] text-slate-600" title={row.name}>
+                    <p className="truncate text-[11px] font-semibold text-slate-800" title={row.label || row.name}>
+                      {row.label || row.name}
+                    </p>
+                    <p className="truncate font-mono text-[10px] text-slate-500" title={row.name}>
                       {row.name}
                     </p>
-                    {row.createdAt ? (
+                    {row.origin === 'site' ? (
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Site · /downloads</p>
+                    ) : row.createdAt ? (
                       <p className="text-[10px] text-slate-400">{format(new Date(row.createdAt), 'MMM d, yyyy')}</p>
                     ) : null}
                     <div className="mt-auto flex flex-wrap gap-1">
@@ -335,14 +381,16 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                       >
                         <ExternalLink size={12} />
                       </a>
-                      <button
-                        type="button"
-                        onClick={() => void onDelete(row)}
-                        className="inline-flex items-center justify-center rounded-lg border border-red-200 px-2 py-1.5 text-red-600 hover:bg-red-50"
-                        title="Delete"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      {row.origin !== 'site' ? (
+                        <button
+                          type="button"
+                          onClick={() => void onDelete(row)}
+                          className="inline-flex items-center justify-center rounded-lg border border-red-200 px-2 py-1.5 text-red-600 hover:bg-red-50"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </li>

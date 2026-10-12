@@ -22,13 +22,18 @@ export const CONTENT_KINDS: Record<ContentKind, ContentKindConfig> = {
     plural: 'Pages',
     draftKind: 'page',
     shortLinkType: 'site_page',
-    publicPath: (slug) => `/${encodeURIComponent(slug)}`,
+    publicPath: (slug) =>
+      `/${String(slug)
+        .split('/')
+        .filter(Boolean)
+        .map((part) => encodeURIComponent(part))
+        .join('/')}`,
   },
   post: {
     kind: 'post',
     adminBase: '/admin/posts',
     singular: 'Post',
-    plural: 'Blog posts',
+    plural: 'Posts',
     draftKind: 'blog',
     shortLinkType: 'blog_post',
     publicPath: (slug) => `/blog/${encodeURIComponent(slug)}`,

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { Construction, FileText, Images, LayoutDashboard, Plus } from 'lucide-react';
+import { Construction, ExternalLink, FileText, Images, LayoutDashboard, Plus } from 'lucide-react';
 import DashboardOpsPanels from './components/admin/DashboardOpsPanels';
 import DashboardContentHealth from './components/admin/DashboardContentHealth';
 import DashboardPendingReview from './components/admin/DashboardPendingReview';
 import { supabase } from './lib/supabase';
 import AdminCmsShell from './components/admin/AdminCmsShell';
 import PublisherPagesListPage from './pages/PublisherPagesListPage';
+import PageAdminGate from './pages/PageAdminGate';
 import PublisherPageAdminPage from './pages/PublisherPageAdminPage';
+import { MANAGED_PUBLIC_PAGES } from '../lib/site/managedPublicPages';
 import PublisherCmsMediaPage from './pages/PublisherCmsMediaPage';
 import SiteAppearancePage from './pages/SiteAppearancePage';
 import SiteMenusPage from './pages/SiteMenusPage';
@@ -24,10 +26,23 @@ import ContactDetailPage from './pages/ContactDetailPage';
 import LeadMagnetsListPage from './pages/LeadMagnetsListPage';
 import LeadMagnetEditorPage from './pages/LeadMagnetEditorPage';
 import NewsletterListPage from './pages/NewsletterListPage';
+import NewsletterTemplatesPage from './pages/NewsletterTemplatesPage';
 import NewsletterEditorPage from './pages/NewsletterEditorPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import PublicSiteHubPage from './pages/PublicSiteHubPage';
+import PublicDownloadsAdminPage from './pages/PublicDownloadsAdminPage';
+import ResourceTemplatesAdminPage from './pages/ResourceTemplatesAdminPage';
+import BookUpdatesAdminPage from './pages/BookUpdatesAdminPage';
 import CampaignsListPage from './pages/CampaignsListPage';
 import CampaignEditorPage from './pages/CampaignEditorPage';
+import ImportsListPage from './pages/ImportsListPage';
+import ImportJobPage from './pages/ImportJobPage';
+import PurchasesListPage from './pages/PurchasesListPage';
+import SegmentsListPage from './pages/SegmentsListPage';
+import SegmentEditorPage from './pages/SegmentEditorPage';
+import CategoriesListPage from './pages/CategoriesListPage';
+import SeriesListPage from './pages/SeriesListPage';
+import NewsletterListsPage from './pages/NewsletterListsPage';
 import FormEditorPage from './pages/FormEditorPage';
 import type { UserProfile } from './types';
 import './studio.css';
@@ -109,6 +124,49 @@ function Dashboard({ userProfile }: { userProfile: UserProfile }) {
             <Images size={14} /> Media library
           </Link>
         </div>
+
+        <section className="mt-10">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="font-serif text-xl font-black text-slate-900">Public resources</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Also listed under Pages. Edit opens the manage screen; View opens the live URL.
+              </p>
+            </div>
+            <Link to="/admin/pages" className="text-xs font-bold text-brand-blue hover:underline">
+              All pages →
+            </Link>
+          </div>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {MANAGED_PUBLIC_PAGES.map((page) => (
+              <li key={page.slug} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-black text-slate-900">{page.title}</p>
+                <p className="mt-1 font-mono text-[11px] text-slate-500">{page.publicPath}</p>
+                <div className="mt-3 flex flex-wrap gap-3 text-xs font-bold">
+                  <a
+                    href={page.publicPath}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-brand-blue hover:underline"
+                  >
+                    View page <ExternalLink size={12} />
+                  </a>
+                  {page.adminEditPath ? (
+                    <Link to={page.adminEditPath} className="text-brand-blue hover:underline">
+                      Edit
+                    </Link>
+                  ) : null}
+                  {page.slug === 'resources/templates' ? (
+                    <Link to="/admin/templates" className="text-brand-blue hover:underline">
+                      Starters
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <DashboardOpsPanels userId={userProfile.id} />
         <DashboardPendingReview />
         <DashboardContentHealth />
@@ -140,7 +198,7 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
         <Routes>
           <Route path="/admin" element={<Dashboard userProfile={userProfile} />} />
           <Route path="/admin/pages" element={<PublisherPagesListPage key="page" userProfile={userProfile} />} />
-          <Route path="/admin/pages/:pageId" element={<PublisherPageAdminPage userProfile={userProfile} />} />
+          <Route path="/admin/pages/:pageId" element={<PageAdminGate userProfile={userProfile} />} />
           <Route path="/admin/posts" element={<PublisherPagesListPage key="post" kind="post" userProfile={userProfile} />} />
           <Route
             path="/admin/posts/:pageId"
@@ -163,10 +221,30 @@ export default function StudioApp({ userProfile }: { userProfile: UserProfile })
           <Route path="/admin/lead-magnets" element={<LeadMagnetsListPage userProfile={userProfile} />} />
           <Route path="/admin/lead-magnets/:magnetId" element={<LeadMagnetEditorPage userProfile={userProfile} />} />
           <Route path="/admin/newsletter" element={<NewsletterListPage userProfile={userProfile} />} />
+          <Route
+            path="/admin/newsletter/templates"
+            element={<NewsletterTemplatesPage userProfile={userProfile} />}
+          />
+          <Route
+            path="/admin/newsletter/lists"
+            element={<NewsletterListsPage userProfile={userProfile} />}
+          />
           <Route path="/admin/newsletter/:issueId" element={<NewsletterEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/categories" element={<CategoriesListPage userProfile={userProfile} />} />
+          <Route path="/admin/series" element={<SeriesListPage userProfile={userProfile} />} />
+          <Route path="/admin/segments" element={<SegmentsListPage userProfile={userProfile} />} />
+          <Route path="/admin/segments/:segmentId" element={<SegmentEditorPage userProfile={userProfile} />} />
           <Route path="/admin/analytics" element={<AnalyticsPage userProfile={userProfile} />} />
+          <Route path="/admin/public-site" element={<PublicSiteHubPage userProfile={userProfile} />} />
+          <Route path="/admin/public-site/downloads" element={<PublicDownloadsAdminPage />} />
+          <Route path="/admin/resource-templates" element={<ResourceTemplatesAdminPage />} />
+          <Route path="/admin/public-site/book-updates" element={<BookUpdatesAdminPage userProfile={userProfile} />} />
           <Route path="/admin/campaigns" element={<CampaignsListPage userProfile={userProfile} />} />
           <Route path="/admin/campaigns/:campaignId" element={<CampaignEditorPage userProfile={userProfile} />} />
+          <Route path="/admin/imports" element={<ImportsListPage userProfile={userProfile} />} />
+          <Route path="/admin/imports/:jobId" element={<ImportJobPage userProfile={userProfile} />} />
+          <Route path="/admin/sales" element={<PurchasesListPage userProfile={userProfile} />} />
+          <Route path="/admin/purchases" element={<Navigate to="/admin/sales" replace />} />
           <Route path="/admin/*" element={<ComingSoon userProfile={userProfile} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

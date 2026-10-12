@@ -4,6 +4,8 @@
  */
 import { env, sendEmail, supabase } from './_lib.js'
 import { newsletterIssueEmail } from './_emails.js'
+import { resolveSegmentContactIds } from './_segments.js'
+import { resolveListContactIds } from './_newsletterLists.js'
 
 function buildKey(issueId: string, contactId: string): string {
   return `${issueId}:${contactId}`.slice(0, 200)
@@ -23,15 +25,19 @@ function shouldMarkFailed(attempts: number, maxAttempts: number): boolean {
 }
 
 export async function freezeRecipientsForIssue(issueId: string): Promise<number> {
-  const contacts = await supabase(
-    `contacts?marketing_ok=eq.true&suppressed_at=is.null&select=id,email&order=created_at.asc&limit=5000`,
+  const issues = await supabase(
+    `newsletter_issues?id=eq.${encodeURIComponent(issueId)}&select=id,segment_id,list_id&limit=1`,
   )
-  const seen = new Set<string>()
+  const listId =
+    typeof issues?.[0]?.list_id === 'string' ? (issues[0].list_id as string) : null
+  const segmentId =
+    typeof issues?.[0]?.segment_id === 'string' ? (issues[0].segment_id as string) : null
+  // Publication list wins over contact-list segment when both are set.
+  const contacts = listId
+    ? await resolveListContactIds(listId)
+    : await resolveSegmentContactIds(segmentId)
   let created = 0
-  for (const row of contacts || []) {
-    const email = typeof row.email === 'string' ? row.email.trim().toLowerCase() : ''
-    if (!email || !row.id || seen.has(email)) continue
-    seen.add(email)
+  for (const row of contacts) {
     const key = buildKey(issueId, row.id)
     try {
       const inserted = await supabase('newsletter_send_jobs', {
@@ -56,7 +62,7 @@ export async function freezeRecipientsForIssue(issueId: string): Promise<number>
     method: 'PATCH',
     prefer: 'return=minimal',
     body: JSON.stringify({
-      recipient_count: seen.size,
+      recipient_count: contacts.length,
       updated_at: new Date().toISOString(),
     }),
   })
@@ -197,6 +203,77 @@ export function shouldSuppressFromProviderEvent(eventType: string): boolean {
   )
 }
 
+/** Resend (and similar) events we persist for newsletter analytics. */
+export function shouldRecordProviderEvent(eventType: string): boolean {
+  const t = eventType.trim().toLowerCase()
+  return (
+    t === 'email.sent' ||
+    t === 'email.delivered' ||
+    t === 'email.delivery' ||
+    t === 'email.delivery_delayed' ||
+    t === 'email.opened' ||
+    t === 'email.open' ||
+    t === 'email.clicked' ||
+    t === 'email.click' ||
+    t === 'email.bounced' ||
+    t === 'email.bounce' ||
+    t === 'email.complained' ||
+    t === 'email.complaint' ||
+    t === 'email.failed' ||
+    t === 'contact.unsubscribed'
+  )
+}
+
+export function extractProviderMessageId(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null
+  const root = payload as Record<string, unknown>
+  const data = root.data && typeof root.data === 'object' ? (root.data as Record<string, unknown>) : null
+  const candidates = [data?.email_id, data?.message_id, root.email_id, root.message_id]
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim().slice(0, 200)
+  }
+  return null
+}
+
+export async function resolveIssueIdFromProviderMessage(
+  providerMessageId: string | null,
+): Promise<{ issueId: string | null; contactId: string | null }> {
+  if (!providerMessageId) return { issueId: null, contactId: null }
+  const jobs = await supabase(
+    `newsletter_send_jobs?provider_message_id=eq.${encodeURIComponent(providerMessageId)}&select=issue_id,contact_id&limit=1`,
+  )
+  const job = jobs?.[0]
+  return {
+    issueId: typeof job?.issue_id === 'string' ? job.issue_id : null,
+    contactId: typeof job?.contact_id === 'string' ? job.contact_id : null,
+  }
+}
+
+export async function recordProviderEvent(opts: {
+  eventType: string
+  email: string | null
+  contactId?: string | null
+  issueId?: string | null
+  payload: unknown
+  occurredAt?: string
+}): Promise<void> {
+  const at = opts.occurredAt || new Date().toISOString()
+  const email = opts.email ? opts.email.trim().toLowerCase() : null
+  await supabase('newsletter_provider_events', {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify({
+      provider: 'resend',
+      event_type: opts.eventType,
+      email,
+      contact_id: opts.contactId ?? null,
+      issue_id: opts.issueId ?? null,
+      payload: opts.payload && typeof opts.payload === 'object' ? opts.payload : {},
+      occurred_at: at,
+    }),
+  })
+}
+
 export async function suppressContactByEmail(email: string, eventType: string, payload: unknown): Promise<void> {
   const normalized = email.trim().toLowerCase()
   if (!normalized) return
@@ -226,16 +303,14 @@ export async function suppressContactByEmail(email: string, eventType: string, p
       }),
     })
   }
-  await supabase('newsletter_provider_events', {
-    method: 'POST',
-    prefer: 'return=minimal',
-    body: JSON.stringify({
-      provider: 'resend',
-      event_type: eventType,
-      email: normalized,
-      contact_id: contact?.id ?? null,
-      payload: payload && typeof payload === 'object' ? payload : {},
-      occurred_at: at,
-    }),
+  const messageId = extractProviderMessageId(payload)
+  const linked = await resolveIssueIdFromProviderMessage(messageId)
+  await recordProviderEvent({
+    eventType,
+    email: normalized,
+    contactId: contact?.id ?? linked.contactId,
+    issueId: linked.issueId,
+    payload,
+    occurredAt: at,
   })
 }

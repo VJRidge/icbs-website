@@ -106,7 +106,7 @@ export default function CustomContentByPath({ typeKey, slug }: { typeKey: string
       <SiteHeader />
       <section className="sec cream">
         <div className="wrap" style={{ maxWidth: '46rem' }}>
-          <p className="k o">Tool review</p>
+          <p className="k o">Review</p>
           <h1 className="an">{title}</h1>
           {asText(fields.verdict) ? <p className="lede">{asText(fields.verdict)}</p> : null}
           {fields.affiliate_disclosure === true ? (

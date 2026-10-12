@@ -51,7 +51,7 @@ service credentials server-only; the Studio browser client uses the anon key wit
 
 - [ ] Write the privacy and terms pages. Refunds: all sales final.
 - [ ] Review the email 1 wording in `api/_emails.ts`
-- [x] Sales page at `/` (thanks-page book button points here). Stripe Checkout still to do.
+- [x] Sales page + Stripe Checkout path (`/api/checkout`). Paste `STRIPE_*` + `BOOK_DOWNLOAD_URL` to go live.
 - [ ] Confirm the sending address in `EMAIL_FROM` (currently hello@vettajimale.tech)
 
 ## CMS status
@@ -69,8 +69,7 @@ The factual status, security gaps, and phased roadmap are in
 
 ## Not built yet
 
-Forms builder, contacts/consent CRM, lead-magnet jobs, newsletter campaigns, analytics,
-discovery (sitemap/RSS), Stripe Checkout, and welcome emails 2–6. These stay gated until
-prerequisites in `docs/cms/GATES.md` pass. Soft trash, revision restore, optimistic locking,
-secure token previews, and scheduled publish (cron) are connected in studio; apply pending
-Supabase migrations before relying on them in production.
+Welcome emails 2–6 remain deferred. Forms through Sales (including Stripe Checkout) are
+Open in `docs/cms/GATES.md`. Soft trash, revision restore, optimistic locking, secure token
+previews, and scheduled publish (cron) are connected in studio; apply pending Supabase
+migrations before relying on them in production.

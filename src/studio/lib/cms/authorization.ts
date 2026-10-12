@@ -198,6 +198,30 @@ export function canManageCampaigns(
   return hasStaffCapability(role, 'content.update_any', opts);
 }
 
+/** Import / migration jobs — same bar as Contacts. */
+export function canManageImports(
+  role: string | null | undefined,
+  opts?: { staffApproved?: boolean; disabled?: boolean },
+): boolean {
+  return hasStaffCapability(role, 'content.update_any', opts);
+}
+
+/** Stripe purchases ledger — readable by content.read staff. */
+export function canReadPurchases(
+  role: string | null | undefined,
+  opts?: { staffApproved?: boolean; disabled?: boolean },
+): boolean {
+  return hasStaffCapability(role, 'content.read', opts);
+}
+
+/** Audience segments / tags — same bar as Contacts. */
+export function canManageSegments(
+  role: string | null | undefined,
+  opts?: { staffApproved?: boolean; disabled?: boolean },
+): boolean {
+  return hasStaffCapability(role, 'content.update_any', opts);
+}
+
 export function canCreateShortLinks(
   role: string | null | undefined,
   opts?: { staffApproved?: boolean; disabled?: boolean },

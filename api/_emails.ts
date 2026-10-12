@@ -70,6 +70,34 @@ ${opts.postalAddress}`
   return { subject, text, html }
 }
 
+export function bookPurchaseEmail(opts: {
+  firstName: string
+  downloadUrl: string
+  unsubscribeUrl: string
+  postalAddress: string
+}) {
+  const name = opts.firstName.trim() || 'there'
+  const subject = 'Your I Call BS book PDF'
+  const text = `Hi ${name},
+
+Thanks for buying I Call BS. Here's your PDF:
+${opts.downloadUrl}
+
+Save this email — the link is your receipt for the file. If it stops working, reply and we'll resend.
+
+Unsubscribe: ${opts.unsubscribeUrl}
+${opts.postalAddress}`
+
+  const html = `<div style="font-family:Georgia,serif;font-size:17px;line-height:26px;color:#0E0D0B;max-width:560px">
+<p>Hi ${escapeHtml(name)},</p>
+<p>Thanks for buying <strong>I Call BS</strong>. Here's your PDF:</p>
+<p><a href="${opts.downloadUrl}" style="display:inline-block;background:#FDC20F;color:#0E0D0B;font-weight:bold;padding:12px 18px;text-decoration:none;border:2px solid #0E0D0B">Download the book</a></p>
+<p style="font-size:14px;color:#666">Save this email — the link is your receipt for the file. If it stops working, reply and we'll resend.</p>
+<p style="font-size:13px;color:#666"><a href="${opts.unsubscribeUrl}" style="color:#666">Unsubscribe</a><br>${escapeHtml(opts.postalAddress)}</p>
+</div>`
+  return { subject, text, html }
+}
+
 export function kitEmail(opts: { firstName: string; kitUrl: string; unsubscribeUrl: string; postalAddress: string }) {
   const name = opts.firstName.trim() || 'there'
   const subject = 'Your I Call BS Free Starter Kit'

@@ -51,6 +51,7 @@ describe('aggregateFunnel / attribution', () => {
       formSubmits: 1,
       contactsCreated: 1,
       kitSubscribes: 1,
+      bookPurchases: 0,
       botFiltered: 1,
       approximate: true,
     });

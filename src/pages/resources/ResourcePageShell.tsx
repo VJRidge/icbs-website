@@ -5,9 +5,12 @@ import './resources.css'
 
 export default function ResourcePageShell({
   title,
+  hero,
   children,
 }: {
   title: string
+  /** Full-bleed band above the constrained article body. */
+  hero?: ReactNode
   children: ReactNode
 }) {
   useEffect(() => {
@@ -15,8 +18,9 @@ export default function ResourcePageShell({
   }, [title])
 
   return (
-    <main className="resource-page">
+    <main className={`resource-page${hero ? ' has-hero' : ''}`}>
       <SiteHeader />
+      {hero ? <div className="resource-hero-bleed">{hero}</div> : null}
       <article className="sec white resource-article">
         <div className="wrap resource-wrap">{children}</div>
       </article>
@@ -33,10 +37,10 @@ export function ResourceFooterMeta() {
   )
 }
 
-export function ResourceBookCta() {
+export function ResourceBookCta({ large = false }: { large?: boolean }) {
   return (
-    <p className="resource-book-cta">
-      <a className="btn" href="/products/i-call-bs" style={{ width: 'auto', display: 'inline-block' }}>
+    <p className={`resource-book-cta${large ? ' resource-book-cta--large' : ''}`}>
+      <a className="btn" href="/products/i-call-bs">
         Explore the complete book — $17
       </a>
     </p>

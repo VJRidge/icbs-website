@@ -8,8 +8,10 @@ import {
   type FormSettings,
 } from './_forms.js'
 import { upsertContactFromLead } from './_contacts.js'
+import { ensureContactTag } from './_segments.js'
 import { enqueueLeadMagnetDelivery } from './_leadMagnets.js'
 import { recordConversionEvent } from './_analytics.js'
+import { normalizeNewsletterListIds, subscribeContactToLists } from './_newsletterLists.js'
 
 function safeJson(s: string) {
   try {
@@ -52,7 +54,8 @@ async function durableRateLimited(key: string): Promise<boolean> {
 /**
  * POST /api/form-submit
  * Lead-capture: stores submission + consent, upserts Contacts identity.
- * Never writes subscribers or sends kit email.
+ * Optionally subscribes to newsletter_lists from form settings.
+ * Never writes kit subscribers or sends kit email.
  */
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -162,6 +165,21 @@ export default async function handler(req: any, res: any) {
     }
 
     if (contactId) {
+      try {
+        await ensureContactTag(contactId, 'newsletter', 'Newsletter')
+      } catch (err) {
+        console.error('contact tag after form submit failed', err)
+      }
+
+      const listIds = normalizeNewsletterListIds(settings.newsletterListIds)
+      if (listIds.length) {
+        try {
+          await subscribeContactToLists(contactId, listIds)
+        } catch (err) {
+          console.error('newsletter list subscribe after form submit failed', err)
+        }
+      }
+
       void recordConversionEvent({
         name: 'contact_created',
         path: typeof body.path === 'string' ? body.path : '/updates',
@@ -171,7 +189,7 @@ export default async function handler(req: any, res: any) {
         submissionId,
         ip: address,
         userAgent: ua,
-        meta: { formSlug: slug },
+        meta: { formSlug: slug, newsletterListIds: listIds },
       })
     }
 

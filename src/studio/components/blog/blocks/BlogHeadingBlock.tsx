@@ -3,6 +3,7 @@ import { headingInlineHtml } from '../../../../brand/headingHighlight';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
 import { safeHref } from '../../../lib/blog/safeHref';
+import { headingUsesLiveEditor } from '../../../lib/blog/headingLiveEditor';
 import HeadingRichEditor from './HeadingRichEditor';
 
 const SIZE_ONLY: Record<number, string> = {
@@ -44,7 +45,7 @@ export default function BlogHeadingBlock({
   block: BlogBlock;
   isEditing: boolean;
   canvasEdit?: boolean;
-  /** Left-panel editor. The canvas copy stays in sync and does not own the toolbar. */
+  /** Left-panel editor. Canvas uses canvasEdit so the title is typed in the purple box too. */
   toolbarSource?: boolean;
 }) {
   const level = Math.min(6, Math.max(1, Number(block.data.level) || 2));
@@ -69,7 +70,7 @@ export default function BlogHeadingBlock({
   const branded = role === 'kicker' || role === 'note' || role === 'card';
   const sizeClass = fontSize || branded ? '' : SIZE_ONLY[level];
   const weightClass = fontWeight || branded ? '' : WEIGHT_ONLY[level];
-  if (canvasEdit || toolbarSource) {
+  if (headingUsesLiveEditor(isEditing, canvasEdit, toolbarSource)) {
     const editor = <HeadingRichEditor key={block.id} block={block} toolbarSource={toolbarSource} canvasSurface={canvasEdit} />;
     if (!canvasEdit) return editor;
     const liveClass = branded

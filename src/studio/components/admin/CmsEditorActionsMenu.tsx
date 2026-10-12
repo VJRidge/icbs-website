@@ -11,7 +11,9 @@ type CmsEditorActionsMenuProps = {
   onPublish: () => void;
   onUnpublish: () => void;
   onDelete: () => void;
+  onNeedTitle?: () => void;
   publishLabel?: string;
+  missingTitleHint?: string;
 };
 
 /** Top-right actions: Publish (or Save when live) + Save Draft menu (unpublish, delete). */
@@ -25,10 +27,21 @@ export default function CmsEditorActionsMenu({
   onPublish,
   onUnpublish,
   onDelete,
+  onNeedTitle,
   publishLabel = 'Publish',
+  missingTitleHint = 'Type a title in the Post title field first.',
 }: CmsEditorActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const titleBlocked = !hasTitle;
+
+  const runIfTitled = (fn: () => void) => {
+    if (titleBlocked) {
+      onNeedTitle?.();
+      return;
+    }
+    fn();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -41,8 +54,9 @@ export default function CmsEditorActionsMenu({
 
   const menuBtnCls =
     'inline-flex items-center gap-1 border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
-  const splitMainCls =
-    'inline-flex items-center gap-1.5 border border-white/25 border-r-0 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50';
+  const splitMainCls = `inline-flex items-center gap-1.5 border border-white/25 border-r-0 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10 disabled:opacity-50 ${
+    titleBlocked ? 'cursor-pointer opacity-40 hover:bg-white/10' : ''
+  }`;
 
   return (
     <div ref={rootRef} className="relative flex items-center gap-2">
@@ -62,8 +76,9 @@ export default function CmsEditorActionsMenu({
         {status === 'draft' || status === 'pending_review' || status === 'scheduled' ? (
           <button
             type="button"
-            disabled={saving || !hasTitle}
-            onClick={onSaveDraft}
+            disabled={saving}
+            title={titleBlocked ? missingTitleHint : 'Save this post as a draft'}
+            onClick={() => runIfTitled(onSaveDraft)}
             className={`${splitMainCls} rounded-l-lg`}
           >
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
@@ -92,9 +107,12 @@ export default function CmsEditorActionsMenu({
       {status === 'draft' || status === 'pending_review' ? (
         <button
           type="button"
-          disabled={saving || !hasTitle}
-          onClick={onPublish}
-          className="flex items-center gap-1.5 rounded-lg bg-brand-yellow px-4 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90 disabled:opacity-40"
+          disabled={saving}
+          title={titleBlocked ? missingTitleHint : publishLabel}
+          onClick={() => runIfTitled(onPublish)}
+          className={`flex items-center gap-1.5 rounded-lg bg-brand-yellow px-4 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90 disabled:opacity-40 ${
+            titleBlocked ? 'cursor-pointer opacity-40' : ''
+          }`}
         >
           <Globe size={12} /> {publishLabel}
         </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SITE_CHROME, loadSiteChromeOnce, type SiteChrome } from '../lib/siteChrome'
+import SiteBackButton from './SiteBackButton'
 import SiteSocial from './SiteSocial'
 
 function isActive(href: string, path: string): boolean {
@@ -19,14 +20,17 @@ export default function SiteHeader() {
     <header className="site-header green">
       <div className="wrap">
         <div className="nav">
-          <a className="site-brand" href="/">
-            {chrome.logoUrl ? (
-              <img src={chrome.logoUrl} alt={chrome.siteName} className="site-logo" />
-            ) : (
-              <span className="k tag">{chrome.siteName}</span>
-            )}
-            {chrome.tagline ? <span className="k site-tagline">{chrome.tagline}</span> : null}
-          </a>
+          <div className="site-header-start">
+            <SiteBackButton tone="site" />
+            <a className="site-brand" href="/">
+              {chrome.logoUrl ? (
+                <img src={chrome.logoUrl} alt={chrome.siteName} className="site-logo" />
+              ) : (
+                <span className="k tag">{chrome.siteName}</span>
+              )}
+              {chrome.tagline ? <span className="k site-tagline">{chrome.tagline}</span> : null}
+            </a>
+          </div>
           <div className="site-header-end">
             <SiteSocial social={chrome.social} />
             {chrome.header.length > 0 ? (

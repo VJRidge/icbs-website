@@ -92,8 +92,8 @@ export default function CampaignsListPage({ userProfile }: { userProfile: UserPr
           <div>
             <h1 className="font-serif text-3xl font-black text-slate-900">Campaign blueprints</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Link pages, forms, lead magnets, and newsletter issues. Blueprints do not send mail or charge cards —
-              Stripe can connect later.
+              Link pages, forms, lead magnets, and newsletter issues. Blueprints do not send mail; book checkout is
+              separate under Sales / `/api/checkout`.
             </p>
           </div>
           <button

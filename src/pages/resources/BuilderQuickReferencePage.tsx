@@ -1,8 +1,10 @@
+import { useManagedDownloadUrl } from '../../lib/site/useManagedDownloads'
 import ResourcePageShell, { ResourceBookCta, ResourceFooterMeta } from './ResourcePageShell'
 
-const PDF = '/downloads/resources/Builder_Quick_Reference.pdf'
+const PDF_DEFAULT = '/downloads/resources/Builder_Quick_Reference.pdf'
 
 export default function BuilderQuickReferencePage() {
+  const pdf = useManagedDownloadUrl('builder_quick_reference_pdf', PDF_DEFAULT)
   return (
     <ResourcePageShell title="Builder Quick Reference">
       <nav aria-label="Breadcrumb" className="k o">
@@ -17,7 +19,7 @@ export default function BuilderQuickReferencePage() {
         decisions, checking the work, and protecting what already works. Keep this reference nearby.
       </p>
       <div className="resource-actions">
-        <a className="btn" href={PDF} download>
+        <a className="btn" href={pdf} download>
           Download the printable reference
         </a>
         <a className="btn line" href="/resources/templates">

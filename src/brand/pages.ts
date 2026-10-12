@@ -133,9 +133,21 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         heading: 'Explore the tools',
         note: '',
         items: [
-          { title: 'Project placeholder', text: 'A short description of a real build goes here.' },
-          { title: 'Project placeholder', text: 'A short description of a real build goes here.' },
-          { title: 'Project placeholder', text: 'A short description of a real build goes here.' },
+          {
+            title: 'Tools by job',
+            text: 'Compare the stack I use with researched options — start with the work, then the tool.',
+            href: '/resources/tools-and-updates',
+          },
+          {
+            title: 'Fillable templates',
+            text: 'ROADMAP, Project Rules, and Before You Accept Done — forms you can download as Markdown or PDF.',
+            href: '/resources/templates',
+          },
+          {
+            title: 'Vibe coding literacy check',
+            text: 'A short quiz on claims, checks, and when to trust a “done” answer.',
+            href: '/resources/vibe-coding-literacy-check',
+          },
         ],
       }),
       block('home-explore', 'brand_columns', {
@@ -303,8 +315,16 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         heading: 'Selected work',
         note: '',
         items: [
-          { title: 'Project placeholder', text: 'Waiting on a real project photo and description.' },
-          { title: 'Project placeholder', text: 'Waiting on a real project photo and description.' },
+          {
+            title: 'I Call BS book + free kit',
+            text: 'A practical guide and starter kit for building with Claude Code and Cursor without swallowing the hype.',
+            href: '/products/i-call-bs',
+          },
+          {
+            title: 'VettaJimale.Tech resources',
+            text: 'Public templates, tools shelf, and literacy check — receipts from the same workflows.',
+            href: '/resources',
+          },
         ],
       }),
       block('about-book', 'brand_product', book),
@@ -452,7 +472,7 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         bookText: 'I Call BS: AI Vibe Coding Myths Dispelled. 13 chapters, 15 prompts, 10 lessons. Digital PDF.',
         bookPrice: '$17',
         bookLabel: 'Get the Complete Book — $17',
-        bookHref: '/products/i-call-bs',
+        bookHref: '/api/checkout',
         bookNote: 'Your kit is yours whether you buy or not.',
         resourcesLabel: 'Take the Vibe Coding Literacy Check',
         resourcesHref: '/resources/vibe-coding-literacy-check',
@@ -593,11 +613,11 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
   book: {
     title: 'I Call BS',
     seo: 'I Call BS · VettaJimale.Tech',
-    cta: { label: 'Get the Complete Book — $17', href: '#buy' },
+    cta: { label: 'Get the Complete Book — $17', href: '/api/checkout' },
     blocks: [
       block('book-hero', 'brand_product', {
         headerLabel: 'Get the Complete Book — $17',
-        headerHref: '#buy',
+        headerHref: '/api/checkout',
         label: 'The book',
         title: 'I Call BS: AI Vibe Coding Myths Dispelled',
         text: 'A practical guide for building real apps with Claude Code and Cursor. One author. One stack.',
@@ -605,7 +625,7 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         coverUrl: '/img/book-cover.png',
         coverAlt: 'Cover of I Call BS: AI Vibe Coding Myths Dispelled',
         primaryLabel: 'Get the Complete Book — $17',
-        primaryHref: '#buy',
+        primaryHref: '/api/checkout',
         secondaryLabel: 'Get the free kit',
         secondaryHref: '/free-kit',
         note: 'Digital PDF. The free kit is a separate page, and buying is not required to use it.',
@@ -629,7 +649,7 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         ],
       }),
       block('book-compare', 'brand_compare', shortCompare),
-      fullCompare('book-full-compare', '/free-kit', '#buy'),
+      fullCompare('book-full-compare', '/free-kit', '/api/checkout'),
       block('book-pages', 'brand_previews', {
         label: 'Look inside',
         heading: 'Real pages you can open',
@@ -652,7 +672,7 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
           { title: 'What do I get?', text: 'A digital PDF: 13 chapters, 15 prompts, and 10 selected lessons, as the current comparison lists them. EPUB is not included.' },
           { title: 'Do I need this to use the free kit?', text: 'No. The kit stays free either way, and this page does not include the kit signup form.' },
           { title: 'Where did 221 and 3,302 come from?', text: 'They are counts from the author’s two app builds, not a promise about your project.' },
-          { title: 'How do I pay?', text: 'Payment is not connected on this page. The button opens the existing sales offer and does not charge a card.' },
+          { title: 'How do I pay?', text: 'The buy button opens Stripe Checkout for the $17 PDF. After payment, the download email is sent automatically.' },
         ],
       }),
       block('book-buy', 'brand_product', {
@@ -664,10 +684,10 @@ export const brandPages: Record<BrandPageId, BrandPageDoc> = {
         coverUrl: '/img/book-cover.png',
         coverAlt: 'Cover of I Call BS: AI Vibe Coding Myths Dispelled',
         primaryLabel: 'Get the Complete Book — $17',
-        primaryHref: '/book#buy',
+        primaryHref: '/api/checkout',
         secondaryLabel: '',
         secondaryHref: '',
-        note: 'Payment is not connected here. This opens the existing sales offer. It does not charge a card.',
+        note: 'Secure checkout via Stripe. You get the PDF by email after payment.',
       }),
     ],
   },

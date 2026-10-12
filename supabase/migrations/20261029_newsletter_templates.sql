@@ -1,0 +1,13 @@
+-- Newsletter email templates (kind=newsletter) — starter gallery + staff saves.
+-- Uses existing public.templates table (same as page/post templates).
+
+insert into public.templates (id, title, kind, is_global, document)
+values
+('a1111111-1111-4111-8111-111111111111', 'Welcome / onboarding', 'newsletter', true, '{"format":"blocks","description":"Hello + what to expect + primary CTA.","subject":"Welcome — you''re in","preview_text":"Here''s what to expect next.","blocks":[{"id":"w1","type":"heading","data":{"text":"Welcome aboard","level":1}},{"id":"w2","type":"paragraph","data":{"text":"<p>Thanks for joining. This list is for practical updates — no fluff.</p>"}},{"id":"w3","type":"paragraph","data":{"text":"<p>In the next emails you will get tools, checklists, and clear next steps.</p>"}},{"id":"w4","type":"button","data":{"label":"Get started","href":"https://icallbs.com/resources"}},{"id":"w5","type":"divider","data":{}},{"id":"w6","type":"paragraph","data":{"text":"<p>You are receiving this because you signed up at I Call BS.</p>"}}]}'::jsonb),
+('a2222222-2222-4222-8222-222222222222', 'Simple announcement', 'newsletter', true, '{"format":"blocks","description":"Headline, short body, one button.","subject":"Quick update","preview_text":"One thing worth your attention.","blocks":[{"id":"a1","type":"heading","data":{"text":"One thing this week","level":1}},{"id":"a2","type":"paragraph","data":{"text":"<p>Share the news in two short paragraphs. Keep the ask obvious.</p>"}},{"id":"a3","type":"button","data":{"label":"Read more","href":"https://icallbs.com/"}}]}'::jsonb),
+('a3333333-3333-4333-8333-333333333333', 'Resource / download follow-up', 'newsletter', true, '{"format":"blocks","description":"Confirm delivery + next resource link.","subject":"Your resource is ready","preview_text":"Download link + what to do next.","blocks":[{"id":"r1","type":"heading","data":{"text":"Your download is ready","level":1}},{"id":"r2","type":"paragraph","data":{"text":"<p>Open the resource, skim the checklist, then try one step today.</p>"}},{"id":"r3","type":"button","data":{"label":"Open resource","href":"https://icallbs.com/resources"}},{"id":"r4","type":"heading","data":{"text":"Next up","level":2}},{"id":"r5","type":"paragraph","data":{"text":"<p>When you are ready, the Literacy Check helps you spot weak spots fast.</p>"}},{"id":"r6","type":"button","data":{"label":"Take the Literacy Check","href":"https://icallbs.com/resources/vibe-coding-literacy-check"}}]}'::jsonb)
+on conflict (id) do update set
+  title = excluded.title,
+  kind = excluded.kind,
+  is_global = excluded.is_global,
+  document = excluded.document;

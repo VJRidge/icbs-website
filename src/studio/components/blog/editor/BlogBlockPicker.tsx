@@ -9,6 +9,7 @@ import {
 } from '../../../lib/blog/blogBlockTypes';
 import { carouselPreset } from '../../../lib/blog/mediaWidgetOptions';
 import { BRAND_BLOCK_TYPES } from '../../../../brand/brandBlockTypes';
+import { NEWSLETTER_EMAIL_PALETTE } from '../../../lib/newsletter/newsletterEmailPalette';
 
 const PICKER_SET = new Set<string>(BLOG_EDITOR_PICKER_TYPES);
 const ELEMENT_LABELS: Partial<Record<BlogBlockType, string>> = {
@@ -30,7 +31,15 @@ function elementLabel(type: BlogBlockType): string {
   return ELEMENT_LABELS[type] ?? BLOG_BLOCK_LABELS[type] ?? type;
 }
 
-export default function BlogBlockPicker({ afterId, onClose }: { afterId: string | null; onClose: () => void }) {
+export default function BlogBlockPicker({
+  afterId,
+  onClose,
+  palette = 'page',
+}: {
+  afterId: string | null;
+  onClose: () => void;
+  palette?: 'page' | 'email';
+}) {
   const addBlock = useBlogEditorStore((s) => s.addBlock);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,12 +48,75 @@ export default function BlogBlockPicker({ afterId, onClose }: { afterId: string 
     inputRef.current?.focus();
   }, []);
 
-  const handleAdd = (type: BlogBlockType, preset?: string) => {
-    addBlock(type, afterId, carouselPreset(preset ?? (type === 'carousel' ? 'media' : undefined)));
+  const handleAdd = (type: BlogBlockType, preset?: string, data?: Record<string, unknown>) => {
+    if (data) {
+      addBlock(type, afterId, data);
+    } else {
+      addBlock(type, afterId, carouselPreset(preset ?? (type === 'carousel' ? 'media' : undefined)));
+    }
     onClose();
   };
 
-  const labelEntries = Object.entries(BLOG_BLOCK_LABELS).filter(([t]) => PICKER_SET.has(t)) as [BlogBlockType, string][];
+  if (palette === 'email') {
+    const q = search.trim().toLowerCase();
+    const items = q
+      ? NEWSLETTER_EMAIL_PALETTE.filter(
+          (item) => item.label.toLowerCase().includes(q) || item.key.includes(q),
+        )
+      : NEWSLETTER_EMAIL_PALETTE;
+
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+        <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+            <Search size={18} className="shrink-0 text-slate-400" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search email blocks…"
+              className="flex-1 text-sm outline-none placeholder:text-slate-400"
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto p-4">
+            <h3 className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Email content
+            </h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {items.map((item) => {
+                const Icon = BLOG_BLOCK_ICONS[item.type];
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleAdd(item.type, undefined, item.data)}
+                    className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 px-2 py-4 text-center hover:border-slate-400 hover:bg-slate-50"
+                  >
+                    <Icon className="h-6 w-6 text-slate-600" strokeWidth={1.5} aria-hidden />
+                    <span className="text-xs font-semibold text-slate-800">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const labelEntries = Object.entries(BLOG_BLOCK_LABELS).filter(([t]) => PICKER_SET.has(t)) as [
+    BlogBlockType,
+    string,
+  ][];
 
   const searchResults = search.trim()
     ? labelEntries.filter(([type, label]) => {

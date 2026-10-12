@@ -6,6 +6,7 @@ export const TRACKABLE_EVENTS = [
   'form_submit',
   'contact_created',
   'kit_subscribe',
+  'book_purchase',
 ] as const;
 
 export type TrackableEventName = (typeof TRACKABLE_EVENTS)[number];
@@ -27,6 +28,7 @@ export type FunnelCounts = {
   formSubmits: number;
   contactsCreated: number;
   kitSubscribes: number;
+  bookPurchases: number;
   botFiltered: number;
   approximate: boolean;
 };
@@ -64,6 +66,7 @@ export function aggregateFunnel(events: ConversionEventRow[]): FunnelCounts {
   let formSubmits = 0;
   let contactsCreated = 0;
   let kitSubscribes = 0;
+  let bookPurchases = 0;
   let botFiltered = 0;
 
   for (const e of events) {
@@ -76,6 +79,7 @@ export function aggregateFunnel(events: ConversionEventRow[]): FunnelCounts {
     else if (e.name === 'form_submit') formSubmits += 1;
     else if (e.name === 'contact_created') contactsCreated += 1;
     else if (e.name === 'kit_subscribe') kitSubscribes += 1;
+    else if (e.name === 'book_purchase') bookPurchases += 1;
   }
 
   return {
@@ -84,6 +88,7 @@ export function aggregateFunnel(events: ConversionEventRow[]): FunnelCounts {
     formSubmits,
     contactsCreated,
     kitSubscribes,
+    bookPurchases,
     botFiltered,
     approximate: botFiltered > 0,
   };

@@ -7,6 +7,7 @@ import { findBlockInTree } from '../studio/lib/blog/blogBlockTree'
 import { normalizeColumnZones } from '../studio/lib/blog/columnLayouts'
 import { safeHref } from '../studio/lib/blog/safeHref'
 import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
+import { topLevelForSelection } from '../studio/lib/blog/blockStyle'
 import { BrandFlexibleColumns, sectionIsEmpty } from './BrandCanvasControls'
 import { BrandColumnGrid } from './BrandColumnGrid'
 import { columnStackAttrs } from './columnLayout'
@@ -24,6 +25,7 @@ import {
   setSectionLayout,
   useColumnPick,
 } from './sectionActions'
+import { clickIsOnWidget } from './sectionClick'
 import './brand.css'
 
 export { chunkBrandSections }
@@ -61,7 +63,7 @@ function Visual({ block, editing = false, live = false }: { block: BlogBlock; ed
   if (live && block.type === 'paragraph') {
     return <BlogParagraphBlock block={block} isEditing toolbarSource={false} canvasSurface autoFocus />
   }
-  return <BlogBlockRenderer block={block} isEditing={false} />
+  return <BlogBlockRenderer block={block} isEditing={false} toolbarSource={false} />
 }
 
 function textTarget(target: EventTarget | null) {
@@ -114,6 +116,7 @@ function Piece({
       ref={host}
       data-nested-id={nested ? block.id : undefined}
       data-stack-id={stacked ? block.id : undefined}
+      data-widget-box=""
       className={`${selected ? 'vj-canvas-on' : 'vj-canvas-piece'}${insertClass}`}
       style={frame}
       draggable={!selected}
@@ -133,9 +136,13 @@ function Piece({
         delete event.currentTarget.dataset.dragging
       }}
       onClick={(event) => {
-        const target = event.target
-        const typing = textTarget(target)
         event.stopPropagation()
+        if (!clickIsOnWidget(event.target)) {
+          const top = topLevelForSelection(useBlogEditorStore.getState().blocks, block.id)
+          selectBlock(top?.type === 'columns' ? top.id : block.id)
+          return
+        }
+        const typing = textTarget(event.target)
         selectBlock(block.id)
         if (typing) return
         event.preventDefault()
@@ -406,10 +413,7 @@ function DropColumn({
       style={stack.style}
       {...drop.bind}
       onClick={(event) => {
-        const target = event.target
-        if (target instanceof Element && target.closest('.vj-canvas-piece, .vj-canvas-on, .vj-meet, .vj-canvas-bar, .icbs-layout, .vj-sec-chrome, .vj-col-gutter')) {
-          return
-        }
+        if (clickIsOnWidget(event.target)) return
         event.stopPropagation()
         selectBlock(parentId)
         setPick({ parentId, column: colIndex })
@@ -698,7 +702,7 @@ export default function BrandWidgetSection({ blocks, editing = false }: { blocks
   const anchor = blocks.find((block) => block.id === sectionAnchorId(blocks)) ?? columns
   const spaceStyle = { ...(sectionBoxStyle(anchor?.data, editing) ?? {}), ...(textBoxStyle(columns?.data.width) ?? {}) }
   const dropClass = pad.edge === 'before' ? ' vj-drop-inside is-before' : pad.edge === 'after' ? ' vj-drop-inside is-after' : ''
-  const className = `${SKIN_CLASS[skin] ?? 'vj-sec'}${editing ? ' vj-canvas-sec' : ''}${sectionOn ? ' vj-canvas-on' : ''}${dropClass}`
+  const className = `${SKIN_CLASS[skin] ?? 'vj-sec'}${editing ? ' vj-canvas-sec' : ''}${sectionOn ? ' vj-sec-on' : ''}${dropClass}`
   const total = before.length + (columns ? 1 : 0) + after.length
   const columnSlot = before.length
   const inner = (
@@ -738,11 +742,7 @@ export default function BrandWidgetSection({ blocks, editing = false }: { blocks
       onClick={
         editing && columns
           ? (event) => {
-              const target = event.target
-              if (!(target instanceof Element)) return
-              if (target.closest('.vj-canvas-piece, .vj-canvas-on, .vj-meet, .vj-canvas-bar, .vj-sec-gap-btn, .vj-sec-gap-drag, .icbs-layout, .vj-sec-chrome, .vj-col-gutter')) {
-                return
-              }
+              if (clickIsOnWidget(event.target)) return
               setPick(null)
               selectBlock(columns.id)
             }
