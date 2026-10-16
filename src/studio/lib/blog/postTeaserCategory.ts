@@ -5,9 +5,16 @@ export type TeaserTaxonomy = {
   is_primary?: boolean;
 };
 
+type ParsedTaxonomy = {
+  kind: string;
+  name: string;
+  slug: string;
+  is_primary: boolean;
+};
+
 export type CategoryFace = { slug: string; name: string };
 
-function asTaxonomy(raw: unknown): TeaserTaxonomy | null {
+function asTaxonomy(raw: unknown): ParsedTaxonomy | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const name = String(o.name ?? '').trim();
@@ -20,7 +27,7 @@ function asTaxonomy(raw: unknown): TeaserTaxonomy | null {
   };
 }
 
-function isCategory(row: TeaserTaxonomy): boolean {
+function isCategory(row: ParsedTaxonomy): boolean {
   return !row.kind || row.kind === 'category';
 }
 
@@ -39,7 +46,7 @@ function uniqueNames(names: string[]): string[] {
 /** Every selected category name, primary first. */
 export function teaserCategoryNames(taxonomies: unknown): string[] {
   if (!Array.isArray(taxonomies)) return [];
-  const cats = taxonomies.map(asTaxonomy).filter((row): row is TeaserTaxonomy => Boolean(row && isCategory(row)));
+  const cats = taxonomies.map(asTaxonomy).filter((row): row is ParsedTaxonomy => Boolean(row && isCategory(row)));
   if (!cats.length) return [];
   const hasPrimary = cats.some((row) => row.is_primary);
   const ordered = hasPrimary ? [...cats.filter((row) => row.is_primary), ...cats.filter((row) => !row.is_primary)] : cats;

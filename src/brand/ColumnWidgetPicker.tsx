@@ -5,7 +5,7 @@ import {
   type BlogBlockType,
 } from '../studio/lib/blog/blogBlockTypes'
 
-const NESTABLE = new Set(BLOG_EDITOR_PICKER_TYPES.filter((type) => type !== 'columns'))
+const NESTABLE = new Set<BlogBlockType>(BLOG_EDITOR_PICKER_TYPES.filter((type) => type !== 'columns'))
 
 /** Same categorized add-block list the column `+` used before the flat layout-chooser grid. */
 export default function ColumnWidgetPicker({
