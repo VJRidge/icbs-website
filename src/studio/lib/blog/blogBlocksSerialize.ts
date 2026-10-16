@@ -1,4 +1,5 @@
 import type { BlogBlock } from './blogBlockTypes';
+import { safeHref } from './safeHref';
 import {
   parseSocialEmbedInput,
   sanitizeSocialEmbedBlockquote,
@@ -11,6 +12,40 @@ import {
   overlayPlacementHtmlClass,
   overlayTitleHtmlClass,
 } from './blogImagePresentation';
+import { lightboxCopyStyle, lightboxHtml } from './lightboxNote';
+import { clipExcerpt, readPostTeaserLayout } from './postTeaserLayout';
+import { readDualButton, readQuoteCards, readSkillItems, readTickerItems, tickerSpeed } from './marketingWidgets';
+import {
+  hasSurfaceOverlay,
+  hasSurfaceVideo,
+  readSurfaceBackground,
+  surfaceShellStyle,
+} from './surfaceBackground';
+import type { CSSProperties } from 'react';
+
+function surfaceLayersHtml(data: Record<string, unknown>): string {
+  const bg = readSurfaceBackground(data);
+  let html = '';
+  if (hasSurfaceVideo(bg)) {
+    html += `<video class="vj-surface-media" src="${escapeHtml(bg.videoUrl)}" autoplay muted loop playsinline></video>`;
+  }
+  if (hasSurfaceOverlay(bg)) {
+    html += `<span class="vj-surface-overlay" style="background-color:${escapeHtml(bg.overlayColor)};opacity:${
+      bg.overlayOpacity / 100
+    };mix-blend-mode:${escapeHtml(bg.blendMode)}"></span>`;
+  }
+  return html;
+}
+
+function cssStyleAttr(style: CSSProperties): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(style)) {
+    if (value == null || value === '') continue;
+    const prop = key.startsWith('--') ? key : key.replace(/[A-Z]/g, (ch) => `-${ch.toLowerCase()}`);
+    parts.push(`${prop}:${String(value)}`);
+  }
+  return parts.length ? ` style="${escapeHtml(parts.join(';'))}"` : '';
+}
 
 function escapeHtml(s: string): string {
   return s
@@ -272,17 +307,8 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         break;
       }
       case 'accordion': {
-        const items = Array.isArray(d.items) ? d.items : [];
-        const inner = items
-          .map((row: unknown) => {
-            const o = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
-            const title = escapeHtml(String(o.title ?? ''));
-            const html = typeof o.html === 'string' ? o.html : '';
-            const open = Boolean(o.open);
-            return `<details class="blog-acc-item"${open ? ' open' : ''}><summary>${title}</summary><div class="blog-acc-body">${html}</div></details>`;
-          })
-          .join('');
-        parts.push(`<section class="blog-block-accordion-static">${inner}</section>`);
+        const payload = encodeURIComponent(JSON.stringify({ id: block.id, type: block.type, data: block.data }));
+        parts.push(`<div data-cms-block="${payload}"></div>`);
         break;
       }
       case 'slideshow': {
@@ -372,7 +398,9 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         else if (url.startsWith('/') || url.startsWith('#')) href = escapeHtml(url);
         else if (/^https?:\/\//i.test(url)) href = escapeHtml(url);
         else href = `https://${escapeHtml(url)}`;
-        const style = ['primary', 'secondary', 'ghost'].includes(String(d.style)) ? String(d.style) : 'primary';
+        const style = ['primary', 'secondary', 'ghost', 'outline', 'pill', 'dark'].includes(String(d.style))
+          ? String(d.style)
+          : 'primary';
         const align = ['left', 'center', 'right'].includes(String(d.align)) ? String(d.align) : 'left';
         const size = ['sm', 'md', 'lg'].includes(String(d.size)) ? String(d.size) : 'md';
         parts.push(
@@ -406,8 +434,9 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
           link && (/^https?:\/\//i.test(link) || link.startsWith('/'))
             ? `<a class="blog-card-link" href="${escapeHtml(link)}">${linkText}</a>`
             : '';
+        const cardSurface = cssStyleAttr(surfaceShellStyle(readSurfaceBackground(d)));
         parts.push(
-          `<article class="blog-block-card">${imgHtml}<div class="blog-card-body"><h3 class="blog-card-title">${title}</h3><p class="blog-card-text">${body}</p>${cta}</div></article>`,
+          `<article class="blog-block-card vj-surface"${cardSurface}>${surfaceLayersHtml(d)}${imgHtml}<div class="blog-card-body"><h3 class="blog-card-title">${title}</h3><p class="blog-card-text">${body}</p>${cta}</div></article>`,
         );
         break;
       }
@@ -515,21 +544,35 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         break;
       }
       case 'post_teasers': {
-        const cols = Number(d.columns) === 3 ? 3 : 2;
+        const layout = readPostTeaserLayout(d);
         const items = Array.isArray(d.items) ? d.items : [];
         let inner = '';
         for (const row of items) {
           const o = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
           const title = escapeHtml(String(o.title ?? ''));
           const slug = String(o.slug ?? '').trim().replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-          const excerpt = escapeHtml(String(o.excerpt ?? ''));
+          const excerpt = escapeHtml(clipExcerpt(String(o.excerpt ?? ''), layout.excerptLength));
           const imageUrl = String(o.imageUrl ?? '').trim();
+          const date = escapeHtml(String(o.date ?? ''));
           if (!slug && !title) continue;
           const href = slug ? `/blog/${encodeURIComponent(slug)}` : '#';
-          const img = imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />` : '';
-          inner += `<article class="blog-post-teaser"><a href="${href}" class="blog-post-teaser-link">${img}<h3>${title}</h3><p>${excerpt}</p></a></article>`;
+          const blank = layout.openInNewWindow ? ' target="_blank" rel="noopener noreferrer"' : '';
+          const img =
+            layout.showImage && imageUrl
+              ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" style="aspect-ratio:${layout.imageRatio}" />`
+              : '';
+          const heading = layout.showTitle ? `<${layout.titleTag}>${title}</${layout.titleTag}>` : '';
+          const category = escapeHtml(String(o.category ?? '').trim());
+          const kicker = category ? `<p class="vj-k">${category}</p>` : '';
+          const meta = layout.showMeta && date ? `<p class="blog-post-teaser-meta">${date}</p>` : '';
+          const copy = layout.showExcerpt && excerpt ? `<p>${excerpt}</p>` : '';
+          const more = layout.showReadMore ? `<span class="blog-post-teaser-more">${escapeHtml(layout.readMoreText)}</span>` : '';
+          inner += `<article class="blog-post-teaser is-${escapeHtml(layout.skin)} is-${escapeHtml(layout.imagePosition)}"><a href="${href}" class="blog-post-teaser-link"${blank}>${kicker}${img}${heading}${meta}${copy}${more}</a></article>`;
         }
-        parts.push(`<section class="blog-block-post-teasers" style="--blog-teaser-cols:${cols}">${inner}</section>`);
+        const pager = layout.pagination === 'numbers' ? '<nav class="blog-post-teaser-pager" aria-label="Posts">1</nav>' : '';
+        parts.push(
+          `<section class="blog-block-post-teasers is-${escapeHtml(layout.skin)}" style="--blog-teaser-cols:${layout.columns};--blog-teaser-image:${layout.imageWidth}%">${inner}${pager}</section>`,
+        );
         break;
       }
       case 'contact_cta': {
@@ -576,17 +619,19 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
         const popId = `blog-pop-${safeId}`;
         const trigger = escapeHtml(String(d.triggerLabel ?? 'Open'));
         const title = escapeHtml(String(d.title ?? ''));
-        const bodyRaw = String(d.body ?? '');
-        const bodyHtml = escapeHtml(bodyRaw).replace(/\r\n/g, '\n').split('\n').join('<br/>');
-        const align = ['left', 'center', 'right'].includes(String(d.alignTrigger)) ? String(d.alignTrigger) : 'left';
+        const paras = lightboxHtml(d);
+        const copyStyle = cssStyleAttr(lightboxCopyStyle(d));
+        const align = ['left', 'center', 'right'].includes(String(d.alignTrigger)) ? String(d.alignTrigger) : 'center';
+        const triggerClass = d.brandFace === false ? 'blog-modal-trigger blog-btn blog-btn-primary blog-btn-md' : 'blog-modal-trigger vj-btn';
         parts.push(
           `<div class="blog-block-modal-wrap" style="text-align:${escapeHtml(align)}">` +
-            `<button type="button" class="blog-modal-trigger blog-btn blog-btn-primary blog-btn-md" popovertarget="${escapeHtml(popId)}" popovertargetaction="toggle">${trigger}</button>` +
+            `<button type="button" class="${triggerClass}" popovertarget="${escapeHtml(popId)}" popovertargetaction="toggle">${trigger}</button>` +
             `</div>` +
             `<div id="${escapeHtml(popId)}" popover="auto" class="blog-modal-popover">` +
-            `<div class="blog-modal-panel">` +
+            `<div class="blog-modal-panel vj-surface"${cssStyleAttr(surfaceShellStyle(readSurfaceBackground(d)))}>` +
+            surfaceLayersHtml(d) +
             (title ? `<h3 class="blog-modal-title">${title}</h3>` : '') +
-            `<div class="blog-modal-body">${bodyHtml}</div>` +
+            `<div class="blog-modal-body blog-paragraph-block blog-lightbox-copy"${copyStyle}>${paras}</div>` +
             `<button type="button" class="blog-modal-close blog-btn blog-btn-secondary blog-btn-sm" popovertarget="${escapeHtml(popId)}" popovertargetaction="hide">Close</button>` +
             `</div></div>`,
         );
@@ -641,12 +686,62 @@ export function serializeBlogBlocksToHtml(blocks: BlogBlock[]): string {
             const url = escapeHtml(String(o.url ?? '').trim());
             const alt = escapeHtml(String(o.alt ?? ''));
             const cap = String(o.caption ?? '').trim();
-            return `<figure class="blog-block-carousel-slide"><img src="${url}" alt="${alt}" loading="lazy" />${
+            const link = safeHref(o.link ?? o.href);
+            const img = `<img src="${url}" alt="${alt}" loading="lazy" />`;
+            const media = link ? `<a href="${escapeHtml(link)}">${img}</a>` : img;
+            return `<figure class="blog-block-carousel-slide">${media}${
               cap ? `<figcaption>${escapeHtml(cap)}</figcaption>` : ''
             }</figure>`;
           })
           .join('');
         parts.push(`<section class="blog-block-carousel-static">${slides}</section>`);
+        break;
+      }
+      case 'news_ticker': {
+        const items = readTickerItems(d)
+          .map((item) => {
+            const href = item.url ? escapeHtml(item.url) : '';
+            const text = escapeHtml(item.text);
+            return href ? `<a href="${href}">${text}</a>` : `<span>${text}</span>`;
+          })
+          .join('<span aria-hidden="true"> · </span>');
+        parts.push(
+          `<section class="blog-news-ticker" style="--ticker-speed:${tickerSpeed(d)}s"><div class="blog-news-ticker-track">${items}${items}</div></section>`,
+        );
+        break;
+      }
+      case 'progress': {
+        const bars = readSkillItems(d)
+          .map(
+            (item) =>
+              `<div class="blog-skill"><span class="blog-skill-label">${escapeHtml(item.label)}</span><span class="blog-skill-value">${item.value}%</span><div class="blog-skill-track"><div class="blog-skill-fill" style="width:${item.value}%;background:${escapeHtml(item.color)}"></div></div></div>`,
+          )
+          .join('');
+        const heading = escapeHtml(String(d.heading ?? ''));
+        parts.push(
+          `<section class="blog-skill-bars">${heading ? `<h3>${heading}</h3>` : ''}${bars}</section>`,
+        );
+        break;
+      }
+      case 'dual_button': {
+        const pair = readDualButton(d);
+        parts.push(
+          `<p class="blog-dual-button" style="text-align:${escapeHtml(pair.align)}"><a class="blog-btn blog-btn-${escapeHtml(pair.leftStyle)}" href="${escapeHtml(pair.leftUrl)}">${escapeHtml(pair.leftText)}</a>${
+            pair.divider ? `<span class="blog-dual-or">${escapeHtml(pair.divider)}</span>` : ''
+          }<a class="blog-btn blog-btn-${escapeHtml(pair.rightStyle)}" href="${escapeHtml(pair.rightUrl)}">${escapeHtml(pair.rightText)}</a></p>`,
+        );
+        break;
+      }
+      case 'review': {
+        const cards = readQuoteCards(d)
+          .map((item) => {
+            const tone = item.emphasis || item.cardColor ? ' is-emphasis' : '';
+            const bg = item.cardColor ? ` style="background:${escapeHtml(item.cardColor)}"` : '';
+            const img = item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" loading="lazy" />` : '';
+            return `<article class="blog-review-card${tone}"${bg}>${img}<h3>${escapeHtml(item.name)}</h3><p class="blog-review-role">${escapeHtml(item.role)}</p><p>${escapeHtml(item.quote)}</p></article>`;
+          })
+          .join('');
+        parts.push(`<section class="blog-review-grid">${cards}</section>`);
         break;
       }
       default:

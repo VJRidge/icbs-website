@@ -8,6 +8,8 @@ import { env, sendEmail, supabase } from './_lib.js'
 import { bookPurchaseEmail } from './_emails.js'
 import { recordConversionEvent } from './_analytics.js'
 import { ensureContactTag } from './_segments.js'
+import { signPrivateMediaPath } from './_leadMagnets.js'
+import { BOOK_SIGNED_URL_EXPIRES, resolveBookDownloadSource } from '../src/lib/stripe/bookDownload.js'
 
 export const BOOK_PRODUCT_KEY = 'i_call_bs_book' as const
 
@@ -29,6 +31,18 @@ export function stripeWebhookConfigured(): boolean {
 
 export function bookDownloadUrl(): string {
   return (process.env.BOOK_DOWNLOAD_URL || '').trim()
+}
+
+export async function resolveFulfillmentDownloadUrl(): Promise<string> {
+  const source = resolveBookDownloadSource({
+    privatePath: process.env.BOOK_PRIVATE_PATH,
+    publicUrl: process.env.BOOK_DOWNLOAD_URL,
+  })
+  if (source.kind === 'private') {
+    return signPrivateMediaPath(source.path, BOOK_SIGNED_URL_EXPIRES)
+  }
+  if (source.kind === 'public') return source.url
+  throw new Error('BOOK_PRIVATE_PATH or BOOK_DOWNLOAD_URL is not set.')
 }
 
 function getStripe(): Stripe {
@@ -78,6 +92,20 @@ function lineItemPriceIdsFromSession(session: Stripe.Checkout.Session): string[]
   return out
 }
 
+function checkoutMarketingOptIn(customFields: unknown): boolean {
+  if (!Array.isArray(customFields)) return false
+  for (const row of customFields) {
+    if (!row || typeof row !== 'object') continue
+    const o = row as Record<string, unknown>
+    if (String(o.key ?? '') !== 'kit_mail') continue
+    const box = o.checkbox && typeof o.checkbox === 'object' ? (o.checkbox as { value?: unknown }).value : undefined
+    if (box === true || box === 'true' || box === 'yes') return true
+    const drop = o.dropdown && typeof o.dropdown === 'object' ? (o.dropdown as { value?: unknown }).value : undefined
+    return String(drop ?? '').trim().toLowerCase() === 'yes'
+  }
+  return false
+}
+
 function randomSuffix(n = 8): string {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz'
   let out = ''
@@ -106,6 +134,20 @@ export async function createBookCheckoutSession(opts?: {
     ...(email ? { customer_email: email } : {}),
     client_reference_id: BOOK_PRODUCT_KEY,
     metadata: { product_key: BOOK_PRODUCT_KEY },
+    custom_fields: [
+      {
+        key: 'kit_mail',
+        label: { type: 'custom', custom: 'Email me the free-kit notes (optional)' },
+        type: 'dropdown',
+        optional: true,
+        dropdown: {
+          options: [
+            { label: 'No thanks', value: 'no' },
+            { label: 'Yes, email me', value: 'yes' },
+          ],
+        },
+      },
+    ],
     // Tag for Dashboard comparison (API 2026-03-25+).
     integration_identifier: `book_checkout_${randomSuffix()}`,
   } as Stripe.Checkout.SessionCreateParams)
@@ -204,7 +246,7 @@ async function addBuyerTag(email: string, firstName: string | null) {
     return
   }
 
-  // Buyer who never signed up for the kit — create a subscriber row with buyer tag only.
+  // Opt-in at Checkout only (never from the card payment alone).
   await supabase('subscribers', {
     method: 'POST',
     prefer: 'return=minimal',
@@ -254,8 +296,7 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
     normalizeEmail(session.customer_details?.email || session.customer_email || '') || null
   if (!email) return { fulfilled: false, skipped: 'missing_email' }
 
-  const downloadUrl = bookDownloadUrl()
-  if (!downloadUrl) throw new Error('BOOK_DOWNLOAD_URL is not set.')
+  const downloadUrl = await resolveFulfillmentDownloadUrl()
 
   const existing = await fetchPurchaseBySession(session.id)
   if (existing?.status === 'fulfilled') {
@@ -286,7 +327,9 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
   const firstName =
     session.customer_details?.name?.trim().split(/\s+/)[0]?.slice(0, 80) || null
 
-  await addBuyerTag(email, firstName)
+  if (checkoutMarketingOptIn(session.custom_fields)) {
+    await addBuyerTag(email, firstName)
+  }
 
   const site = env('SITE_URL').replace(/\/$/, '')
   // Prefer contact unsubscribe if we can find one; fall back to site privacy.
@@ -368,4 +411,35 @@ export async function fulfillFromStripeEvent(event: Stripe.Event): Promise<{
   const session = event.data.object as Stripe.Checkout.Session
   const result = await fulfillCheckoutSession(session)
   return { handled: true, ...result }
+}
+
+export async function resendPurchaseDownload(purchaseId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const id = purchaseId.trim()
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return { ok: false, error: 'Invalid purchase id.' }
+  }
+  const rows = await supabase(
+    `purchases?id=eq.${encodeURIComponent(id)}&select=id,email,status,product_key&limit=1`,
+  )
+  const purchase = rows?.[0] as { email?: string; product_key?: string } | undefined
+  if (!purchase) return { ok: false, error: 'Purchase not found.' }
+  if (purchase.product_key !== BOOK_PRODUCT_KEY) return { ok: false, error: 'Not a book purchase.' }
+  const email = normalizeEmail(String(purchase.email || ''))
+  if (!email) return { ok: false, error: 'Invalid buyer email.' }
+
+  const downloadUrl = await resolveFulfillmentDownloadUrl()
+  const site = env('SITE_URL').replace(/\/$/, '')
+  const contacts = await supabase(
+    `contacts?email=eq.${encodeURIComponent(email)}&select=unsubscribe_token&limit=1`,
+  )
+  const token = contacts?.[0]?.unsubscribe_token
+  const unsubscribeUrl = token ? `${site}/api/contact-unsubscribe?token=${token}` : `${site}/privacy`
+  const mail = bookPurchaseEmail({
+    firstName: 'there',
+    downloadUrl,
+    unsubscribeUrl,
+    postalAddress: env('POSTAL_ADDRESS'),
+  })
+  await sendEmail({ to: email, ...mail, unsubscribeUrl })
+  return { ok: true }
 }

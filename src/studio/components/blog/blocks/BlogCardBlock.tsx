@@ -1,6 +1,8 @@
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import { safeHref } from '../../../lib/blog/safeHref';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import SurfaceBackgroundLayers from '../SurfaceBackgroundLayers';
+import { hasSurfaceLayers, readSurfaceBackground, surfaceShellStyle } from '../../../lib/blog/surfaceBackground';
 
 export default function BlogCardBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
@@ -10,10 +12,17 @@ export default function BlogCardBlock({ block, isEditing }: { block: BlogBlock; 
   const link = String(block.data.link ?? '');
   const linkText = String(block.data.linkText ?? 'Learn more');
   const href = safeHref(link);
+  const surface = readSurfaceBackground(block.data);
+  const surfaceStyle = surfaceShellStyle(surface);
+  const host = surface.type ? ' vj-surface' : '';
 
   if (!isEditing) {
     return (
-      <article className="my-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <article
+        className={`my-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm${host}`}
+        style={surfaceStyle}
+      >
+        {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
         {image.trim() ? (
           <img src={image.trim()} alt="" className="aspect-video w-full object-cover" loading="lazy" />
         ) : null}
@@ -31,7 +40,8 @@ export default function BlogCardBlock({ block, isEditing }: { block: BlogBlock; 
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+    <div className={`space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4${host}`} style={surfaceStyle}>
+      {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
       <input
         value={title}
         onChange={(e) => updateBlock(block.id, { title: e.target.value })}

@@ -1,128 +1,114 @@
-import { useMemo, useState } from 'react';
-import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
+import { useEffect, useId, useState } from 'react';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { accordionRowNumber, readAccordionColors, readAccordionItems } from '../../../lib/blog/accordionItems';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
+import { hasSurfaceLayers, readSurfaceBackground, surfaceShellStyle } from '../../../lib/blog/surfaceBackground';
+import SurfaceBackgroundLayers from '../SurfaceBackgroundLayers';
 
-type AccRow = { title: string; html: string; open: boolean };
-
-function normalizeItems(block: BlogBlock): AccRow[] {
-  const raw = Array.isArray(block.data.items) ? block.data.items : [];
-  return raw.map((t: unknown) => {
-    const o = t && typeof t === 'object' ? (t as Record<string, unknown>) : {};
-    return {
-      title: String(o.title ?? 'Section'),
-      html: typeof o.html === 'string' ? o.html : '',
-      open: Boolean(o.open),
-    };
+export default function BlogAccordionBlock({ block }: { block: BlogBlock; isEditing: boolean }) {
+  const items = readAccordionItems(block.data as Record<string, unknown>);
+  const heading = String(block.data.heading ?? '').trim();
+  const allowMultiple = block.data.allowMultiple !== false;
+  const uid = useId();
+  const firstOpen = items.findIndex((item) => item.open);
+  const [openSet, setOpenSet] = useState<Set<number>>(() => {
+    if (allowMultiple) return new Set(items.flatMap((item, i) => (item.open ? [i] : [])));
+    return new Set(firstOpen >= 0 ? [firstOpen] : []);
   });
-}
 
-function AccordionView({ items, allowMultiple }: { items: AccRow[]; allowMultiple: boolean }) {
-  const initially = items.findIndex((item) => item.open);
-  const [openIndex, setOpenIndex] = useState(initially === -1 ? 0 : initially);
-  return (
-    <section className="my-6 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
-      {items.map((it, i) => (
-        <details
-          key={`acc-${i}-${it.title}`}
-          {...(allowMultiple ? { defaultOpen: it.open } : { open: openIndex === i })}
-          className="group px-4 py-1"
-          onToggle={(event) => {
-            if (allowMultiple) return
-            const opened = event.currentTarget.open
-            setOpenIndex((current) => (opened ? i : current === i ? -1 : current))
-          }}
-        >
-          <summary className="cursor-pointer list-none py-3 font-black text-brand-blue marker:hidden [&::-webkit-details-marker]:hidden">
-            <span className="inline-flex w-full items-center justify-between gap-2">
-              <span>{it.title || `Section ${i + 1}`}</span>
-              <span className="text-slate-400 transition-transform group-open:rotate-180">▾</span>
-            </span>
-          </summary>
-          <div
-            className="prose prose-slate max-w-none pb-4 prose-headings:font-black prose-headings:text-brand-blue"
-            dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(it.html || '<p></p>') || '<p></p>' }}
-          />
-        </details>
-      ))}
-    </section>
-  );
-}
+  useEffect(() => {
+    if (allowMultiple) {
+      setOpenSet(new Set(items.flatMap((item, i) => (item.open ? [i] : []))));
+      return;
+    }
+    const next = items.findIndex((item) => item.open);
+    setOpenSet(new Set(next >= 0 ? [next] : []));
+  }, [allowMultiple, items.map((item) => `${item.title}:${item.open}`).join('|')]);
 
-export default function BlogAccordionBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
-  const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const items = useMemo(() => normalizeItems(block), [block]);
+  const toggle = (index: number) => {
+    setOpenSet((current) => {
+      const isOpen = current.has(index);
+      if (allowMultiple) {
+        const next = new Set(current);
+        if (isOpen) next.delete(index);
+        else next.add(index);
+        return next;
+      }
+      return isOpen ? new Set() : new Set([index]);
+    });
+  };
 
-  const setItems = (next: AccRow[]) => updateBlock(block.id, { items: next });
-
-  if (!isEditing) {
-    if (!items.length) return null;
-    return <AccordionView items={items} allowMultiple={block.data.allowMultiple !== false} />;
-  }
+  const bg = readSurfaceBackground(block.data as Record<string, unknown>);
+  const colors = readAccordionColors(block.data as Record<string, unknown>);
+  const shell = {
+    ...surfaceShellStyle(bg),
+    backgroundColor: bg.color || String(block.data.backgroundColor || '#f3f1e6'),
+    marginTop: Number(block.data.marginTop) || undefined,
+    marginBottom: Number(block.data.marginBottom) || undefined,
+    ['--how-yellow' as string]: colors.toggleColor,
+    ['--how-ink' as string]: colors.toggleTextColor,
+    ['--how-sage' as string]: colors.chipColor,
+    ['--how-chip-text' as string]: colors.chipTextColor,
+  };
 
   return (
-    <div className="space-y-4">
-      <button
-        type="button"
-        className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-        onClick={() =>
-          setItems([...items, { title: `Section ${items.length + 1}`, html: '<p></p>', open: false }])
-        }
-      >
-        Add section
-      </button>
-
-      {items.map((it, i) => (
-        <div key={`acc-edit-${block.id}-${i}`} className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-          <div className="mb-2 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-xs text-slate-600">
-              <input
-                type="checkbox"
-                checked={it.open}
-                onChange={(e) => {
-                  const next = [...items];
-                  next[i] = { ...next[i], open: e.target.checked };
-                  setItems(next);
-                }}
-              />
-              Open by default
-            </label>
-            <button
-              type="button"
-              disabled={items.length <= 1}
-              onClick={() => {
-                const next = items.filter((_, j) => j !== i);
-                setItems(next.length ? next : [{ title: 'Section 1', html: '', open: false }]);
-              }}
-              className="ml-auto text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-40"
-            >
-              Remove
-            </button>
-          </div>
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Title</label>
-          <input
-            value={it.title}
-            onChange={(e) => {
-              const next = [...items];
-              next[i] = { ...next[i], title: e.target.value };
-              setItems(next);
-            }}
-            className="mb-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-          <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">HTML body</label>
-          <textarea
-            value={it.html}
-            onChange={(e) => {
-              const next = [...items];
-              next[i] = { ...next[i], html: e.target.value };
-              setItems(next);
-            }}
-            rows={6}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs leading-relaxed"
-            spellCheck={false}
-          />
+    <section className={`blog-how-ai${hasSurfaceLayers(bg) ? ' vj-surface' : ''}`} style={shell} aria-label={heading || 'Accordion'}>
+      <SurfaceBackgroundLayers bg={bg} />
+      <div className="blog-how-ai-inner">
+        {heading ? <h2 className="blog-how-ai-heading">{heading}</h2> : null}
+        <div className="blog-how-ai-list">
+          {items.map((item, index) => {
+            const open = openSet.has(index);
+            const headerId = `${uid}-h-${index}`;
+            const panelId = `${uid}-p-${index}`;
+            return (
+              <div key={`${item.title}-${index}`} className={`blog-how-ai-row${open ? ' is-open' : ''}`}>
+                <button
+                  type="button"
+                  id={headerId}
+                  className="blog-how-ai-header"
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggle(index);
+                  }}
+                >
+                  <span className="blog-how-ai-num">{accordionRowNumber(index)}</span>
+                  <span className="blog-how-ai-title">{item.title}</span>
+                  <span className="blog-how-ai-toggle" aria-hidden>
+                    {open ? '–' : '+'}
+                  </span>
+                </button>
+                <div
+                  id={panelId}
+                  role="region"
+                  aria-labelledby={headerId}
+                  aria-hidden={!open}
+                  className={`blog-how-ai-panel${open ? ' is-open' : ''}`}
+                >
+                  <div className="blog-how-ai-panel-grid">
+                    {item.intro ? <p className="blog-how-ai-intro">{item.intro}</p> : null}
+                    {!item.intro && item.html ? (
+                      <div
+                        className="blog-how-ai-intro"
+                        dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(item.html) || '' }}
+                      />
+                    ) : null}
+                    {item.bullets.length ? (
+                      <ul className="blog-how-ai-chips">
+                        {item.bullets.map((bullet) => (
+                          <li key={bullet}>{bullet}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      ))}
-    </div>
+      </div>
+    </section>
   );
 }

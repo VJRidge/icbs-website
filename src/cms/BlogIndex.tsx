@@ -62,6 +62,7 @@ export default function BlogIndex() {
         .eq('kind', 'post')
         .eq('status', 'published')
         .lte('published_at', new Date().toISOString())
+        .order('list_order', { ascending: true })
         .order('published_at', { ascending: false })
         .limit(200)
       if (gone) return

@@ -51,6 +51,35 @@ export function deleteBlockFromTree(blocks: BlogBlock[], id: string): BlogBlock[
   });
 }
 
+export function duplicateBlockInTree(blocks: BlogBlock[], id: string, copy: BlogBlock): BlogBlock[] {
+  const idx = blocks.findIndex((b) => b.id === id);
+  if (idx !== -1) {
+    const next = [...blocks];
+    next.splice(idx + 1, 0, copy);
+    return next;
+  }
+
+  let changed = false;
+  const mapped = blocks.map((b) => {
+    if (b.type !== 'columns') return b;
+    const layout = String(b.data.layout ?? '50-50');
+    const zones = normalizeColumnZones(b.data.columns, layout);
+    let local = false;
+    const nextZones = zones.map((z) => {
+      const nestedIndex = z.blocks.findIndex((nested) => nested.id === id);
+      if (nestedIndex < 0) return z;
+      local = true;
+      const nextBlocks = [...z.blocks];
+      nextBlocks.splice(nestedIndex + 1, 0, copy);
+      return { blocks: nextBlocks };
+    });
+    if (!local) return b;
+    changed = true;
+    return { ...b, data: { ...b.data, columns: nextZones } };
+  });
+  return changed ? mapped : blocks;
+}
+
 export function findBlockInTree(blocks: BlogBlock[], id: string): BlogBlock | null {
   for (const b of blocks) {
     if (b.id === id) return b;

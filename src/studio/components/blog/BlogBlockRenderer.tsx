@@ -19,6 +19,10 @@ import BlogCarouselBlock from './blocks/BlogCarouselBlock';
 import BlogTimelineBlock from './blocks/BlogTimelineBlock';
 import BlogStoryMetricsBlock from './blocks/BlogStoryMetricsBlock';
 import BlogButtonBlock from './blocks/BlogButtonBlock';
+import BlogDualButtonBlock from './blocks/BlogDualButtonBlock';
+import BlogNewsTickerBlock from './blocks/BlogNewsTickerBlock';
+import BlogSkillBarBlock from './blocks/BlogSkillBarBlock';
+import BlogReviewBlock from './blocks/BlogReviewBlock';
 import BlogBannerBlock from './blocks/BlogBannerBlock';
 import BlogCardBlock from './blocks/BlogCardBlock';
 import BlogCountdownBlock from './blocks/BlogCountdownBlock';
@@ -121,6 +125,14 @@ export default function BlogBlockRenderer({
       return <BlogStoryMetricsBlock block={view} isEditing={isEditing} />;
     case 'button':
       return <BlogButtonBlock block={view} isEditing={isEditing} />;
+    case 'dual_button':
+      return <BlogDualButtonBlock block={view} isEditing={isEditing} />;
+    case 'news_ticker':
+      return <BlogNewsTickerBlock block={view} isEditing={isEditing} />;
+    case 'progress':
+      return <BlogSkillBarBlock block={view} isEditing={isEditing} />;
+    case 'review':
+      return <BlogReviewBlock block={view} isEditing={isEditing} />;
     case 'banner':
       return <BlogBannerBlock block={view} isEditing={isEditing} />;
     case 'card':

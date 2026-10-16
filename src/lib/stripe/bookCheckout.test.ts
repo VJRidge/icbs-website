@@ -3,6 +3,7 @@ import {
   BOOK_PRODUCT_KEY,
   bookCheckoutConfigured,
   canFulfillCheckoutSession,
+  checkoutMarketingOptIn,
   planBookPurchaseFulfillment,
   sessionMatchesBookProduct,
   stripeModuleRequiresLiveKeyAtBuild,
@@ -89,6 +90,7 @@ describe('planBookPurchaseFulfillment', () => {
       alreadyFulfilled: false,
       downloadUrl: 'https://example.com/book.pdf',
       productKey: BOOK_PRODUCT_KEY,
+      marketingOptIn: true,
     });
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
@@ -153,6 +155,26 @@ describe('planBookPurchaseFulfillment', () => {
         productKey: BOOK_PRODUCT_KEY,
       }).ok,
     ).toBe(false);
+  });
+
+  it('does not add a kit mailing tag unless the buyer opted in', () => {
+    const plan = planBookPurchaseFulfillment({
+      sessionId: 'cs_test_1',
+      email: 'buyer@example.com',
+      paymentStatus: 'paid',
+      amountTotal: 1700,
+      currency: 'usd',
+      alreadyFulfilled: false,
+      downloadUrl: 'https://example.com/book.pdf',
+      productKey: BOOK_PRODUCT_KEY,
+    });
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.addBuyerTag).toBe(false);
+    expect(plan.sendDownloadEmail).toBe(true);
+    expect(checkoutMarketingOptIn(undefined)).toBe(false);
+    expect(checkoutMarketingOptIn([{ key: 'kit_mail', dropdown: { value: 'yes' } }])).toBe(true);
+    expect(checkoutMarketingOptIn([{ key: 'kit_mail', dropdown: { value: 'no' } }])).toBe(false);
   });
 });
 

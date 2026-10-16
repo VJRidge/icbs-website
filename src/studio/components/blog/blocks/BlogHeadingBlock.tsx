@@ -1,4 +1,6 @@
-import { createElement, type CSSProperties } from 'react';
+import { createElement, type CSSProperties, type ReactNode } from 'react';
+import SurfaceBackgroundLayers from '../SurfaceBackgroundLayers';
+import { hasSurfaceLayers, readSurfaceBackground, surfaceShellStyle } from '../../../lib/blog/surfaceBackground';
 import { headingInlineHtml } from '../../../../brand/headingHighlight';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
@@ -34,6 +36,17 @@ const SOFT_SHADOW = '0 2px 10px rgba(21, 20, 18, 0.28)';
 
 function headingNode(tag: string, className: string | undefined, style: CSSProperties, html: string) {
   return createElement(tag, { className, style, dangerouslySetInnerHTML: { __html: html } });
+}
+
+function withHeadingSurface(block: BlogBlock, node: ReactNode) {
+  const bg = readSurfaceBackground(block.data as Record<string, unknown>);
+  if (!bg.type) return node;
+  return (
+    <div className="vj-surface" style={surfaceShellStyle(bg)}>
+      {hasSurfaceLayers(bg) ? <SurfaceBackgroundLayers bg={bg} /> : null}
+      {node}
+    </div>
+  );
 }
 
 export default function BlogHeadingBlock({
@@ -79,9 +92,9 @@ export default function BlogHeadingBlock({
         : role === 'note'
           ? 'vj-note'
           : undefined
-      : `${sizeClass} ${weightClass} leading-tight text-brand-blue`.trim();
+      : `${sizeClass} ${weightClass} leading-tight text-brand-blue vj-heading-as-typed`.trim();
     const liveTag = branded ? (role === 'card' ? 'h3' : 'p') : tag;
-    return createElement(liveTag, { className: liveClass, style }, editor);
+    return withHeadingSurface(block, createElement(liveTag, { className: liveClass, style }, editor));
   }
   if (!text.trim() && !isEditing) return null;
   const shown = text || 'This is a title';
@@ -92,16 +105,17 @@ export default function BlogHeadingBlock({
       : role === 'note'
         ? headingNode('p', 'vj-note', style, html)
         : headingNode('h3', undefined, style, html)
-    : headingNode(tag, `${sizeClass} ${weightClass} leading-tight text-brand-blue`.trim(), style, html);
+        : headingNode(tag, `${sizeClass} ${weightClass} leading-tight text-brand-blue vj-heading-as-typed`.trim(), style, html);
 
   const href = safeHref(block.data.link);
   if (!isEditing && href) {
-    return (
+    return withHeadingSurface(
+      block,
       <a href={href} className="text-inherit no-underline">
         {heading}
-      </a>
+      </a>,
     );
   }
 
-  return heading;
+  return withHeadingSurface(block, heading);
 }

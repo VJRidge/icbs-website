@@ -44,7 +44,9 @@ export default function Contact() {
       <SiteHeader />
       <section className="sec cream" style={{ minHeight: '70vh' }}>
         <div className="wrap" style={{ maxWidth: 820 }}>
-          <a className="k o" href="/">← The book</a>
+          <a className="k o" href="/">
+            ← Home
+          </a>
           <h2>Write to me.</h2>
           <p className="lede">Questions about the book or the kit. I read these.</p>
           {sent ? (

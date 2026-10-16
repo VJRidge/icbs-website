@@ -15,7 +15,7 @@ export default function BlogAdminPostSettingsAside({
   const asideResize = useHorizontalPanelResize({ initial: 320, min: 240, max: 560 });
 
   return (
-    <div className="relative z-20 flex min-h-0 shrink-0" style={{ width: asideResize.width }}>
+    <div className="relative z-20 flex h-full min-h-0 shrink-0" style={{ width: asideResize.width }}>
       <CarouselPanelResizeHandle
         side="left"
         label="Drag to resize settings panel"

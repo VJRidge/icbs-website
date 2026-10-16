@@ -32,7 +32,7 @@ export default function HeadingRichEditor({
   canvasSurface?: boolean;
 }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const { setActiveEditor, registerBlogParagraphEditor, unregisterBlogParagraphEditor } = useActiveEditor();
+  const { registerBlogParagraphEditor, unregisterBlogParagraphEditor, markBlogEditorFocused } = useActiveEditor();
   const skipExternalSyncRef = useRef(false);
   const readyRef = useRef(false);
   const fields = headingFields(block);
@@ -65,14 +65,12 @@ export default function HeadingRichEditor({
 
   useEffect(() => {
     if (!editor) return;
-    const ownsToolbar = toolbarSource || canvasSurface;
-    if (!ownsToolbar) return;
+    if (!toolbarSource && !canvasSurface) return;
     registerBlogParagraphEditor(block.id, editor);
     const detachSelectionMemory = attachToolbarSelectionMemory(editor);
     const dom = editor.view.dom;
     const rememberHighlight = () => {
-      const { from, to } = editor.state.selection;
-      if (from !== to) saveToolbarEditorSelection(editor);
+      if (editor.view.hasFocus()) saveToolbarEditorSelection(editor);
     };
     const onBlurToToolbar = (event: FocusEvent) => {
       const next = event.relatedTarget;
@@ -82,8 +80,8 @@ export default function HeadingRichEditor({
       }
     };
     const onFocus = () => {
-      setActiveEditor(editor);
-      registerBlogParagraphEditor(block.id, editor);
+      markBlogEditorFocused(block.id, editor);
+      saveToolbarEditorSelection(editor);
     };
     editor.on('focus', onFocus);
     dom.addEventListener('mouseup', rememberHighlight);
@@ -104,7 +102,7 @@ export default function HeadingRichEditor({
     canvasSurface,
     registerBlogParagraphEditor,
     unregisterBlogParagraphEditor,
-    setActiveEditor,
+    markBlogEditorFocused,
   ]);
 
   useEffect(() => {

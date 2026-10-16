@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from 'react';
 import type { Editor } from '@tiptap/core';
+import { pickFocusedEditor } from '../lib/blog/blogEditorFocus';
 
 type Ctx = {
   activeEditor: Editor | null;
@@ -17,6 +18,7 @@ type Ctx = {
   /** TipTap instances for blog paragraph blocks (by block id) so the toolbar can bind before first focus. */
   registerBlogParagraphEditor: (blockId: string, editor: Editor) => void;
   unregisterBlogParagraphEditor: (blockId: string, editor: Editor) => void;
+  markBlogEditorFocused: (blockId: string, editor: Editor) => void;
   getBlogParagraphEditor: (blockId: string) => Editor | null;
   /** Bumps when the paragraph registry changes (toolbar should re-resolve). */
   blogParagraphEditorVersion: number;
@@ -24,26 +26,65 @@ type Ctx = {
 
 const ActiveEditorContext = createContext<Ctx | null>(null);
 
+function living(editors: Editor[]): Editor[] {
+  return editors.filter((editor) => !editor.isDestroyed);
+}
+
 export function ActiveEditorProvider({ children }: { children: ReactNode }) {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   const [blogParagraphEditorVersion, setBlogParagraphEditorVersion] = useState(0);
-  const blogParagraphEditorsRef = useRef<Map<string, Editor>>(new Map());
+  const blogParagraphEditorsRef = useRef<Map<string, Editor[]>>(new Map());
+  const lastFocusedRef = useRef<Map<string, Editor>>(new Map());
 
-  const registerBlogParagraphEditor = useCallback((blockId: string, editor: Editor) => {
-    blogParagraphEditorsRef.current.set(blockId, editor);
-    setBlogParagraphEditorVersion((v) => v + 1);
-  }, []);
+  const bump = useCallback(() => setBlogParagraphEditorVersion((v) => v + 1), []);
 
-  const unregisterBlogParagraphEditor = useCallback((blockId: string, editor: Editor) => {
-    if (blogParagraphEditorsRef.current.get(blockId) === editor) {
-      blogParagraphEditorsRef.current.delete(blockId);
-      setBlogParagraphEditorVersion((v) => v + 1);
-    }
-  }, []);
+  const registerBlogParagraphEditor = useCallback(
+    (blockId: string, editor: Editor) => {
+      const current = blogParagraphEditorsRef.current.get(blockId) ?? [];
+      if (!current.includes(editor)) {
+        blogParagraphEditorsRef.current.set(blockId, [...current, editor]);
+        bump();
+      }
+    },
+    [bump],
+  );
+
+  const unregisterBlogParagraphEditor = useCallback(
+    (blockId: string, editor: Editor) => {
+      const current = blogParagraphEditorsRef.current.get(blockId) ?? [];
+      const next = current.filter((item) => item !== editor);
+      if (next.length === current.length) return;
+      if (next.length) blogParagraphEditorsRef.current.set(blockId, next);
+      else blogParagraphEditorsRef.current.delete(blockId);
+      if (lastFocusedRef.current.get(blockId) === editor) lastFocusedRef.current.delete(blockId);
+      bump();
+    },
+    [bump],
+  );
+
+  const markBlogEditorFocused = useCallback(
+    (blockId: string, editor: Editor) => {
+      lastFocusedRef.current.set(blockId, editor);
+      setActiveEditor(editor);
+      bump();
+    },
+    [bump],
+  );
 
   const getBlogParagraphEditor = useCallback((blockId: string) => {
-    const ed = blogParagraphEditorsRef.current.get(blockId);
-    return ed && !ed.isDestroyed ? ed : null;
+    const editors = living(blogParagraphEditorsRef.current.get(blockId) ?? []);
+    return pickFocusedEditor(
+      editors.map((editor) => {
+        let hasFocus = false;
+        try {
+          hasFocus = editor.view.hasFocus();
+        } catch {
+          hasFocus = false;
+        }
+        return { editor, hasFocus };
+      }),
+      lastFocusedRef.current.get(blockId) ?? null,
+    );
   }, []);
 
   const value = useMemo(
@@ -52,6 +93,7 @@ export function ActiveEditorProvider({ children }: { children: ReactNode }) {
       setActiveEditor,
       registerBlogParagraphEditor,
       unregisterBlogParagraphEditor,
+      markBlogEditorFocused,
       getBlogParagraphEditor,
       blogParagraphEditorVersion,
     }),
@@ -59,6 +101,7 @@ export function ActiveEditorProvider({ children }: { children: ReactNode }) {
       activeEditor,
       registerBlogParagraphEditor,
       unregisterBlogParagraphEditor,
+      markBlogEditorFocused,
       getBlogParagraphEditor,
       blogParagraphEditorVersion,
     ],
@@ -76,6 +119,7 @@ export function useActiveEditor() {
       setActiveEditor: noop as Dispatch<SetStateAction<Editor | null>>,
       registerBlogParagraphEditor: noop as (blockId: string, editor: Editor) => void,
       unregisterBlogParagraphEditor: noop as (blockId: string, editor: Editor) => void,
+      markBlogEditorFocused: noop as (blockId: string, editor: Editor) => void,
       getBlogParagraphEditor: () => null as Editor | null,
       blogParagraphEditorVersion: 0,
     };

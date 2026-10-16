@@ -41,7 +41,7 @@ export const DEFAULT_SITE_CHROME: SiteChrome = {
   footerCredit: '© 2026 V. Jimale Ridgeway',
   social: { ...EMPTY_SOCIAL },
   header: [
-    { id: 'book', label: 'The book', href: '/' },
+    { id: 'book', label: 'The book', href: '/products/i-call-bs' },
     { id: 'kit', label: 'Free Starter Kit', href: '/#kit' },
     { id: 'blog', label: 'Blog', href: '/blog' },
     { id: 'about', label: 'About', href: '/about' },
@@ -51,10 +51,45 @@ export const DEFAULT_SITE_CHROME: SiteChrome = {
     { id: 'blog', label: 'Blog', href: '/blog' },
     { id: 'about', label: 'About', href: '/about' },
     { id: 'contact', label: 'Contact', href: '/contact' },
+    { id: 'faq', label: 'FAQ', href: '/faq' },
     { id: 'privacy', label: 'Privacy', href: '/privacy' },
     { id: 'terms', label: 'Terms', href: '/terms' },
     { id: 'refunds', label: 'Refunds', href: '/refunds' },
+    { id: 'copyright', label: 'Copyright', href: '/copyright' },
   ],
+}
+
+export const BOOK_PUBLIC_PATH = '/products/i-call-bs'
+
+/** Saved menus used to point “The book” at “/”, which marked every homepage current. */
+export function withHeaderBookHref(items: SiteMenuItem[]): SiteMenuItem[] {
+  return items.map((item) => {
+    if (item.href !== '/' && item.href !== '') return item
+    if (item.id === 'home' || /^home$/i.test(item.label)) return item
+    if (item.id === 'book' || /^the book$/i.test(item.label)) {
+      return { ...item, href: BOOK_PUBLIC_PATH }
+    }
+    return item
+  })
+}
+
+export const FOOTER_FAQ_ITEM: SiteMenuItem = { id: 'faq', label: 'FAQ', href: '/faq' }
+export const FOOTER_COPYRIGHT_ITEM: SiteMenuItem = { id: 'copyright', label: 'Copyright', href: '/copyright' }
+
+/** Keep FAQ in the footer even when a saved Studio menu predates the page. */
+export function withFooterFaq(items: SiteMenuItem[]): SiteMenuItem[] {
+  if (items.some((item) => item.id === 'faq' || item.href === '/faq')) return items
+  const at = items.findIndex((item) => item.id === 'privacy' || item.href === '/privacy')
+  if (at < 0) return [...items, FOOTER_FAQ_ITEM]
+  return [...items.slice(0, at), FOOTER_FAQ_ITEM, ...items.slice(at)]
+}
+
+/** Keep Copyright in the footer even when a saved Studio menu predates the page. */
+export function withFooterCopyright(items: SiteMenuItem[]): SiteMenuItem[] {
+  if (items.some((item) => item.id === 'copyright' || item.href === '/copyright')) return items
+  const at = items.findIndex((item) => item.id === 'refunds' || item.href === '/refunds')
+  if (at < 0) return [...items, FOOTER_COPYRIGHT_ITEM]
+  return [...items.slice(0, at + 1), FOOTER_COPYRIGHT_ITEM, ...items.slice(at + 1)]
 }
 
 export function parseMenuItems(raw: unknown): SiteMenuItem[] | null {
@@ -115,8 +150,8 @@ export async function loadSiteChrome(sb: SupabaseClient | null = supabaseBrowser
   return {
     siteName: (settings?.site_name || DEFAULT_SITE_CHROME.siteName).trim() || DEFAULT_SITE_CHROME.siteName,
     ...extra,
-    header: headerItems ?? DEFAULT_SITE_CHROME.header,
-    footer: parseMenuItems(footerRow?.items) ?? DEFAULT_SITE_CHROME.footer,
+    header: withHeaderBookHref(headerItems ?? DEFAULT_SITE_CHROME.header),
+    footer: withFooterCopyright(withFooterFaq(parseMenuItems(footerRow?.items) ?? DEFAULT_SITE_CHROME.footer)),
     headerFromMenu: headerItems !== null,
   }
 }

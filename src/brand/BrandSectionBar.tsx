@@ -9,7 +9,7 @@ import type { ColumnLayoutKey } from '../studio/lib/blog/blogBlockTypes'
 import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { BRAND_BLOCK_LABELS, isBrandBlockType } from './brandBlockTypes'
 import { addSectionAfterChunk, deleteSectionChunk, duplicateSectionChunk, moveSectionChunk } from './sectionActions'
-import { clickIsOnWidget } from './sectionClick'
+import { clickSelectsWidget } from './sectionClick'
 
 function storedName(block: BlogBlock) {
   const raw = block.data.sectionName ?? block.data.name
@@ -105,7 +105,7 @@ export default function BrandSectionBar({
         position: 'relative',
       }}
       onClick={(event) => {
-        if (clickIsOnWidget(event.target)) return
+        if (clickSelectsWidget(event)) return
         if (!target) return
         event.stopPropagation()
         edit()

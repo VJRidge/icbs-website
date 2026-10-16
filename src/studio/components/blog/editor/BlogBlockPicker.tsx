@@ -23,7 +23,7 @@ const ELEMENT_GROUPS: { title: string; types: BlogBlockType[] }[] = [
   { title: 'Basic', types: ['heading', 'image', 'paragraph', 'video', 'button', 'divider', 'spacer', 'icon_box'] },
   { title: 'Media', types: ['slideshow', 'carousel', 'gallery', 'youtube'] },
   { title: 'Layout', types: ['columns'] },
-  { title: 'Content', types: ['accordion'] },
+  { title: 'Content', types: ['accordion', 'modal_popup'] },
   { title: 'VettaJimale', types: [...BRAND_BLOCK_TYPES] },
 ];
 

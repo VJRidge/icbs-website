@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
-import { embedMediaUrl, readNavigation } from '../../../lib/blog/mediaWidgetOptions';
-import { safeHref } from '../../../lib/blog/safeHref';
+import { hexToRgba, readCarouselStageStyle } from '../../../lib/blog/carouselStageStyle';
+import { carouselSlideHref, embedMediaUrl, readNavigation } from '../../../lib/blog/mediaWidgetOptions';
 
 type Item = {
   url: string;
@@ -12,6 +12,7 @@ type Item = {
   description: string;
   videoUrl: string;
   mediaType: string;
+  link: string;
 };
 
 function readItems(block: BlogBlock): Item[] {
@@ -26,6 +27,7 @@ function readItems(block: BlogBlock): Item[] {
       description: String(item.description ?? ''),
       videoUrl: String(item.videoUrl ?? ''),
       mediaType: String(item.mediaType ?? (item.videoUrl ? 'video' : 'image')),
+      link: String(item.link ?? item.href ?? ''),
     };
   }).filter((item) => item.url.trim() || item.videoUrl.trim());
 }
@@ -46,6 +48,27 @@ function captionFor(item: Item, source: string): string {
   return '';
 }
 
+function SlideImage({ item, fit, lazy }: { item: Item; fit: 'cover' | 'contain'; lazy: boolean }) {
+  const contain = fit === 'contain';
+  return (
+    <img
+      src={item.url}
+      alt={item.alt}
+      className="blog-carousel-slide-img"
+      loading={lazy ? 'lazy' : 'eager'}
+      style={{
+        objectFit: fit,
+        width: contain ? 'auto' : '100%',
+        height: contain ? 'auto' : '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        display: 'block',
+        margin: contain ? 'auto' : undefined,
+      }}
+    />
+  );
+}
+
 export default function CarouselStage({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
   const data = block.data as Record<string, unknown>;
   const kind = String(data.kind ?? 'media');
@@ -64,20 +87,32 @@ export default function CarouselStage({ block, isEditing }: { block: BlogBlock; 
   });
   const showArrows = imageMode ? navigation === 'arrows' || navigation === 'arrows_dots' : data.showArrows !== false;
   const showDots = imageMode ? navigation === 'dots' || navigation === 'arrows_dots' : data.showDots !== false;
-  const height = imageMode ? imageHeight(data) : Number(data.height) || 420;
-  const arrowSize = Number(data.arrowSize) || 28;
-  const arrowColor = String(data.arrowColor ?? '#ffffff');
-  const playSize = Number(data.playSize) || 56;
-  const playColor = String(data.playColor ?? '#ffffff');
-  const gap = Number(data.gap) || 12;
-  const radius = Number(data.radius) || 0;
-  const fit = imageMode
-    ? data.imageStretch
-      ? 'object-cover'
-      : 'object-contain'
-    : data.imageFit === 'contain'
-      ? 'object-contain'
-      : 'object-cover';
+  const stage = readCarouselStageStyle(data, imageMode);
+  const height = imageMode && String(data.imageSize ?? 'medium') !== 'custom' ? imageHeight(data) : stage.height;
+  const {
+    arrowSize,
+    arrowColor,
+    playSize,
+    playColor,
+    gap,
+    radius,
+    fit,
+    widthPercent,
+    padding,
+    borderWidth,
+    borderColor,
+    slideBg,
+    arrowShadow,
+    dotSize,
+    dotGap,
+    dotColor,
+    dotActiveColor,
+    dotPosition,
+    lightboxWidth,
+    lightboxUi,
+    lightboxUiHover,
+    lightboxColor,
+  } = stage;
   const effect = String(data.effect ?? 'slide');
   const loop = data.loop !== false;
   const autoplay = Boolean(data.autoplay) && !isEditing;
@@ -118,18 +153,39 @@ export default function CarouselStage({ block, isEditing }: { block: BlogBlock; 
 
   function openItem(item: Item) {
     if (isEditing) return;
-    if (data.lightbox && item.url && !item.videoUrl) {
-      setLightbox(item.url);
-      return;
-    }
-    const mode = String(data.linkMode ?? 'none');
-    const href = mode === 'media' ? safeHref(item.url) : mode === 'custom' ? safeHref(data.customUrl) : undefined;
-    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+    const href = carouselSlideHref(item, data);
+    if (href) return;
+    if (data.lightbox && item.url && !item.videoUrl) setLightbox(item.url);
   }
+
+  const dots = showDots && count > 1 ? (
+    <div
+      className={`flex justify-center ${dotPosition === 'inside' ? 'absolute inset-x-0 bottom-3 z-20' : 'mt-3'}`}
+      style={{ gap: dotGap }}
+    >
+      {items.map((_, dot) => (
+        <button
+          key={dot}
+          type="button"
+          aria-label={`Go to slide ${dot + 1}`}
+          onClick={() => setIndex(dot)}
+          className="rounded-full"
+          style={{
+            width: dotSize,
+            height: dotSize,
+            background: dot === safeIndex ? dotActiveColor : dotColor,
+          }}
+        />
+      ))}
+    </div>
+  ) : null;
+  const arrowClass = `absolute top-1/2 z-20 -translate-y-1/2 ${arrowShadow ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]' : ''}`;
+  const lazy = data.lazyLoad !== false;
 
   return (
     <section
       className="relative my-6"
+      style={{ width: `${widthPercent}%`, marginInline: widthPercent < 100 ? 'auto' : undefined }}
       onMouseEnter={() => data.pauseOnHover !== false && setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -150,27 +206,38 @@ export default function CarouselStage({ block, isEditing }: { block: BlogBlock; 
               const showVideo = item.mediaType === 'video' && embed && playing === absolute;
               const cover = skin === 'coverflow' && offset === Math.floor(windowItems.length / 2);
               const caption = captionFor(item, String(data.captionSource ?? 'none')) || (data.overlay === 'text' ? item.caption || item.title : '');
+              const href = carouselSlideHref(item, data);
               return (
                 <figure
                   key={`${item.url}-${item.videoUrl}-${offset}`}
-                  className="relative min-w-0 flex-1 overflow-hidden bg-black"
+                  className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden"
                   style={{
                     height,
                     borderRadius: radius,
+                    background: slideBg,
+                    border: borderWidth ? `${borderWidth}px solid ${borderColor}` : undefined,
+                    padding,
                     transform: cover ? 'scale(1.04)' : undefined,
                   }}
                 >
                   {showVideo ? (
                     <iframe src={embed} title={item.title || 'Video'} className="h-full w-full" allowFullScreen />
                   ) : item.url ? (
-                    <button type="button" className="block h-full w-full" onClick={() => openItem(item)}>
-                      <img
-                        src={item.url}
-                        alt={item.alt}
-                        className={`h-full w-full ${fit}`}
-                        loading={data.lazyLoad === false ? 'eager' : 'lazy'}
-                      />
-                    </button>
+                    href ? (
+                      <a
+                        href={href}
+                        className="flex h-full w-full items-center justify-center"
+                        onClick={(event) => {
+                          if (isEditing || event.currentTarget.closest('[data-widget-box]')) event.preventDefault();
+                        }}
+                      >
+                        <SlideImage item={item} fit={fit} lazy={lazy} />
+                      </a>
+                    ) : (
+                      <button type="button" className="flex h-full w-full items-center justify-center" onClick={() => openItem(item)}>
+                        <SlideImage item={item} fit={fit} lazy={lazy} />
+                      </button>
+                    )
                   ) : (
                     <div className="h-full w-full bg-slate-900" />
                   )}
@@ -197,48 +264,35 @@ export default function CarouselStage({ block, isEditing }: { block: BlogBlock; 
         )}
         {showArrows ? (
           <>
-            <button
-              type="button"
-              aria-label="Previous"
-              className="absolute left-2 top-1/2 z-20 -translate-y-1/2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-              style={{ color: arrowColor }}
-              onClick={() => go(-1)}
-            >
+            <button type="button" aria-label="Previous" className={`${arrowClass} left-2`} style={{ color: arrowColor }} onClick={() => go(-1)}>
               <ChevronLeft size={arrowSize} />
             </button>
-            <button
-              type="button"
-              aria-label="Next"
-              className="absolute right-2 top-1/2 z-20 -translate-y-1/2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-              style={{ color: arrowColor }}
-              onClick={() => go(1)}
-            >
+            <button type="button" aria-label="Next" className={`${arrowClass} right-2`} style={{ color: arrowColor }} onClick={() => go(1)}>
               <ChevronRight size={arrowSize} />
             </button>
           </>
         ) : null}
+        {dotPosition === 'inside' ? dots : null}
       </div>
-      {showDots && count > 1 ? (
-        <div className="mt-3 flex justify-center gap-1.5">
-          {items.map((_, dot) => (
-            <button
-              key={dot}
-              type="button"
-              aria-label={`Go to slide ${dot + 1}`}
-              onClick={() => setIndex(dot)}
-              className={`h-2 w-2 rounded-full ${dot === safeIndex ? 'bg-slate-800' : 'bg-slate-300'}`}
-            />
-          ))}
-        </div>
-      ) : null}
+      {dotPosition === 'outside' ? dots : null}
       {lightbox ? (
         <button
           type="button"
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-6"
+          className="blog-carousel-lightbox fixed inset-0 z-[80] flex items-center justify-center p-6"
+          style={{
+            background: hexToRgba(lightboxColor, 0.8),
+            ['--carousel-lb-ui' as string]: lightboxUi,
+            ['--carousel-lb-hover' as string]: lightboxUiHover,
+          }}
           onClick={() => setLightbox(null)}
           aria-label="Close image"
         >
-          <img src={lightbox} alt="" className="max-h-full max-w-full object-contain" />
+          <img
+            src={lightbox}
+            alt=""
+            className="blog-carousel-lightbox-img object-contain"
+            style={{ width: `${lightboxWidth}%`, maxHeight: '90vh' }}
+          />
         </button>
       ) : null}
     </section>

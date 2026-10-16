@@ -186,6 +186,7 @@ function BlogBlockEditor({
                 })}
               </SortableContext>
             </DndContext>
+            <BrandSectionGap at={blocks.length} anchorId="" deleteId={null} trail />
           </BrandPageCanvas>
         </BlogEditorFileDrop>
         {blockPickerOpen ? (

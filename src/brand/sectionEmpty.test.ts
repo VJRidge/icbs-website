@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BlogBlock } from '../studio/lib/blog/blogBlockTypes'
-import { wrapLooseBlocksInSections } from './sectionActions'
+import { emptySectionBlock, wrapLooseBlocksInSections } from './sectionActions'
 import { isReusableEmptySection, withoutUnusedEmptySections } from './sectionEmpty'
 
 function columns(id: string, extra: Partial<BlogBlock['data']> = {}): BlogBlock {
@@ -34,6 +34,13 @@ describe('reusable empty sections', () => {
     expect(withoutUnusedEmptySections([filled, empty], 'empty').map((block) => block.id)).toEqual(['p', 'empty'])
     const stable = [filled]
     expect(withoutUnusedEmptySections(stable, null)).toBe(stable)
+  })
+})
+
+describe('new empty section', () => {
+  it('waits for Flexbox or Grid before it is a real container', () => {
+    expect(emptySectionBlock().data.structureChosen).toBe(false)
+    expect(isReusableEmptySection(emptySectionBlock())).toBe(true)
   })
 })
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Image as ImageIcon, Plus, Video, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, Image as ImageIcon, Plus, Video, X } from 'lucide-react';
 import { useBlogAdminMediaLibrary } from '../../../contexts/BlogAdminMediaLibraryContext';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { followMovedIndex, moveCarouselItem } from '../../../lib/blog/carouselItems';
+import { readCarouselStageStyle } from '../../../lib/blog/carouselStageStyle';
 import { navigationPatch, readNavigation, type NavMode } from '../../../lib/blog/mediaWidgetOptions';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import BlogInspectorSection from './BlogInspectorSection';
@@ -25,27 +27,75 @@ function useCarouselRows(block: BlogBlock, kind: 'image' | 'media') {
   return { data, rows, patch, setRows, patchRow };
 }
 
+function ReorderButtons({
+  index,
+  total,
+  onMove,
+}: {
+  index: number;
+  total: number;
+  onMove: (from: number, to: number) => void;
+}) {
+  return (
+    <span className="flex shrink-0 items-center">
+      <button
+        type="button"
+        aria-label="Move item up"
+        disabled={index === 0}
+        className="rounded p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+        onClick={() => onMove(index, index - 1)}
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        aria-label="Move item down"
+        disabled={index >= total - 1}
+        className="rounded p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30"
+        onClick={() => onMove(index, index + 1)}
+      >
+        <ChevronDown size={14} />
+      </button>
+    </span>
+  );
+}
+
 export function ImageCarouselFields({ block, tab }: { block: BlogBlock; tab: 'content' | 'style' }) {
   const { openMediaLibrary } = useBlogAdminMediaLibrary();
   const { data, rows, patch, setRows } = useCarouselRows(block, 'image');
   const filled = rows.filter((row) => String(row.url ?? '').trim());
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+
+  function moveRow(from: number, to: number) {
+    setRows(moveCarouselItem(rows, from, to));
+  }
 
   if (tab === 'style') {
+    const stage = readCarouselStageStyle(data, true);
     return (
       <div className="space-y-2">
-        <BlogInspectorSection title="Navigation">
-          <MediaColor label="Arrow color" value={String(data.arrowColor ?? '#ffffff')} onChange={(arrowColor) => patch({ arrowColor })} />
-          <MediaRange label="Arrow size" min={16} max={48} value={Number(data.arrowSize) || 28} onChange={(arrowSize) => patch({ arrowSize })} />
+        <BlogInspectorSection title="Slides">
+          <MediaRange label="Space between" min={0} max={80} suffix="px" value={stage.gap} onChange={(gap) => patch({ gap })} />
+          <MediaRange label="Width" min={20} max={100} suffix="%" value={stage.widthPercent} onChange={(widthPercent) => patch({ widthPercent })} />
+          <MediaRange label="Corner radius" min={0} max={80} suffix="px" value={stage.radius} onChange={(radius) => patch({ radius })} />
         </BlogInspectorSection>
-        <BlogInspectorSection title="Image" defaultOpen={false}>
-          <MediaRange label="Gap" min={0} max={48} value={Number(data.gap) || 12} onChange={(gap) => patch({ gap })} />
-          <MediaRange
-            label="Corner radius"
-            min={0}
-            max={40}
-            value={Number(data.radius) || 0}
-            onChange={(radius) => patch({ radius })}
+        <BlogInspectorSection title="Navigation">
+          <MediaColor label="Arrow color" value={stage.arrowColor} onChange={(arrowColor) => patch({ arrowColor })} />
+          <MediaRange label="Arrow size" min={16} max={48} suffix="px" value={stage.arrowSize} onChange={(arrowSize) => patch({ arrowSize })} />
+          <MediaToggle label="Shadow" checked={stage.arrowShadow} onChange={(arrowShadow) => patch({ arrowShadow })} />
+          <MediaSelect
+            label="Pagination"
+            value={stage.dotPosition}
+            onChange={(dotPosition) => patch({ dotPosition })}
+            options={[
+              { value: 'outside', label: 'Outside' },
+              { value: 'inside', label: 'Inside' },
+            ]}
           />
+          <MediaRange label="Space between dots" min={0} max={32} suffix="px" value={stage.dotGap} onChange={(dotGap) => patch({ dotGap })} />
+          <MediaRange label="Dot size" min={4} max={24} suffix="px" value={stage.dotSize} onChange={(dotSize) => patch({ dotSize })} />
+          <MediaColor label="Color" value={stage.dotColor} onChange={(dotColor) => patch({ dotColor })} />
+          <MediaColor label="Active color" value={stage.dotActiveColor} onChange={(dotActiveColor) => patch({ dotActiveColor })} />
         </BlogInspectorSection>
       </div>
     );
@@ -65,17 +115,33 @@ export function ImageCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
           {filled.length} image{filled.length === 1 ? '' : 's'} selected
         </span>
         <div className="flex flex-wrap items-center gap-2">
-          {filled.map((row, index) => (
-            <button
-              key={`${String(row.url)}-${index}`}
-              type="button"
-              className="relative h-12 w-12 overflow-hidden rounded border border-slate-200"
-              onClick={() => setRows(rows.filter((item) => item !== row))}
-              aria-label="Remove image"
-            >
-              <img src={String(row.url)} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
+          {filled.map((row, index) => {
+            const sourceIndex = rows.indexOf(row);
+            return (
+              <span
+                key={`${String(row.url)}-${index}`}
+                className="relative inline-flex"
+                draggable
+                onDragStart={() => setDragFrom(sourceIndex)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (dragFrom != null) moveRow(dragFrom, sourceIndex);
+                  setDragFrom(null);
+                }}
+                onDragEnd={() => setDragFrom(null)}
+              >
+                <button
+                  type="button"
+                  className="relative h-12 w-12 overflow-hidden rounded border border-slate-200"
+                  onClick={() => setRows(rows.filter((item) => item !== row))}
+                  aria-label="Remove image"
+                >
+                  <img src={String(row.url)} alt="" className="h-full w-full object-cover" />
+                </button>
+              </span>
+            );
+          })}
           <button
             type="button"
             className="flex h-12 w-12 items-center justify-center rounded border border-dashed border-slate-300 text-slate-500"
@@ -224,15 +290,55 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
   const { openMediaLibrary } = useBlogAdminMediaLibrary();
   const { data, rows, patch, setRows, patchRow } = useCarouselRows(block, 'media');
   const [open, setOpen] = useState(0);
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const stage = readCarouselStageStyle(data, false);
+
+  function moveRow(from: number, to: number) {
+    setRows(moveCarouselItem(rows, from, to));
+    setOpen(followMovedIndex(open, from, to));
+  }
 
   if (tab === 'style') {
     return (
       <div className="space-y-2">
+        <BlogInspectorSection title="Slides">
+          <MediaRange label="Space between" min={0} max={80} suffix="px" value={stage.gap} onChange={(gap) => patch({ gap })} />
+          <MediaRange label="Height" min={120} max={900} suffix="px" value={stage.height} onChange={(height) => patch({ height })} />
+          <MediaRange label="Width" min={20} max={100} suffix="%" value={stage.widthPercent} onChange={(widthPercent) => patch({ widthPercent })} />
+          <MediaSelect
+            label="Image fit"
+            value={stage.fit}
+            onChange={(imageFit) => patch({ imageFit })}
+            options={[
+              { value: 'cover', label: 'Cover' },
+              { value: 'contain', label: 'Contain' },
+            ]}
+          />
+          <MediaColor label="Background color" value={stage.slideBg} onChange={(slideBg) => patch({ slideBg })} />
+          <MediaRange label="Border width" min={0} max={16} suffix="px" value={stage.borderWidth} onChange={(slideBorderWidth) => patch({ slideBorderWidth })} />
+          <MediaColor label="Border color" value={stage.borderColor} onChange={(slideBorderColor) => patch({ slideBorderColor })} />
+          <MediaRange label="Border radius" min={0} max={80} suffix="px" value={stage.radius} onChange={(radius) => patch({ radius })} />
+          <MediaRange label="Padding" min={0} max={64} suffix="px" value={stage.padding} onChange={(slidePadding) => patch({ slidePadding })} />
+        </BlogInspectorSection>
         <BlogInspectorSection title="Navigation">
-          <MediaColor label="Arrow color" value={String(data.arrowColor ?? '#ffffff')} onChange={(arrowColor) => patch({ arrowColor })} />
-          <MediaRange label="Arrow size" min={16} max={64} value={Number(data.arrowSize) || 28} onChange={(arrowSize) => patch({ arrowSize })} />
-          <MediaColor label="Play icon color" value={String(data.playColor ?? '#ffffff')} onChange={(playColor) => patch({ playColor })} />
-          <MediaRange label="Play icon size" min={32} max={96} value={Number(data.playSize) || 56} onChange={(playSize) => patch({ playSize })} />
+          <MediaColor label="Arrow color" value={stage.arrowColor} onChange={(arrowColor) => patch({ arrowColor })} />
+          <MediaRange label="Arrow size" min={12} max={80} suffix="px" value={stage.arrowSize} onChange={(arrowSize) => patch({ arrowSize })} />
+          <MediaToggle label="Shadow" checked={stage.arrowShadow} onChange={(arrowShadow) => patch({ arrowShadow })} />
+          <MediaSelect
+            label="Pagination"
+            value={stage.dotPosition}
+            onChange={(dotPosition) => patch({ dotPosition })}
+            options={[
+              { value: 'outside', label: 'Outside' },
+              { value: 'inside', label: 'Inside' },
+            ]}
+          />
+          <MediaRange label="Space between dots" min={0} max={32} suffix="px" value={stage.dotGap} onChange={(dotGap) => patch({ dotGap })} />
+          <MediaRange label="Dot size" min={4} max={24} suffix="px" value={stage.dotSize} onChange={(dotSize) => patch({ dotSize })} />
+          <MediaColor label="Color" value={stage.dotColor} onChange={(dotColor) => patch({ dotColor })} />
+          <MediaColor label="Active color" value={stage.dotActiveColor} onChange={(dotActiveColor) => patch({ dotActiveColor })} />
+          <MediaColor label="Play icon color" value={stage.playColor} onChange={(playColor) => patch({ playColor })} />
+          <MediaRange label="Play icon size" min={24} max={120} suffix="px" value={stage.playSize} onChange={(playSize) => patch({ playSize })} />
         </BlogInspectorSection>
         <BlogInspectorSection title="Overlay" defaultOpen={false}>
           <MediaSelect
@@ -247,7 +353,11 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
           <MediaColor label="Color" value={String(data.overlayColor ?? '#000000')} onChange={(overlayColor) => patch({ overlayColor })} />
         </BlogInspectorSection>
         <BlogInspectorSection title="Lightbox" defaultOpen={false}>
-          <MediaToggle label="Lightbox" checked={Boolean(data.lightbox)} onChange={(lightbox) => patch({ lightbox })} />
+          <MediaToggle label="Lightbox" checked={stage.lightbox} onChange={(lightbox) => patch({ lightbox })} />
+          <MediaColor label="Color" value={stage.lightboxColor} onChange={(lightboxColor) => patch({ lightboxColor })} />
+          <MediaColor label="UI color" value={stage.lightboxUi} onChange={(lightboxUi) => patch({ lightboxUi })} />
+          <MediaColor label="UI hover color" value={stage.lightboxUiHover} onChange={(lightboxUiHover) => patch({ lightboxUiHover })} />
+          <MediaRange label="UI width" min={40} max={100} suffix="%" value={stage.lightboxWidth} onChange={(lightboxWidth) => patch({ lightboxWidth })} />
         </BlogInspectorSection>
       </div>
     );
@@ -277,11 +387,35 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
           const expanded = open === index;
           const video = String(row.mediaType ?? 'image') === 'video';
           return (
-            <div key={index} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div
+              key={index}
+              className={`overflow-hidden rounded-lg border bg-white ${dragFrom === index ? 'border-[#7c3aed]' : 'border-slate-200'}`}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (dragFrom != null) moveRow(dragFrom, index);
+                setDragFrom(null);
+              }}
+            >
               <div className="flex items-center gap-1 px-2 py-2">
+                <span
+                  className="cursor-grab text-slate-400 active:cursor-grabbing"
+                  draggable
+                  title="Drag to reorder"
+                  aria-label="Drag to reorder"
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(index));
+                    setDragFrom(index);
+                  }}
+                  onDragEnd={() => setDragFrom(null)}
+                >
+                  <GripVertical size={14} />
+                </span>
                 <button type="button" className="min-w-0 flex-1 truncate text-left text-xs font-semibold" onClick={() => setOpen(expanded ? -1 : index)}>
                   {String(row.title ?? row.caption ?? '').trim() || `Item #${index + 1}`}
                 </button>
+                <ReorderButtons index={index} total={rows.length} onMove={moveRow} />
                 <button
                   type="button"
                   aria-label="Remove item"
@@ -331,6 +465,14 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
                       Choose image
                     </button>
                   </div>
+                  <Field label="Alt text">
+                    <input
+                      className={mediaInput}
+                      placeholder="Describe the image for screen readers"
+                      value={String(row.alt ?? '')}
+                      onChange={(event) => patchRow(index, { alt: event.target.value })}
+                    />
+                  </Field>
                   <Field label="Video link">
                     <input
                       className={mediaInput}
@@ -347,6 +489,14 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
                       className={mediaInput}
                       value={String(row.caption ?? '')}
                       onChange={(event) => patchRow(index, { caption: event.target.value })}
+                    />
+                  </Field>
+                  <Field label="Link">
+                    <input
+                      className={mediaInput}
+                      placeholder="/blog/your-post or /page"
+                      value={String(row.link ?? '')}
+                      onChange={(event) => patchRow(index, { link: event.target.value })}
                     />
                   </Field>
                 </div>
@@ -387,7 +537,18 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
         onChange={(value) => patch({ slidesToScroll: Number(value) })}
         options={[1, 2, 3, 4, 5, 6].map((count) => ({ value: String(count), label: String(count) }))}
       />
-      <MediaRange label="Height" min={160} max={800} suffix="px" value={Number(data.height) || 420} onChange={(height) => patch({ height })} />
+      <MediaRange label="Height" min={120} max={900} suffix="px" value={stage.height} onChange={(height) => patch({ height })} />
+      <MediaRange label="Width" min={20} max={100} suffix="%" value={stage.widthPercent} onChange={(widthPercent) => patch({ widthPercent })} />
+      <MediaRange label="Gap" min={0} max={80} suffix="px" value={stage.gap} onChange={(gap) => patch({ gap })} />
+      <MediaSelect
+        label="Image fit"
+        value={stage.fit}
+        onChange={(imageFit) => patch({ imageFit })}
+        options={[
+          { value: 'cover', label: 'Cover' },
+          { value: 'contain', label: 'Contain' },
+        ]}
+      />
       <BlogInspectorSection title="Additional options" defaultOpen={false}>
         <MediaToggle label="Arrows" checked={data.showArrows !== false} onChange={(showArrows) => patch({ showArrows })} />
         <MediaToggle label="Pagination" checked={data.showDots !== false} onChange={(showDots) => patch({ showDots })} />
@@ -418,15 +579,6 @@ export function MediaCarouselFields({ block, tab }: { block: BlogBlock; tab: 'co
           label="Pause on interaction"
           checked={Boolean(data.pauseOnInteraction)}
           onChange={(pauseOnInteraction) => patch({ pauseOnInteraction })}
-        />
-        <MediaSelect
-          label="Image fit"
-          value={String(data.imageFit ?? 'cover')}
-          onChange={(imageFit) => patch({ imageFit })}
-          options={[
-            { value: 'cover', label: 'Cover' },
-            { value: 'contain', label: 'Contain' },
-          ]}
         />
       </BlogInspectorSection>
     </div>

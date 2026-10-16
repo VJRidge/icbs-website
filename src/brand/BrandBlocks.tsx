@@ -5,6 +5,7 @@ import { useResolvableHref } from './cardHref'
 import type { BlogBlock } from '../studio/lib/blog/blogBlockTypes'
 import { useBrandEdit } from './brandEditContext'
 import { highlightedText } from './headingHighlight'
+import BrandNoteBlock from './BrandNoteBlock'
 import { isPieceHidden, pieceBag, pieceCss, pieceHover, widgetName } from './brandPieces'
 import './brand.css'
 
@@ -18,6 +19,7 @@ type Item = {
   image: string
   sample: boolean
   featured: boolean
+  cta: string
 }
 
 function str(data: Record<string, unknown>, key: string): string {
@@ -48,6 +50,7 @@ function items(data: Record<string, unknown>): Item[] {
       image: String(o.image ?? ''),
       sample: Boolean(o.sample),
       featured: Boolean(o.featured),
+      cta: String(o.cta ?? ''),
     }
   })
 }
@@ -126,6 +129,7 @@ function Card({ data, index, item }: { data: Record<string, unknown>; index: num
       {item.meta ? <Editable data={data} field={`items.${index}.meta`} label="Small label" as="p" className="vj-k">{item.meta}</Editable> : null}
       <Editable data={data} field={`items.${index}.title`} label="Title" as="h3">{item.title || 'Title'}</Editable>
       {item.text ? <Editable data={data} field={`items.${index}.text`} label="Description" as="p">{item.text}</Editable> : null}
+      {item.cta ? <Editable data={data} field={`items.${index}.cta`} label="Button" as="p" className="vj-card-cta"><span className="vj-btn">{item.cta}</span></Editable> : null}
       <CardFacts item={item} />
     </>
   ) : (
@@ -133,6 +137,7 @@ function Card({ data, index, item }: { data: Record<string, unknown>; index: num
       {item.meta && !isPieceHidden(data, `items.${index}.meta`) ? <p className="vj-k">{item.meta}</p> : null}
       {isPieceHidden(data, `items.${index}.title`) ? null : <h3>{item.title}</h3>}
       {item.text && !isPieceHidden(data, `items.${index}.text`) ? <p>{item.text}</p> : null}
+      {item.cta && !isPieceHidden(data, `items.${index}.cta`) ? <p className="vj-card-cta"><span className="vj-btn">{item.cta}</span></p> : null}
       <CardFacts item={item} />
     </>
   )
@@ -336,10 +341,11 @@ function Hero({ data }: { data: Record<string, unknown> }) {
   const showForm = Boolean(data.showForm)
   const lead = Boolean(str(data, 'bookTitle'))
   const meet = lead && Boolean(str(data, 'mediaLabel')) && Boolean(str(data, 'secondaryLabel'))
+  const showMedia = lead || Boolean(str(data, 'mediaUrl')) || Boolean(str(data, 'mediaLabel'))
   return (
     <>
       <section className={lead ? 'vj-sec vj-hero vj-hero-lead' : 'vj-sec'} id={showForm ? 'signup' : undefined}>
-        <div className="vj-wrap vj-split">
+        <div className={showMedia ? 'vj-wrap vj-split' : 'vj-wrap vj-split vj-split-solo'}>
           <div className="vj-hero-copy">
             {str(data, 'eyebrow') ? <Editable data={data} field="eyebrow" as="p" className="vj-k">{str(data, 'eyebrow')}</Editable> : null}
             <Editable data={data} field="headline" label="Title" as="h1">
@@ -386,9 +392,9 @@ function Hero({ data }: { data: Record<string, unknown> }) {
                 </div>
               </div>
             </aside>
-          ) : (
+          ) : showMedia ? (
             <MediaSlot data={data} />
-          )}
+          ) : null}
         </div>
       </section>
       {lead && !edit ? <BookAd data={data} /> : null}
@@ -402,7 +408,7 @@ function CardGrid({ data, forest = false }: { data: Record<string, unknown>; for
       <div className="vj-wrap">
         {str(data, 'label') ? <Editable data={data} field="label" as="p" className="vj-k">{str(data, 'label')}</Editable> : null}
         {str(data, 'heading') ? <Editable data={data} field="heading" label="Heading" as="h2">{str(data, 'heading')}</Editable> : null}
-        <div className="vj-grid">
+        <div className={items(data).length === 2 ? 'vj-grid vj-grid-2' : 'vj-grid'}>
           {items(data).map((item, index) => (
             <Card key={`${item.title}-${index}`} data={data} index={index} item={item} />
           ))}
@@ -899,6 +905,8 @@ export default function BrandBlockView({ block }: { block: BlogBlock }) {
       return <Thanks data={data} />
     case 'brand_article':
       return <Article data={data} />
+    case 'brand_note':
+      return <BrandNoteBlock data={data} />
     default:
       return null
   }

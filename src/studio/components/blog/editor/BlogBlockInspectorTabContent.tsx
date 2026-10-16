@@ -24,7 +24,12 @@ import { RichEditorFontControls } from '../../RichEditorFontControls';
 import BlogParagraphStyleInspector from './BlogParagraphStyleInspector';
 import MediaWidgetFields from './MediaWidgetFields';
 import DeviceStyleOverrides from './DeviceStyleOverrides';
+import SurfaceBackgroundInspector from './SurfaceBackgroundInspector';
+import { PostsContent, PostsStyle } from './BlogPostTeasersInspector';
+import { readSurfaceBackground, surfaceBackgroundPatch } from '../../../lib/blog/surfaceBackground';
 import type { BlogInspectorTabId } from './BlogInspectorTabs';
+import { LightboxEditFields } from '../blocks/BlogModalPopupBlock';
+import BlogAccordionInspector from './BlogAccordionInspector';
 
 function CanvasHint({ children }: { children?: React.ReactNode }) {
   return (
@@ -137,10 +142,10 @@ function ColorRow({
         <BlogInspectorColorControl
           value={stored}
           fallback={fallback}
+          showHex
           onChange={onChange}
           title={stored ? label : `${label} (default)`}
         />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{stored ? stored : 'Default'}</span>
       </div>
     </div>
   );
@@ -157,6 +162,12 @@ function HeadingStyle({ block }: { block: BlogBlock }) {
   const shadow = String(block.data.shadow ?? '') === 'soft' ? 'soft' : 'none';
   return (
     <div className="space-y-3">
+      <SurfaceBackgroundInspector
+        blockId={block.id}
+        title="Title background"
+        value={readSurfaceBackground(block.data)}
+        onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+      />
       <BlogInspectorSection title="Typography">
         <RichEditorFontControls
           block={{
@@ -348,6 +359,10 @@ function ImageStyle({ block }: { block: BlogBlock }) {
   );
 }
 
+function LightboxContent({ block }: { block: BlogBlock }) {
+  return <LightboxEditFields block={block} />;
+}
+
 function ButtonContent({ block }: { block: BlogBlock }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   return (
@@ -384,6 +399,21 @@ function ButtonStyle({ block }: { block: BlogBlock }) {
   return (
     <div className="space-y-3">
       <BlogInspectorAlignment value={align} onChange={(value) => updateBlock(block.id, { align: value })} />
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Style</span>
+        <select
+          value={String(block.data.style ?? 'primary')}
+          onChange={(e) => updateBlock(block.id, { style: e.target.value })}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        >
+          <option value="primary">Filled</option>
+          <option value="pill">Pill</option>
+          <option value="outline">Outline</option>
+          <option value="secondary">Secondary</option>
+          <option value="ghost">Ghost</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
       <label className="block text-xs text-slate-700">
         <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Size</span>
         <select
@@ -450,51 +480,31 @@ function ButtonStyle({ block }: { block: BlogBlock }) {
   );
 }
 
-function PostsContent({ block }: { block: BlogBlock }) {
+function SpacerContent({ block }: { block: BlogBlock }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const columns = Number(block.data.columns) === 3 ? 3 : Number(block.data.columns) === 1 ? 1 : 2;
-  const limit = Math.min(12, Math.max(1, Number(block.data.limit) || 3));
+  const height = Math.max(8, Math.min(480, Number(block.data.height) || 48));
   return (
-    <div className="space-y-3">
-      <p className="text-xs leading-relaxed text-slate-600">Shows published posts, newest first.</p>
-      <label className="block text-xs text-slate-700">
-        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Columns</span>
-        <select
-          value={columns}
-          onChange={(e) => updateBlock(block.id, { columns: Number(e.target.value) })}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        >
-          <option value={1}>1</option>
-          <option value={2}>2</option>
-          <option value={3}>3</option>
-        </select>
-      </label>
-      <label className="block text-xs text-slate-700">
-        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Posts per page</span>
-        <input
-          type="number"
-          min={1}
-          max={12}
-          value={limit}
-          onChange={(e) => updateBlock(block.id, { limit: Math.min(12, Math.max(1, Number(e.target.value) || 3)) })}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-        />
-      </label>
-    </div>
-  );
-}
-
-function AccordionContent({ block }: { block: BlogBlock }) {
-  const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const oneAtATime = block.data.allowMultiple === false;
-  return (
-    <label className="flex items-center gap-2 text-xs text-slate-700">
+    <label className="block text-xs text-slate-700">
+      <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+        Height: {height}px
+      </span>
       <input
-        type="checkbox"
-        checked={oneAtATime}
-        onChange={(event) => updateBlock(block.id, { allowMultiple: !event.target.checked })}
+        type="range"
+        min={8}
+        max={480}
+        step={8}
+        value={height}
+        onChange={(event) => updateBlock(block.id, { height: Number(event.target.value) || 48 })}
+        className="w-full accent-brand-blue"
       />
-      Only one question open at a time
+      <input
+        type="number"
+        min={8}
+        max={480}
+        value={height}
+        onChange={(event) => updateBlock(block.id, { height: Math.max(8, Math.min(480, Number(event.target.value) || 48)) })}
+        className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
     </label>
   );
 }
@@ -519,6 +529,8 @@ function InspectorContentTab({ block }: { block: BlogBlock }) {
       return <ImageContent block={block} />;
     case 'button':
       return <ButtonContent block={block} />;
+    case 'modal_popup':
+      return <LightboxContent block={block} />;
     case 'post_teasers':
       return <PostsContent block={block} />;
     case 'quote':
@@ -534,7 +546,15 @@ function InspectorContentTab({ block }: { block: BlogBlock }) {
     case 'columns':
       return <BlogColumnsBlock block={block} isEditing inspectorTab="content" />;
     case 'accordion':
-      return <AccordionContent block={block} />;
+      return <BlogAccordionInspector block={block} />;
+    case 'spacer':
+      return <SpacerContent block={block} />;
+    case 'news_ticker':
+    case 'dual_button':
+    case 'progress':
+    case 'review':
+    case 'tabs':
+      return <CanvasHint>Edit this widget on the canvas. Content, labels, and layout are there.</CanvasHint>;
     case 'kit_hero':
     case 'kit_contents':
     case 'kit_gallery':
@@ -582,7 +602,90 @@ function InspectorStyleTab({ block }: { block: BlogBlock }) {
   }
 
   if (block.type === 'paragraph') {
-    return <BlogParagraphStyleInspector block={block} />;
+    return (
+      <div className="space-y-3">
+        <SurfaceBackgroundInspector
+          blockId={block.id}
+          title="Text background"
+          value={readSurfaceBackground(block.data)}
+          onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+        />
+        <BlogParagraphStyleInspector block={block} />
+      </div>
+    );
+  }
+
+  if (block.type === 'modal_popup') {
+    return (
+      <div className="space-y-3">
+        <SurfaceBackgroundInspector
+          blockId={block.id}
+          title="Lightbox background"
+          value={readSurfaceBackground(block.data)}
+          onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+        />
+        <BlogParagraphStyleInspector block={block} />
+      </div>
+    );
+  }
+
+  if (block.type === 'card') {
+    return (
+      <SurfaceBackgroundInspector
+        blockId={block.id}
+        title="Card background"
+        value={readSurfaceBackground(block.data)}
+        onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+      />
+    );
+  }
+
+  if (block.type === 'accordion') {
+    return (
+      <div className="space-y-3">
+        <SurfaceBackgroundInspector
+          blockId={block.id}
+          title="Accordion background"
+          value={readSurfaceBackground(block.data)}
+          onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+        />
+        <BlogInspectorSection title="Colors">
+          <ColorRow
+            label="Toggle button"
+            value={String(block.data.toggleColor ?? '')}
+            fallback="#e8d44d"
+            onChange={(toggleColor) => updateBlock(block.id, { toggleColor })}
+          />
+          <ColorRow
+            label="Toggle symbol"
+            value={String(block.data.toggleTextColor ?? '')}
+            fallback="#1d3328"
+            onChange={(toggleTextColor) => updateBlock(block.id, { toggleTextColor })}
+          />
+          <ColorRow
+            label="Chip boxes"
+            value={String(block.data.chipColor ?? '')}
+            fallback="#bccbbd"
+            onChange={(chipColor) => updateBlock(block.id, { chipColor })}
+          />
+          <ColorRow
+            label="Chip text"
+            value={String(block.data.chipTextColor ?? '')}
+            fallback="#1d3328"
+            onChange={(chipTextColor) => updateBlock(block.id, { chipTextColor })}
+          />
+        </BlogInspectorSection>
+        <BlogInspectorSpacing
+          marginTop={blogDataNum(data, 'marginTop', 0)}
+          marginBottom={blogDataNum(data, 'marginBottom', 0)}
+          onChange={(p) => updateBlock(block.id, p)}
+        />
+      </div>
+    );
+  }
+
+  if (block.type === 'post_teasers') {
+    return <PostsStyle block={block} />;
   }
 
   const hasAlign = 'align' in data;

@@ -1,26 +1,69 @@
 import type { Editor } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
+import { shouldSplitTextblockBeforeList } from './blog/blogEditorFocus';
 
 export type ToolbarTextSelection = { from: number; to: number };
 
 const savedToolbarSelection = new WeakMap<Editor, ToolbarTextSelection>();
 const frozenToolbarSelection = new WeakMap<Editor, ToolbarTextSelection>();
 
+/** Decide which range to keep when the toolbar steals focus. */
+export function rememberedToolbarSelection(args: {
+  live: ToolbarTextSelection;
+  frozen?: ToolbarTextSelection;
+  previouslySaved?: ToolbarTextSelection;
+  editorHasFocus: boolean;
+}): ToolbarTextSelection | undefined {
+  const { live, frozen, previouslySaved, editorHasFocus } = args;
+  if (live.from !== live.to) return live;
+  if (frozen && frozen.from !== frozen.to) return frozen;
+  if (editorHasFocus) return live;
+  return previouslySaved;
+}
+
 /**
  * Snapshot TipTap selection before toolbar controls steal focus.
- * Does not replace an existing non-empty range with a collapsed cursor (blur).
+ * Keeps a caret so lists start where the user clicked, not at the top of the box.
  */
 export function saveToolbarEditorSelection(editor: Editor): void {
-  const { from, to } = editor.state.selection;
-  if (from === to) {
-    const frozen = frozenToolbarSelection.get(editor);
-    if (frozen && frozen.from !== frozen.to) {
-      savedToolbarSelection.set(editor, frozen);
-    }
-    return;
+  const live = { from: editor.state.selection.from, to: editor.state.selection.to };
+  const next = rememberedToolbarSelection({
+    live,
+    frozen: frozenToolbarSelection.get(editor),
+    previouslySaved: savedToolbarSelection.get(editor),
+    editorHasFocus: editor.view.hasFocus(),
+  });
+  if (next) savedToolbarSelection.set(editor, next);
+  if (live.from !== live.to) frozenToolbarSelection.delete(editor);
+}
+
+/** After the toolbar steals focus, put the caret back — not an older color highlight. */
+export function selectionToRestore(args: {
+  live: ToolbarTextSelection;
+  saved?: ToolbarTextSelection;
+  frozen?: ToolbarTextSelection;
+  editorHasFocus: boolean;
+}): ToolbarTextSelection | undefined {
+  if (args.editorHasFocus) return args.live;
+  return args.saved ?? args.frozen ?? args.live;
+}
+
+/** Put the caret or highlight back before a toolbar command (lists, indent, marks). */
+export function restoreToolbarEditorSelection(editor: Editor): boolean {
+  if (editor.isDestroyed) return false;
+  const target = selectionToRestore({
+    live: { from: editor.state.selection.from, to: editor.state.selection.to },
+    saved: savedToolbarSelection.get(editor),
+    frozen: frozenToolbarSelection.get(editor),
+    editorHasFocus: editor.view.hasFocus(),
+  });
+  if (!target) {
+    return editor.chain().focus().run();
   }
-  frozenToolbarSelection.delete(editor);
-  savedToolbarSelection.set(editor, { from, to });
+  const docSize = editor.state.doc.content.size;
+  const from = Math.max(0, Math.min(target.from, docSize));
+  const to = Math.max(0, Math.min(target.to, docSize));
+  return editor.chain().setTextSelection({ from, to }).focus().run();
 }
 
 /** Lock the current highlight before a toolbar control takes focus. */
@@ -45,8 +88,7 @@ export function peekToolbarEditorSelection(editor: Editor): ToolbarTextSelection
 /** Keep the last non-empty highlight so toolbar controls can apply after blur. */
 export function attachToolbarSelectionMemory(editor: Editor): () => void {
   const remember = () => {
-    const { from, to } = editor.state.selection;
-    if (from !== to) saveToolbarEditorSelection(editor);
+    if (editor.view.hasFocus()) saveToolbarEditorSelection(editor);
   };
   editor.on('selectionUpdate', remember);
   return () => {
@@ -221,6 +263,10 @@ export function applyEditorFontSize(editor: Editor, fontSize: string): boolean {
   return applyTextStylePatch(editor, { fontSize: fontSize || null });
 }
 
+export function applyEditorFontWeight(editor: Editor, fontWeight: string): boolean {
+  return applyTextStylePatch(editor, { fontWeight: fontWeight || null });
+}
+
 export function applyEditorTextColor(
   editor: Editor,
   color: string,
@@ -247,4 +293,16 @@ export function applyEditorHighlight(editor: Editor, color: string): boolean {
 
 export function preserveEditorSelectionOnControlMouseDown(e: { preventDefault: () => void }): void {
   e.preventDefault();
+}
+
+export function toggleListAtCaret(editor: Editor, kind: 'bulletList' | 'orderedList' | 'taskList'): boolean {
+  restoreToolbarEditorSelection(editor);
+  const { empty, $from } = editor.state.selection;
+  if (empty && $from.parent.isTextblock && shouldSplitTextblockBeforeList($from.parentOffset, $from.parent.content.size)) {
+    editor.chain().focus().splitBlock().run();
+  }
+  const chain = editor.chain().focus();
+  if (kind === 'bulletList') return chain.toggleBulletList().run();
+  if (kind === 'orderedList') return chain.toggleOrderedList().run();
+  return chain.toggleTaskList().run();
 }

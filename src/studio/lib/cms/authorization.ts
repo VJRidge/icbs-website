@@ -214,6 +214,14 @@ export function canReadPurchases(
   return hasStaffCapability(role, 'content.read', opts);
 }
 
+/** Resend a purchase download email — same bar as other sales writes. */
+export function canResendPurchases(
+  role: string | null | undefined,
+  opts?: { staffApproved?: boolean; disabled?: boolean },
+): boolean {
+  return hasStaffCapability(role, 'content.update_any', opts);
+}
+
 /** Audience segments / tags — same bar as Contacts. */
 export function canManageSegments(
   role: string | null | undefined,

@@ -184,6 +184,10 @@ const SECTION_PIECES: Record<string, { field: string; label: string }[]> = {
     { field: 'label', label: 'Small label' },
     { field: 'heading', label: 'Heading' },
   ],
+  brand_note: [
+    { field: 'eyebrow', label: 'Eyebrow' },
+    { field: 'heading', label: 'Heading' },
+  ],
 }
 
 export function piecesFor(type: string, data: Record<string, unknown>): { field: string; label: string }[] {

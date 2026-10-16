@@ -43,12 +43,24 @@ export function paragraphBlockWrapperStyle(data: Record<string, unknown>): CSSPr
   const align = String(data.align ?? '').trim();
   const shadowCss = textShadowToCss(parseTextShadow(data));
 
+  const fontFamily = String(data.fontFamily ?? '').trim();
+  const fontSizeRaw = String(data.fontSize ?? '').trim();
+  const fontSize = fontSizeRaw ? (/^\d+(\.\d+)?$/.test(fontSizeRaw) ? `${fontSizeRaw}px` : fontSizeRaw) : undefined;
+  const fontWeight = String(data.fontWeight ?? '').trim();
+  const lineHeight = String(data.lineHeight ?? '').trim();
+  const letterSpacing = String(data.letterSpacing ?? '').trim();
+
   const style: CSSProperties & Record<string, string | undefined> = {
     marginTop: mt ? `${mt}px` : undefined,
     marginBottom: mb ? `${mb}px` : undefined,
     textAlign: align === 'left' || align === 'center' || align === 'right' || align === 'justify' ? align : undefined,
     color: textColor || undefined,
     textShadow: shadowCss,
+    fontFamily: fontFamily || undefined,
+    fontSize,
+    fontWeight: fontWeight || undefined,
+    lineHeight: lineHeight || undefined,
+    letterSpacing: letterSpacing ? (letterSpacing.endsWith('px') ? letterSpacing : `${letterSpacing}px`) : undefined,
   };
 
   if (spacing > 0) style['--blog-p-spacing'] = `${spacing}px`;

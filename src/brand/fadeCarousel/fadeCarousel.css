@@ -1,0 +1,425 @@
+.icbs-fade {
+  --fade-pt: 0px;
+  --fade-pr: 0px;
+  --fade-pb: 0px;
+  --fade-pl: 0px;
+  --fade-mt: 0px;
+  --fade-mr: 0px;
+  --fade-mb: 0px;
+  --fade-ml: 0px;
+  --fade-ms: 800ms;
+  --fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fade-dot-active: #fdc20f;
+  --fade-dot-idle: rgba(247, 247, 242, 0.45);
+  --fade-arrow: #f7f7f2;
+  --fade-ink: #f7f7f2;
+  position: relative;
+  margin: var(--fade-mt) var(--fade-mr) var(--fade-mb) var(--fade-ml);
+  padding: var(--fade-pt) var(--fade-pr) var(--fade-pb) var(--fade-pl);
+  color: var(--fade-ink);
+}
+
+@media (min-width: 768px) {
+  .icbs-fade {
+    margin: var(--fade-mt-md, var(--fade-mt)) var(--fade-mr-md, var(--fade-mr))
+      var(--fade-mb-md, var(--fade-mb)) var(--fade-ml-md, var(--fade-ml));
+    padding: var(--fade-pt-md, var(--fade-pt)) var(--fade-pr-md, var(--fade-pr))
+      var(--fade-pb-md, var(--fade-pb)) var(--fade-pl-md, var(--fade-pl));
+  }
+}
+
+@media (min-width: 1024px) {
+  .icbs-fade {
+    margin: var(--fade-mt-lg, var(--fade-mt-md, var(--fade-mt)))
+      var(--fade-mr-lg, var(--fade-mr-md, var(--fade-mr)))
+      var(--fade-mb-lg, var(--fade-mb-md, var(--fade-mb)))
+      var(--fade-ml-lg, var(--fade-ml-md, var(--fade-ml)));
+    padding: var(--fade-pt-lg, var(--fade-pt-md, var(--fade-pt)))
+      var(--fade-pr-lg, var(--fade-pr-md, var(--fade-pr)))
+      var(--fade-pb-lg, var(--fade-pb-md, var(--fade-pb)))
+      var(--fade-pl-lg, var(--fade-pl-md, var(--fade-pl)));
+  }
+}
+
+.duration-fade {
+  transition-duration: var(--fade-ms);
+}
+.ease-fade {
+  transition-timing-function: var(--fade-ease);
+}
+
+.icbs-fade-stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 22rem;
+  background: #072a1b;
+}
+
+.icbs-fade--split .icbs-fade-stage,
+.icbs-fade--card .icbs-fade-stage {
+  background: #f7f7f2;
+}
+
+.icbs-fade-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity var(--fade-ms) var(--fade-ease), transform var(--fade-ms) var(--fade-ease);
+  pointer-events: none;
+}
+
+.icbs-fade-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.icbs-fade.is-cut .icbs-fade-slide {
+  transition: none;
+  transform: none;
+}
+
+.icbs-fade-media,
+.icbs-fade-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.icbs-fade-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.icbs-fade-overlay--bottom {
+  background: linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--fade-overlay, #072a1b) calc(var(--fade-overlay-a, 0.62) * 100%), transparent) 100%);
+}
+
+.icbs-fade-overlay--top {
+  background: linear-gradient(0deg, transparent 20%, color-mix(in srgb, var(--fade-overlay, #072a1b) calc(var(--fade-overlay-a, 0.62) * 100%), transparent) 100%);
+}
+
+.icbs-fade-overlay--radial {
+  background: radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--fade-overlay, #072a1b) 35%, transparent), color-mix(in srgb, var(--fade-overlay, #072a1b) calc(var(--fade-overlay-a, 0.72) * 100%), transparent));
+}
+
+.icbs-fade-overlay--none {
+  background: color-mix(in srgb, var(--fade-overlay, #072a1b) calc(var(--fade-overlay-a, 0.45) * 100%), transparent);
+}
+
+.icbs-fade-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  height: 100%;
+  padding: var(--fade-copy-pad, 2.25rem);
+  max-width: var(--fade-copy-max, 36rem);
+}
+
+.icbs-fade-eyebrow {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fdc20f;
+}
+
+.icbs-fade-title {
+  margin: 0;
+  font-family: Newsreader, Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-wrap: balance;
+  color: inherit;
+}
+
+.icbs-fade-sub {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.icbs-fade-body {
+  margin: 0;
+  max-width: 38ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, currentColor 88%, transparent);
+}
+
+.icbs-fade-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 0.35rem;
+}
+
+.icbs-fade-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #072a1b;
+  background: #fdc20f;
+}
+
+.icbs-fade-cta:hover,
+.icbs-fade-cta:focus-visible {
+  background: var(--fade-cta-hover-bg, #f3d13d);
+  color: var(--fade-cta-hover-ink, #072a1b);
+}
+
+.icbs-fade-cta--secondary {
+  background: transparent;
+  color: #f7f7f2;
+  border-color: #f7f7f2;
+}
+
+.icbs-fade-cta--secondary:hover,
+.icbs-fade-cta--secondary:focus-visible {
+  background: #f7f7f2;
+  color: #072a1b;
+}
+
+.icbs-fade-cta--ghost {
+  background: transparent;
+  color: inherit;
+  border-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.icbs-fade--split .icbs-fade-slide {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.icbs-fade--split .icbs-fade-media {
+  position: relative;
+  min-height: 16rem;
+}
+
+.icbs-fade--split .icbs-fade-copy {
+  max-width: none;
+  background: #072a1b;
+  color: #f7f7f2;
+}
+
+@media (min-width: 800px) {
+  .icbs-fade--split .icbs-fade-slide {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+
+  .icbs-fade--split .icbs-fade-media,
+  .icbs-fade--split .icbs-fade-media img {
+    position: absolute;
+  }
+}
+
+.icbs-fade--card .icbs-fade-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.icbs-fade--card .icbs-fade-slide {
+  position: absolute;
+  inset: 1.5rem;
+  max-width: 52rem;
+  margin: auto;
+  overflow: hidden;
+  border-radius: 1.35rem;
+  box-shadow: 0 24px 60px rgba(7, 42, 27, 0.22);
+}
+
+.icbs-fade-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 3;
+  margin-top: auto;
+  padding: 0.95rem 1.1rem;
+}
+
+.icbs-fade-arrows.inside {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.icbs-fade-arrows.inside .icbs-fade-arrow {
+  pointer-events: auto;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.icbs-fade-arrows.inside .icbs-fade-arrow--prev {
+  left: 0.85rem;
+}
+
+.icbs-fade-arrows.inside .icbs-fade-arrow--next {
+  right: 0.85rem;
+}
+
+.icbs-fade-arrow,
+.icbs-fade-pause {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  background: color-mix(in srgb, #072a1b 55%, transparent);
+  color: var(--fade-arrow);
+  cursor: pointer;
+}
+
+.icbs-fade-arrow.shape-circle,
+.icbs-fade-pause {
+  border-radius: 999px;
+}
+
+.icbs-fade-arrow.shape-square {
+  border-radius: 0.4rem;
+}
+
+.icbs-fade-arrow.shape-none {
+  background: transparent;
+}
+
+.icbs-fade-arrow:hover,
+.icbs-fade-pause:hover,
+.icbs-fade-arrow:focus-visible,
+.icbs-fade-pause:focus-visible {
+  background: var(--fade-arrow-hover, #1c6b48);
+}
+
+.icbs-fade-dots {
+  display: flex;
+  align-items: center;
+  gap: var(--fade-dot-gap, 0.45rem);
+}
+
+.icbs-fade-dot {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: var(--fade-dot-idle);
+  cursor: pointer;
+}
+
+.icbs-fade-dot.shape-dot {
+  width: var(--fade-dot-size, 8px);
+  height: var(--fade-dot-size, 8px);
+  border-radius: 999px;
+}
+
+.icbs-fade-dot.shape-line {
+  width: calc(var(--fade-dot-size, 8px) * 3);
+  height: 3px;
+  border-radius: 99px;
+}
+
+.icbs-fade-dot.shape-square {
+  width: var(--fade-dot-size, 8px);
+  height: var(--fade-dot-size, 8px);
+  border-radius: 2px;
+}
+
+.icbs-fade-dot.is-active {
+  background: color-mix(in srgb, var(--fade-dot-active) 35%, transparent);
+}
+
+.icbs-fade-dot-progress {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--fade-dot-active);
+}
+
+.icbs-fade.is-playing .icbs-fade-dot.is-active .icbs-fade-dot-progress {
+  animation: icbs-fade-progress var(--fade-interval, 6s) linear forwards;
+}
+
+.icbs-fade.is-paused .icbs-fade-dot-progress {
+  animation-play-state: paused;
+}
+
+.icbs-fade-count {
+  margin-left: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: #072a1b;
+}
+
+.icbs-fade-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@keyframes icbs-fade-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icbs-fade-slide,
+  .icbs-fade-dot-progress {
+    transition: none;
+    animation: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .icbs-fade-hide-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .icbs-fade-hide-tablet {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .icbs-fade-hide-desktop {
+    display: none;
+  }
+}

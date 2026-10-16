@@ -9,6 +9,7 @@ import {
   saveGlobalSection,
   type SavedSection,
 } from '../../../lib/blog/savedSections'
+import StudioHistoryButtons from './StudioHistoryButtons'
 
 const btn =
   'rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-40'
@@ -47,7 +48,13 @@ export default function EditorStructureBar() {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return
       const target = event.target
-      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], .ProseMirror')) return
+      if (
+        target instanceof HTMLElement &&
+        !target.closest('[data-studio-history="widgets"]') &&
+        target.closest('input, textarea, select, [contenteditable="true"], .ProseMirror')
+      ) {
+        return
+      }
       const key = event.key.toLowerCase()
       if (key === 'y') {
         event.preventDefault()
@@ -123,25 +130,27 @@ export default function EditorStructureBar() {
   }
 
   return (
-    <div className="mb-2 space-y-1 rounded-lg border border-slate-200 bg-white px-2 py-2">
-      <div className="flex flex-wrap items-center gap-1">
+    <div className="mb-2 rounded-lg border border-slate-200 bg-white px-2 py-2">
+      <div className="flex flex-nowrap items-center gap-1 overflow-x-auto whitespace-nowrap">
+        <StudioHistoryButtons tone="light" />
+        <span className="mx-1 h-4 w-px shrink-0 bg-slate-200" />
         {(['desktop', 'tablet', 'mobile'] as EditorDevice[]).map((item) => (
           <button
             key={item}
             type="button"
-            className={`${btn}${device === item ? ' border-brand-blue text-brand-blue' : ''}`}
+            className={`${btn} shrink-0${device === item ? ' border-brand-blue text-brand-blue' : ''}`}
             onClick={() => setPreviewDevice(item)}
           >
             {item === 'mobile' ? 'Phone' : item === 'tablet' ? 'Tablet' : 'Desktop'}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-slate-200" />
-        <button type="button" className={btn} disabled={!selectedId} onClick={() => copyWidgetStyle()}>
+        <span className="mx-1 h-4 w-px shrink-0 bg-slate-200" />
+        <button type="button" className={`${btn} shrink-0`} disabled={!selectedId} onClick={() => copyWidgetStyle()}>
           Copy style
         </button>
         <button
           type="button"
-          className={btn}
+          className={`${btn} shrink-0`}
           disabled={!clipboard || !selectedId}
           onClick={() => {
             const target = selectedId ? findBlockInTree(blocks, selectedId) : null
@@ -155,13 +164,11 @@ export default function EditorStructureBar() {
         >
           Paste style
         </button>
-      </div>
-      <div className="flex flex-wrap items-center gap-1">
-        <button type="button" className={btn} onClick={() => void save()}>
+        <button type="button" className={`${btn} shrink-0`} onClick={() => void save()}>
           Save section
         </button>
         <select
-          className="max-w-[12rem] rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700"
+          className="max-w-[12rem] shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700"
           value={sectionId}
           onChange={(event) => setSectionId(event.target.value)}
         >
@@ -172,27 +179,27 @@ export default function EditorStructureBar() {
             </option>
           ))}
         </select>
-        <button type="button" className={btn} disabled={!sectionId} onClick={() => void insert(false)}>
+        <button type="button" className={`${btn} shrink-0`} disabled={!sectionId} onClick={() => void insert(false)}>
           Insert copy
         </button>
-        <button type="button" className={btn} disabled={!sectionId} onClick={() => void insert(true)}>
+        <button type="button" className={`${btn} shrink-0`} disabled={!sectionId} onClick={() => void insert(true)}>
           Insert linked
         </button>
         {linkedId ? (
           <>
-            <button type="button" className={btn} onClick={() => void pull()}>
+            <button type="button" className={`${btn} shrink-0`} onClick={() => void pull()}>
               Update linked
             </button>
-            <button type="button" className={btn} onClick={() => void saveBack()}>
+            <button type="button" className={`${btn} shrink-0`} onClick={() => void saveBack()}>
               Save back
             </button>
-            <button type="button" className={btn} onClick={() => updateBlock(selectedTop!.id, { globalSectionId: '' })}>
+            <button type="button" className={`${btn} shrink-0`} onClick={() => updateBlock(selectedTop!.id, { globalSectionId: '' })}>
               Detach
             </button>
           </>
         ) : null}
       </div>
-      {note ? <p className="text-[11px] text-slate-500">{note}</p> : null}
+      {note ? <p className="mt-1 text-[11px] text-slate-500">{note}</p> : null}
     </div>
   )
 }

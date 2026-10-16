@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   columnWidthsForZones,
   defaultWidthsForLayout,
+  gutteredGridTemplate,
+  gridTemplateWithGutters,
   widthsWithColumnPercent,
 } from './columnLayouts';
 
@@ -14,6 +16,14 @@ describe('columnWidthsForZones', () => {
     expect(columnWidthsForZones('50-50', [{}, {}, {}], [40, 30, 30])).toEqual([40, 30, 30]);
   });
 });
+
+describe('gutteredGridTemplate', () => {
+  it('inserts a pixel track between columns', () => {
+    expect(gutteredGridTemplate('1fr 1fr 1fr', 12)).toBe('1fr 12px 1fr 12px 1fr')
+    expect(gutteredGridTemplate('repeat(2, 1fr)', 12)).toBe('1fr 12px 1fr')
+    expect(gridTemplateWithGutters([50, 50], 12)).toBe('50fr 12px 50fr')
+  })
+})
 
 describe('widthsWithColumnPercent', () => {
   it('redistributes the remainder and keeps the row at 100 percent', () => {

@@ -56,6 +56,7 @@
 }
 .vj-wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
 .vj-sec { padding: 64px 0; }
+.vj-sec[id] { scroll-margin-top: 88px; }
 .vj-sec.tight { padding-top: 28px; }
 .vj-k {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
@@ -132,6 +133,13 @@
 .vj-hero { padding: 36px 0 28px; }
 .vj-hero h1 { font-size: clamp(36px, 4.6vw, 58px); }
 .vj-split { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 36px; align-items: center; }
+.vj-split-solo { grid-template-columns: minmax(0, 42rem); }
+.vj-note-article { max-width: 760px; }
+.vj-note-article p { margin: 0 0 1.1em; }
+.vj-note-article p:last-child { margin-bottom: 0; }
+.vj-card .vj-card-cta { margin-top: 16px; }
+.vj-card-cta .vj-btn { display: inline-block; }
+.vj-grid-2 { grid-template-columns: repeat(2, 1fr); }
 .vj-lead {
   background: var(--forest);
   color: var(--cream-text);
@@ -337,36 +345,66 @@
 .vj-hero-lead .vj-lead .vj-btn.ghost { border-color: var(--ink); color: var(--ink); }
 .vj-hero-lead .vj-hero-copy .vj-btn.ghost { border-color: var(--cream-text); color: var(--cream-text); }
 .vj-lead figure, .vj-product figure, .vj-card figure { margin: 0; }
+/* Browser default is ~40px side margin on figure; that shifts images off the column. */
+.vj figure { margin-inline: 0; }
 .vj-lead img, .vj-product img, .vj-card img { border-radius: 0; box-shadow: none; }
 
 .vj-canvas-sec { position: relative; display: flow-root; }
 .vj-canvas [contenteditable='plaintext-only'],
 .vj-canvas .vj-canvas-type { cursor: text; caret-color: currentColor; }
-.vj-canvas .vj-canvas-type p { margin: 0; }
+.vj-canvas .vj-canvas-type p { margin: 0; font-weight: inherit; }
 .vj-canvas-piece,
 .vj-canvas-on { position: relative; }
 .vj-canvas-on { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .vj-canvas-piece:hover { outline: 1px dashed rgba(21, 20, 18, 0.35); outline-offset: 2px; }
 .vj-canvas-piece,
 .vj-canvas-on { align-self: flex-start; width: 100%; max-width: 100%; }
-.vj-canvas-sec.vj-sec-on { outline: 2px solid #1a5340; outline-offset: -2px; }
+.vj-canvas-sec.vj-sec-on { outline: 2px solid var(--yellow); outline-offset: -2px; }
+.vj-canvas-piece,
+.vj-canvas-on {
+  overflow: visible;
+}
 .vj-canvas-bar {
   position: absolute;
-  z-index: 4;
-  top: 4px;
-  right: 4px;
+  z-index: 20;
+  top: -26px;
+  right: 0;
   display: flex;
+  gap: 2px;
 }
 .vj-canvas-bar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   background: var(--ink);
   color: var(--cream-text);
   border: 0;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 4px 8px;
   cursor: pointer;
+}
+.vj-canvas-bar [data-drag-handle] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--ink);
+  color: var(--cream-text);
+  cursor: grab;
+}
+.vj-canvas-piece img,
+.vj-canvas-on img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+.vj-canvas-bar button:hover {
+  background: #1a5340;
+  color: #fff;
+}
+.vj-canvas-bar button.is-danger:hover {
+  background: #F25C19;
 }
 .vj-canvas-drop { outline: 2px dashed var(--yellow); outline-offset: -2px; }
 
@@ -444,6 +482,18 @@
 }
 .vj-sec-gap-lead .vj-sec-gap-hit { top: 6px; }
 .vj-sec-gap-between .vj-sec-gap-hit { top: 0; }
+.vj-sec-gap-trail {
+  height: 36px;
+}
+.vj-sec-gap-trail .vj-sec-gap-hit {
+  position: relative;
+  top: 0;
+  height: 36px;
+}
+.vj-sec-gap-trail .vj-sec-gap-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
 .vj-sec-gap-hit::before {
   content: "";
   position: absolute;
@@ -454,8 +504,7 @@
   pointer-events: none;
 }
 .vj-sec-gap:hover .vj-sec-gap-hit::before,
-.vj-sec-gap.is-over .vj-sec-gap-hit::before,
-.vj-sec-gap.is-selected .vj-sec-gap-hit::before {
+.vj-sec-gap.is-over .vj-sec-gap-hit::before {
   border-top-color: var(--yellow);
 }
 .vj-sec-gap-btn {
@@ -497,6 +546,21 @@
 .vj-sec-insert-before { box-shadow: inset 0 3px 0 var(--yellow); }
 .vj-sec-insert-after { box-shadow: inset 0 -3px 0 var(--yellow); }
 .vj-canvas-empty { min-height: 88px; }
+.vj-widget-empty {
+  min-height: 48px;
+  width: 100%;
+}
+.vj-widget-empty-label {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  color: rgba(21, 20, 18, 0.45);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
 .vj-sec-cols {
   display: grid;
@@ -640,7 +704,7 @@
   box-shadow: inset 0 -48px 0 rgba(243, 209, 61, 0.38);
 }
 .vj-sec-gap {
-  z-index: 16;
+  z-index: 2;
 }
 .vj-sec-gap-drag {
   position: absolute;
@@ -657,12 +721,7 @@
   touch-action: none;
 }
 .vj-sec-gap-drag::after {
-  content: "";
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  top: 13px;
-  border-top: 2px solid var(--yellow);
+  display: none;
 }
 .vj-sec-gap.is-over .vj-sec-gap-hit {
   background: rgba(26, 83, 64, 0.14);
@@ -858,7 +917,46 @@
   text-transform: uppercase;
 }
 .vj-drag-handle:active { cursor: grabbing; }
-.vj-col-drop { min-height: 48px; }
+.vj-col-drop {
+  min-height: 48px;
+  height: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+}
+.vj-col-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px dashed rgba(21, 20, 18, 0.4);
+  background: transparent;
+  color: inherit;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vj-surface { position: relative; isolation: isolate; }
+.vj-surface-media,
+.vj-surface-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.vj-surface-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vj-surface > :not(.vj-surface-media):not(.vj-surface-overlay) {
+  position: relative;
+  z-index: 1;
+}
 
 /* Highlighted words stay on one row. Extra mark spacing was pushing the phrase onto its own line. */
 .vj mark {
@@ -870,58 +968,52 @@
 .vj-img-handle.e,
 .vj-img-handle.w { cursor: ew-resize; }
 
-/* Column boundary handle. Centered on the gap so the section bar and the yellow rule stay clear. */
-.vj-col-grid { position: relative; }
-.vj-col-grid > :not(.vj-col-gutter) { min-width: 0; }
-.vj-col-custom { grid-template-columns: var(--vj-cols); }
+.vj-col-grid { position: relative; align-items: stretch; }
+.vj-col-grid > * { min-width: 0; }
 .vj-col-gutter {
-  position: absolute;
-  top: 50%;
-  z-index: 12;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  right: auto;
-  bottom: auto;
-  width: 28px;
-  height: 72px;
+  position: relative;
+  z-index: 8;
+  align-self: stretch;
+  width: 100%;
+  min-width: 12px;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
-  transform: translate(-50%, -50%);
   cursor: col-resize;
+  pointer-events: auto;
   touch-action: none;
-}
-.vj-col-gutter::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  transform: translateX(-50%);
-  background: #1a5340;
+  appearance: none;
 }
 .vj-col-gutter::after {
   content: "";
   position: absolute;
+  top: 16%;
+  bottom: 16%;
   left: 50%;
-  top: 50%;
-  width: 14px;
-  height: 44px;
-  transform: translate(-50%, -50%);
-  border-radius: 7px;
-  background: #f3d13d;
-  box-shadow: 0 0 0 1px #151412;
+  width: 3px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: #64748b;
+  opacity: 0.85;
 }
-.vj-col-grid[data-col-drag] .vj-col-gutter::after,
-.vj-col-gutter:hover::after { background: #1a5340; box-shadow: 0 0 0 1px #f3d13d; }
+.vj-col-custom { grid-template-columns: var(--vj-cols); }
 @media (max-width: 800px) {
   .vj-col-custom { grid-template-columns: 1fr; }
-  .vj-col-gutter { display: none; }
 }
 
-/* Heading editor sits inside the real tag so Anton, uppercase, and hero color stay. */
+/* Widget titles show the typed case. Brand landing h1/h2 stay uppercase. */
+.vj h1.vj-heading-as-typed,
+.vj h2.vj-heading-as-typed,
+.vj h3.vj-heading-as-typed,
+.vj h4.vj-heading-as-typed,
+.vj h5.vj-heading-as-typed,
+.vj h6.vj-heading-as-typed,
+.vj .vj-heading-as-typed {
+  text-transform: none;
+}
+
+/* Heading editor sits inside the real tag so Anton and hero color stay. */
 .vj .vj-heading-editor {
   outline: none;
   min-height: 1.2em;
@@ -971,4 +1063,55 @@
   .vj-header-row .site-back-btn {
     order: -1;
   }
+}
+
+/* Stack columns on phone/tablet. Inline --vj-cols must not keep a 3-col row in a 390px frame. */
+.vj[data-vj-screen="tablet"] .vj-split,
+.vj[data-vj-screen="tablet"] .vj-grid,
+.vj[data-vj-screen="tablet"] .vj-previews,
+.vj[data-vj-screen="tablet"] .vj-steps,
+.vj[data-vj-screen="tablet"] .vj-catalog,
+.vj[data-vj-screen="tablet"] .vj-product,
+.vj[data-vj-screen="tablet"] .vj-offer,
+.vj[data-vj-screen="tablet"] .vj-compare-row,
+.vj[data-vj-screen="tablet"] .vj-sec-cols,
+.vj[data-vj-screen="tablet"] .vj-col-grid,
+.vj[data-vj-screen="tablet"] .vj-col-custom,
+.vj[data-vj-screen="phone"] .vj-split,
+.vj[data-vj-screen="phone"] .vj-grid,
+.vj[data-vj-screen="phone"] .vj-previews,
+.vj[data-vj-screen="phone"] .vj-steps,
+.vj[data-vj-screen="phone"] .vj-catalog,
+.vj[data-vj-screen="phone"] .vj-product,
+.vj[data-vj-screen="phone"] .vj-offer,
+.vj[data-vj-screen="phone"] .vj-compare-row,
+.vj[data-vj-screen="phone"] .vj-sec-cols,
+.vj[data-vj-screen="phone"] .vj-col-grid,
+.vj[data-vj-screen="phone"] .vj-col-custom {
+  grid-template-columns: 1fr !important;
+}
+.vj[data-vj-screen="tablet"] .vj-col-gutter,
+.vj[data-vj-screen="phone"] .vj-col-gutter {
+  display: none !important;
+}
+.vj[data-vj-screen="tablet"] mark,
+.vj[data-vj-screen="phone"] mark {
+  white-space: normal;
+}
+@media (max-width: 800px) {
+  .vj-split,
+  .vj-grid,
+  .vj-previews,
+  .vj-steps,
+  .vj-catalog,
+  .vj-product,
+  .vj-offer,
+  .vj-compare-row,
+  .vj-sec-cols,
+  .vj-col-grid,
+  .vj-col-custom {
+    grid-template-columns: 1fr !important;
+  }
+  .vj-col-gutter { display: none !important; }
+  .vj mark { white-space: normal; }
 }

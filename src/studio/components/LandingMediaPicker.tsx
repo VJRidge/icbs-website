@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, Film, ImageIcon, Images, Loader2, Upload, X, Copy, Check } from 'lucide-react';
+import { FileText, Film, ImageIcon, Images, Loader2, Upload, X, Copy, Check, Crop } from 'lucide-react';
 import { paginateList, totalListPages } from '../lib/admin/cmsListPagination';
 import { LANDING_MEDIA_BUCKET } from '../lib/landingPageConfig';
 import {
   countLandingMediaByTab,
   filterLandingMediaByTab,
+  isProbablyRasterImage,
+  LANDING_MEDIA_UPLOAD_ACCEPT,
   listLandingMediaFiles,
   type LandingMediaPickerTab,
 } from '../lib/landingMediaLibrary';
 import LandingMediaFileThumb from './LandingMediaFileThumb';
 import { uploadLandingMedia } from '../lib/landingEditorUploadShared';
-import { LANDING_MEDIA_UPLOAD_ACCEPT } from '../lib/landingMediaLibrary';
+import { collectDroppedFiles, filesFromFileList } from '../lib/media/mediaDropFiles';
+import { MediaImageEditor } from './media/MediaImageEditor';
 import { assertImageUploadSize, assertVideoUploadSize } from '../lib/social/mediaUploadLimits';
 
 const PICKER_PAGE_SIZE = 12;
 
-type FileRow = { name: string; publicUrl: string; createdAt: string | null };
+type FileRow = { name: string; publicUrl: string; createdAt: string | null; storagePath: string };
 
 const TAB_OPTIONS: { id: LandingMediaPickerTab; label: string; icon: typeof Images }[] = [
   { id: 'all', label: 'All', icon: Images },
@@ -62,6 +65,9 @@ export function LandingMediaPicker({
   const [page, setPage] = useState(1);
   const [previewVideo, setPreviewVideo] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [editing, setEditing] = useState<FileRow | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -75,25 +81,34 @@ export function LandingMediaPicker({
     };
   }, [open]);
 
-  const onUpload = async (files: FileList | null) => {
-    const list = files ? Array.from(files) : [];
+  const onUpload = async (incoming: FileList | File[] | null) => {
+    const list = filesFromFileList(incoming);
     if (!list.length || !userId) return;
     setUploading(true);
     setErr(null);
+    const urls: string[] = [];
+    const failed: string[] = [];
     try {
-      let lastUrl = '';
-      for (const file of list) {
-        const video = file.type.startsWith('video/') || /\.(mp4|webm|mov|mpe?g)$/i.test(file.name);
-        if (video) assertVideoUploadSize(file);
-        else if (file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name)) assertImageUploadSize(file);
-        lastUrl = await uploadLandingMedia(userId, file);
+      for (let i = 0; i < list.length; i++) {
+        const file = list[i]!;
+        setUploadProgress(`Uploading ${i + 1} of ${list.length}`);
+        try {
+          const video = file.type.startsWith('video/') || /\.(mp4|webm|mov|mpe?g)$/i.test(file.name);
+          if (video) assertVideoUploadSize(file);
+          else if (file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(file.name)) {
+            assertImageUploadSize(file);
+          }
+          urls.push(await uploadLandingMedia(userId, file));
+        } catch (e) {
+          failed.push(`${file.name}: ${e instanceof Error ? e.message : 'Upload failed'}`);
+        }
       }
       await load();
-      if (lastUrl) onPick(lastUrl);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Upload failed');
+      if (urls.length === 1) onPick(urls[0]!);
+      if (failed.length) setErr(failed.join(' '));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -104,7 +119,7 @@ export function LandingMediaPicker({
     setErr(null);
     try {
       const list = await listLandingMediaFiles(userId, 500);
-      setRows(list.map(({ name, publicUrl, createdAt }) => ({ name, publicUrl, createdAt })));
+      setRows(list.map(({ name, publicUrl, createdAt, storagePath }) => ({ name, publicUrl, createdAt, storagePath })));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Could not list files');
       setRows([]);
@@ -162,19 +177,55 @@ export function LandingMediaPicker({
         aria-modal="true"
         aria-labelledby="landing-media-picker-title"
         onClick={onClose}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          void collectDroppedFiles(event.dataTransfer).then((files) => void onUpload(files));
+        }}
       >
         <div
           data-blog-editor-chrome
-          className="w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden"
+          className={`relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border bg-white shadow-2xl overflow-hidden ${
+            dragOver ? 'border-brand-blue' : 'border-slate-200'
+          }`}
           onClick={(e) => e.stopPropagation()}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setDragOver(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+            setDragOver(true);
+          }}
+          onDragLeave={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+            setDragOver(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setDragOver(false);
+            void collectDroppedFiles(event.dataTransfer).then((files) => void onUpload(files));
+          }}
         >
+          {dragOver ? (
+            <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-brand-blue bg-brand-blue/10 text-sm font-black uppercase tracking-widest text-brand-blue">
+              Drop files to upload
+            </div>
+          ) : null}
           <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50">
             <div className="min-w-0">
               <h2 id="landing-media-picker-title" className="text-sm font-black text-slate-900 tracking-tight">
                 {title}
               </h2>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {subtitle ?? `Files in your folder under ${LANDING_MEDIA_BUCKET}. Filter by type below.`}
+                {subtitle ??
+                  `Files in your folder under ${LANDING_MEDIA_BUCKET}. Drag from desktop or use Upload files. Filter by type below.`}
               </p>
             </div>
             <button
@@ -191,6 +242,7 @@ export function LandingMediaPicker({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept={LANDING_MEDIA_UPLOAD_ACCEPT}
               className="hidden"
               onChange={(e) => void onUpload(e.target.files)}
@@ -199,11 +251,11 @@ export function LandingMediaPicker({
               type="button"
               disabled={!userId || uploading}
               onClick={() => fileInputRef.current?.click()}
-              title={purpose ? `Upload a file for ${purpose}` : 'Upload a photo, video, or audio file'}
+              title={purpose ? `Upload files for ${purpose}` : 'Upload photos, videos, or documents'}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[#F3D13D] px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#151412] disabled:opacity-50"
             >
               {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-              {uploading ? 'Uploading' : 'Upload'}
+              {uploadProgress ?? 'Upload files'}
             </button>
             {TAB_OPTIONS.map(({ id, label, icon: Icon }) => (
               <button
@@ -221,18 +273,17 @@ export function LandingMediaPicker({
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            {err ? <p className="mb-3 text-sm font-medium text-red-700">{err}</p> : null}
             {!userId ? (
               <p className="text-sm text-amber-800">Sign in to browse uploads.</p>
             ) : loading ? (
               <div className="flex justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
               </div>
-            ) : err ? (
-              <p className="text-sm text-red-700 font-medium">{err}</p>
             ) : filtered.length === 0 ? (
               <p className="text-sm text-slate-600">
                 {rows.length === 0
-                  ? 'No files yet. Use Upload on any image, video, or audio field to add to this library.'
+                  ? 'No files yet. Drag from your desktop or use Upload files.'
                   : `No ${activeTab === 'all' ? '' : `${TAB_OPTIONS.find((t) => t.id === activeTab)?.label ?? activeTab} `}files in this tab.`}
               </p>
             ) : (
@@ -267,6 +318,17 @@ export function LandingMediaPicker({
                         >
                           Use URL
                         </button>
+                        {isProbablyRasterImage(row.name) ? (
+                          <button
+                            type="button"
+                            title="Edit image"
+                            onClick={() => setEditing(row)}
+                            className="shrink-0 rounded-lg border border-slate-200 px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+                            aria-label="Edit image"
+                          >
+                            <Crop className="h-4 w-4" />
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           title="Copy URL"
@@ -324,6 +386,20 @@ export function LandingMediaPicker({
           ) : null}
         </div>
       </div>
+
+      {editing ? (
+        <MediaImageEditor
+          userId={userId}
+          fileName={editing.name}
+          publicUrl={editing.publicUrl}
+          storagePath={editing.storagePath}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void load();
+          }}
+        />
+      ) : null}
 
       {previewVideo ? (
         <div

@@ -25,6 +25,8 @@ export type CheckoutFulfillInput = {
   lineItemPriceIds?: string[] | null;
   /** Expected STRIPE_BOOK_PRICE_ID when enforcing price bind. */
   expectedPriceId?: string | null;
+  /** True only if the buyer opted in to kit/marketing mail at Checkout. */
+  marketingOptIn?: boolean;
 };
 
 export type CheckoutFulfillPlan =
@@ -90,6 +92,23 @@ export function sessionMatchesBookProduct(opts: {
   return meta === BOOK_PRODUCT_KEY || ref === BOOK_PRODUCT_KEY;
 }
 
+const KIT_MAIL_FIELD = 'kit_mail'
+
+/** Stripe Checkout custom field `kit_mail`: checkbox or dropdown yes/no. Default no. */
+export function checkoutMarketingOptIn(customFields: unknown): boolean {
+  if (!Array.isArray(customFields)) return false
+  for (const row of customFields) {
+    if (!row || typeof row !== 'object') continue
+    const o = row as Record<string, unknown>
+    if (String(o.key ?? '') !== KIT_MAIL_FIELD) continue
+    const box = o.checkbox && typeof o.checkbox === 'object' ? (o.checkbox as { value?: unknown }).value : undefined
+    if (box === true || box === 'true' || box === 'yes') return true
+    const drop = o.dropdown && typeof o.dropdown === 'object' ? (o.dropdown as { value?: unknown }).value : undefined
+    return String(drop ?? '').trim().toLowerCase() === 'yes'
+  }
+  return false
+}
+
 export function normalizeCheckoutEmail(raw: string): string | null {
   const email = raw.trim().toLowerCase().slice(0, 200);
   if (!email || !EMAIL_RE.test(email)) return null;
@@ -138,7 +157,7 @@ export function planBookPurchaseFulfillment(input: CheckoutFulfillInput): Checko
     amountTotal: input.amountTotal,
     currency: input.currency,
     alreadyFulfilled: false,
-    addBuyerTag: true,
+    addBuyerTag: Boolean(input.marketingOptIn),
     sendDownloadEmail: true,
     downloadUrl: input.downloadUrl,
   };

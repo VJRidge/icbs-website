@@ -20,7 +20,7 @@ import { ActiveEditorProvider } from '../contexts/ActiveEditorContext';
 import { BlogAdminMediaLibraryProvider } from '../contexts/BlogAdminMediaLibraryContext';
 import { BlogEditorSidebarProvider } from '../contexts/BlogEditorSidebarContext';
 import OpEdRichEditor from '../components/OpEdRichEditor';
-import FileUpload from '../components/FileUpload';
+import FeaturedPhotoField from '../components/blog/editor/FeaturedPhotoField';
 import BlogBlockEditor from '../components/blog/editor/BlogBlockEditor';
 import BlogEditorA11yWarnings from '../components/blog/editor/BlogEditorA11yWarnings';
 import BlogAdminLeftColumn from '../components/blog/editor/BlogAdminLeftColumn';
@@ -41,15 +41,18 @@ import {
 } from '../lib/cms/cmsEditorActions';
 import CmsShortLinkPanel from '../components/admin/CmsShortLinkPanel';
 import HomepageToggle from '../components/admin/HomepageToggle';
+import { viewLivePath } from '../lib/cms/viewSite';
 import { clipboardCopy } from '../lib/clipboardCopy';
 import { clearCmsEditorLocalDraft, syncCmsEditorUrlSilently } from '../lib/cms/cmsEditorDraft';
 import { mergeSaveCompletion, wouldEraseStructuredSections } from '../lib/cms/pageSaveSafety';
+import { shouldResetNewEditorSession } from '../lib/cms/newEditorSession';
 import {
   assertWriteMatchedRow,
   nextDocVersion,
   trashPatch,
 } from '../lib/cms/pageLifecycle';
 import { recordActivity } from '../lib/cms/activityLog';
+import { newPostListOrder, pinListOrder, readListOrder } from '../lib/cms/postGridOrder';
 import { pendingReviewPatch, returnFromReviewPatch } from '../lib/cms/pendingReview';
 import PendingReviewControls from '../components/cms/PendingReviewControls';
 import ContentRevisionsPanel from '../components/admin/ContentRevisionsPanel';
@@ -105,6 +108,8 @@ type FormState = {
   excerpt: string;
   /** Posts only: `yyyy-MM-dd`; empty = date of first publish. */
   publish_date: string;
+  /** Posts only: stay first on the blog grid without changing the public date. */
+  pin_to_top: boolean;
 };
 
 function emptyForm(): FormState {
@@ -122,6 +127,7 @@ function emptyForm(): FormState {
     layout: 'article',
     excerpt: '',
     publish_date: '',
+    pin_to_top: false,
   };
 }
 
@@ -207,11 +213,13 @@ export default function PublisherPageAdminPage({
   const blockList = useBlogEditorStore((s) => s.blocks);
   const saveSuccessRef = useRef<(form: FormState, blocks: BlogBlock[], slugTouched: boolean) => void>(() => {});
   const baselineDocRef = useRef<string | null>(null);
+  const lastEditorPageIdRef = useRef<string | null>(null);
   const blockWordStats = useMemo(() => {
     const html = serializeBlogBlocksToHtml(blockList);
     const wc = htmlWordCount(html);
     return { wc, readMins: Math.max(1, Math.ceil(wc / 200)) };
   }, [blockList]);
+
 
   useEffect(() => {
     if (!isAnyAdminProfile(userProfile)) return;
@@ -253,6 +261,7 @@ export default function PublisherPageAdminPage({
         layout: r.layout === 'landing' ? 'landing' : 'article',
         excerpt: r.excerpt || '',
         publish_date: r.published_at ? format(new Date(r.published_at), 'yyyy-MM-dd') : '',
+        pin_to_top: readListOrder(r.list_order) < 0,
       });
       if (blockMode) {
         loadBlocks(r.content_blocks);
@@ -274,7 +283,11 @@ export default function PublisherPageAdminPage({
     let cancelled = false;
 
     if (pageId === 'new') {
-      startNew();
+      const hasInProgressNewDraft = Boolean(form.id || form.title.trim());
+      if (shouldResetNewEditorSession(pageId, lastEditorPageIdRef.current, hasInProgressNewDraft)) {
+        startNew();
+      }
+      lastEditorPageIdRef.current = 'new';
       const tid = searchParams.get('template');
       if (!tid) {
         setTemplateReady(true);
@@ -305,6 +318,8 @@ export default function PublisherPageAdminPage({
         cancelled = true;
       };
     }
+
+    lastEditorPageIdRef.current = pageId;
 
     if (form.id === pageId && loadedRow?.id === pageId) {
       setHydrating(false);
@@ -446,6 +461,21 @@ export default function PublisherPageAdminPage({
                   ? frozenSnapshot
                   : null,
             };
+        let list_order = readListOrder(prev?.list_order);
+        if (isPost && !options?.autosave) {
+          const { data: siblingRows } = await supabase
+            .from('contents')
+            .select('id, list_order')
+            .eq('kind', 'post')
+            .neq('status', 'trash');
+          const siblingOrders = ((siblingRows ?? []) as { id: string; list_order?: number | null }[])
+            .filter((row) => row.id !== form.id)
+            .map((row) => readListOrder(row.list_order));
+          if (form.pin_to_top) list_order = pinListOrder(siblingOrders);
+          else if (list_order < 0) list_order = 0;
+          else if (!form.id) list_order = newPostListOrder(siblingOrders);
+        }
+
         const buildBase = (nextSlug: string) => ({
           title: form.title.trim(),
           slug: nextSlug,
@@ -460,6 +490,7 @@ export default function PublisherPageAdminPage({
           seo: { title: seoTitle, description: seoDescription },
           layout: form.layout,
           excerpt,
+          ...(isPost ? { list_order } : {}),
           ...liveSnapshot,
           ...(form.id ? { doc_version: nextDocVersion(prev?.doc_version) } : {}),
         });
@@ -830,7 +861,8 @@ export default function PublisherPageAdminPage({
       : 'Not published';
 
   const savedSitePageRow = loadedRow;
-  const absolutePagePublicUrl = previewSlug ? `${window.location.origin}${cfg.publicPath(previewSlug)}` : '';
+  const livePath = previewSlug ? viewLivePath({ slug: previewSlug, kind: cfg.kind }) : '';
+  const absolutePagePublicUrl = livePath ? `${window.location.origin}${livePath}` : '';
 
   const copyPublicPageUrl = async (slug: string) => {
     const url = `${window.location.origin}${cfg.publicPath(slug)}`;
@@ -952,9 +984,9 @@ export default function PublisherPageAdminPage({
                 }}
               />
 
-              {form.status === 'published' && previewSlug ? (
+              {form.status === 'published' && livePath ? (
                 <a
-                  href={cfg.publicPath(previewSlug)}
+                  href={livePath}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-lg border border-white/25 px-2.5 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
@@ -984,6 +1016,7 @@ export default function PublisherPageAdminPage({
             <BlogAdminLeftColumn
               userProfile={userProfile}
               moduleBay={form.contentMode === 'blocks' ? <BlogAdminModuleBay /> : undefined}
+              viewHref={livePath || undefined}
             />
 
             <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#F3EDE3]">
@@ -1295,27 +1328,52 @@ export default function PublisherPageAdminPage({
               </form>
             </main>
             <BlogAdminPostSettingsAside settingsHeading={`${cfg.singular} settings`}>
-              <div className="shrink-0 space-y-2 border-b border-slate-100 bg-slate-50/90 px-5 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Public URL</span>
+              <div className="blog-editor-scroll min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Public URL</span>
+                    <button
+                      type="button"
+                      disabled={!previewSlug}
+                      onClick={() => void copyPublicPageUrl(previewSlug)}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:border-brand-blue/30 hover:text-brand-blue disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Copy size={11} /> Copy
+                    </button>
+                  </div>
+                  <p className="break-all font-mono text-[11px] leading-snug text-slate-700">
+                    {previewSlug ? absolutePagePublicUrl : '—'}
+                  </p>
+                  <CmsShortLinkPanel
+                    resourceType={cfg.shortLinkType}
+                    resourceId={form.id}
+                    isPublished={form.status === 'published'}
+                    userId={userProfile?.id ?? null}
+                  />
+                </div>
+
+                <div>
                   <button
                     type="button"
-                    disabled={!previewSlug}
-                    onClick={() => void copyPublicPageUrl(previewSlug)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:border-brand-blue/30 hover:text-brand-blue disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={() => setCoverOpen((o) => !o)}
+                    className="group flex w-full items-center justify-between"
                   >
-                    <Copy size={11} /> Copy
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 group-hover:text-slate-600">
+                      Featured photo
+                    </span>
+                    <ChevronDown size={13} className={`text-slate-300 transition-transform ${coverOpen ? 'rotate-180' : ''}`} />
                   </button>
+                  {coverOpen ? (
+                    <FeaturedPhotoField
+                      url={form.featured_image_url}
+                      alt={form.featured_image_alt}
+                      noun={cfg.singular.toLowerCase()}
+                      onUrl={(featured_image_url) => setForm((f) => ({ ...f, featured_image_url }))}
+                      onAlt={(featured_image_alt) => setForm((f) => ({ ...f, featured_image_alt }))}
+                    />
+                  ) : null}
                 </div>
-                <p className="break-all font-mono text-[11px] leading-snug text-slate-700">
-                  {previewSlug ? absolutePagePublicUrl : '—'}
-                </p>
-                <CmsShortLinkPanel
-                  resourceType={cfg.shortLinkType}
-                  resourceId={form.id}
-                  isPublished={form.status === 'published'}
-                  userId={userProfile?.id ?? null}
-                />
+
                 {isPost ? (
                   <>
                     <label className="block space-y-1">
@@ -1328,6 +1386,20 @@ export default function PublisherPageAdminPage({
                       />
                       <span className="block text-[10px] text-slate-500">
                         Empty = the day you publish. A future date keeps it off the blog list until then.
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 text-xs font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={form.pin_to_top}
+                        onChange={(e) => setForm((f) => ({ ...f, pin_to_top: e.target.checked }))}
+                      />
+                      <span>
+                        Pin to top of blog
+                        <span className="mt-0.5 block text-[10px] font-medium text-slate-500">
+                          Stays first on the grid. Does not change the publish date.
+                        </span>
                       </span>
                     </label>
                     <label className="block space-y-1">
@@ -1381,78 +1453,43 @@ export default function PublisherPageAdminPage({
                       ? 'Not saved yet — Save to record updates.'
                       : null}
                 </p>
-              </div>
-              <div className="blog-editor-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">
-                <div className="space-y-6">
-                  <div className="border-t border-slate-100 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCoverOpen((o) => !o)}
-                      className="flex w-full items-center justify-between group"
-                    >
-                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 group-hover:text-slate-600">
-                        Cover image
-                      </span>
-                      <ChevronDown size={13} className={`text-slate-300 transition-transform ${coverOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {coverOpen ? (
-                      <div className="mt-3 space-y-3">
-                        <FileUpload
-                          variant="compact"
-                          bucket="media-public"
-                          label="Featured image"
-                          type="image"
-                          accept="image/*"
-                          value={form.featured_image_url}
-                          onChange={(url) => setForm((f) => ({ ...f, featured_image_url: url }))}
-                        />
-                        <input
-                          value={form.featured_image_alt}
-                          onChange={(e) => setForm((f) => ({ ...f, featured_image_alt: e.target.value }))}
-                          placeholder="Alt text…"
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-blue/40"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
 
-                  <div>
-                    <button type="button" onClick={() => setSeoOpen((o) => !o)} className="flex w-full items-center justify-between group">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 group-hover:text-slate-600">SEO</span>
-                      <ChevronDown size={13} className={`text-slate-300 transition-transform ${seoOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    {seoOpen ? (
-                      <div className="mt-3 space-y-3">
+                <div>
+                  <button type="button" onClick={() => setSeoOpen((o) => !o)} className="group flex w-full items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 group-hover:text-slate-600">SEO</span>
+                    <ChevronDown size={13} className={`text-slate-300 transition-transform ${seoOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {seoOpen ? (
+                    <div className="mt-3 space-y-3">
+                      <input
+                        value={form.seo_title}
+                        onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))}
+                        placeholder="SEO title…"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-blue/40"
+                      />
+                      <p className="text-right text-[10px] text-slate-400">{(form.seo_title || '').length}/60</p>
+                      <textarea
+                        value={form.seo_description}
+                        onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))}
+                        placeholder="Meta description…"
+                        rows={3}
+                        className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-blue/40"
+                      />
+                      <p className="text-right text-[10px] text-slate-400">{(form.seo_description || '').length}/160</p>
+                      <div className="flex items-center rounded-lg border border-slate-200 px-3 py-2 text-xs focus-within:border-brand-blue/40">
+                        <span className="shrink-0 text-slate-400">{isPost ? '/blog/' : '/'}</span>
                         <input
-                          value={form.seo_title}
-                          onChange={(e) => setForm((f) => ({ ...f, seo_title: e.target.value }))}
-                          placeholder="SEO title…"
-                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-blue/40"
+                          value={form.slug}
+                          onChange={(e) => {
+                            setSlugTouched(true);
+                            setForm((f) => ({ ...f, slug: e.target.value }));
+                          }}
+                          className="ml-1 flex-1 font-mono text-slate-600 outline-none"
+                          placeholder={isPost ? 'post-slug' : 'page-slug'}
                         />
-                        <p className="text-right text-[10px] text-slate-400">{(form.seo_title || '').length}/60</p>
-                        <textarea
-                          value={form.seo_description}
-                          onChange={(e) => setForm((f) => ({ ...f, seo_description: e.target.value }))}
-                          placeholder="Meta description…"
-                          rows={3}
-                          className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-brand-blue/40"
-                        />
-                        <p className="text-right text-[10px] text-slate-400">{(form.seo_description || '').length}/160</p>
-                        <div className="flex items-center rounded-lg border border-slate-200 px-3 py-2 text-xs focus-within:border-brand-blue/40">
-                          <span className="shrink-0 text-slate-400">{isPost ? '/blog/' : '/'}</span>
-                          <input
-                            value={form.slug}
-                            onChange={(e) => {
-                              setSlugTouched(true);
-                              setForm((f) => ({ ...f, slug: e.target.value }));
-                            }}
-                            className="ml-1 flex-1 font-mono text-slate-600 outline-none"
-                            placeholder={isPost ? 'post-slug' : 'page-slug'}
-                          />
-                        </div>
                       </div>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </BlogAdminPostSettingsAside>

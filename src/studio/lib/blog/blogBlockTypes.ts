@@ -1,4 +1,5 @@
 import { BRAND_BLOCK_DEFAULTS, BRAND_BLOCK_ICONS, BRAND_BLOCK_LABELS, BRAND_BLOCK_TYPES } from '../../../brand/brandBlockTypes'
+import { HOW_I_USE_AI_ACCORDION } from './accordionItems'
 
 export type ColumnLayoutKey = '100' | '50-50' | '33-33-33' | '25-25-25-25' | '66-33' | '33-66';
 
@@ -80,7 +81,7 @@ export const BLOG_BLOCK_DEFAULTS = {
   divider: { style: 'line', color: '#E8B800' },
   spacer: { height: 48 },
   tabs: { tabs: [{ label: 'Tab 1', html: '' }, { label: 'Tab 2', html: '' }] },
-  accordion: { items: [{ title: 'Section 1', html: '', open: false }], allowMultiple: true },
+  accordion: HOW_I_USE_AI_ACCORDION,
   slideshow: {
     slides: [{ url: '', alt: '', caption: '', credit: '' }],
     sliderVariant: 'single_focus' as 'peek_strip' | 'single_focus' | 'compact_row',
@@ -233,12 +234,51 @@ export const BLOG_BLOCK_DEFAULTS = {
     buttonText: 'Subscribe',
   },
   poll: { question: '', options: ['Option A', 'Option B'], allowMultiple: false },
-  progress: { items: [{ label: '', value: 75, color: '#E8B800' }] },
+  progress: {
+    heading: '',
+    items: [
+      { label: 'HTML / CSS / JQUERY', value: 90, color: '#7c3aed' },
+      { label: 'PHOTOSHOP', value: 66, color: '#7c3aed' },
+      { label: 'GRAPHIC DESIGN', value: 95, color: '#7c3aed' },
+      { label: 'PHP / WORDPRESS', value: 78, color: '#7c3aed' },
+    ],
+  },
+  news_ticker: {
+    speed: 28,
+    items: [{ text: 'New on the site', url: '' }, { text: 'Read the latest post', url: '/blog' }],
+  },
+  dual_button: {
+    leftText: 'Download free',
+    leftUrl: '#',
+    leftStyle: 'outline',
+    rightText: 'Purchase',
+    rightUrl: '#',
+    rightStyle: 'pill',
+    divider: 'OR',
+    align: 'center' as 'left' | 'center' | 'right',
+  },
+  review: {
+    columns: 3,
+    items: [
+      { quote: 'Clear, useful, and honest.', name: 'Name', role: 'Role', imageUrl: '', rating: 5, emphasis: false, cardColor: '' },
+      { quote: 'Helped me decide what to keep and what to drop.', name: 'Name', role: 'Role', imageUrl: '', rating: 5, emphasis: true, cardColor: '#1f2937' },
+      { quote: 'I keep coming back to the notes.', name: 'Name', role: 'Role', imageUrl: '', rating: 4, emphasis: false, cardColor: '' },
+    ],
+  },
   galaxy: { starCount: 200, speed: 0.5, colorMode: 'gold', height: 400, text: '', subtext: '' },
   audio: { url: '', title: '', artist: '' },
   file_download: { url: '', filename: '', description: '', size: '' },
   /** Structured quote + attribution + optional portrait (reviews / testimonials). */
-  testimonial: { quote: '', name: '', role: '', imageUrl: '', rating: 5 },
+  testimonial: {
+    quote: '',
+    name: '',
+    role: '',
+    imageUrl: '',
+    rating: 5,
+    skin: 'quote' as 'quote' | 'cards',
+    columns: 3,
+    items: [] as Array<{ quote: string; name: string; role: string; imageUrl: string; rating: number; emphasis: boolean; cardColor: string }>,
+  },
   /** Single feature / service highlight with emoji or short glyph. */
   icon_box: { icon: '🎓', title: '', body: '' },
   /** Stacked or grid of YouTube embeds (playlist-style). */
@@ -251,15 +291,31 @@ export const BLOG_BLOCK_DEFAULTS = {
   post_teasers: {
     mode: 'latest' as 'manual' | 'latest',
     heading: 'Related posts',
-    limit: 3,
+    limit: 6,
     relatedBy: 'category' as 'category' | 'recent',
-    items: [{ title: '', slug: '', excerpt: '', imageUrl: '' }] as Array<{
+    items: [{ title: '', slug: '', excerpt: '', imageUrl: '', date: '' }] as Array<{
       title: string;
       slug: string;
       excerpt: string;
       imageUrl: string;
+      date?: string;
     }>,
-    columns: 2 as 2 | 3,
+    columns: 3 as 1 | 2 | 3 | 4,
+    skin: 'cards' as 'classic' | 'cards' | 'full',
+    showImage: true,
+    imagePosition: 'top' as 'left' | 'top',
+    imageResolution: 'medium' as 'thumbnail' | 'medium' | 'full',
+    imageRatio: 16 / 9,
+    imageWidth: 35,
+    showTitle: true,
+    titleTag: 'h3' as 'h2' | 'h3',
+    showExcerpt: true,
+    excerptLength: 40,
+    showMeta: false,
+    showReadMore: false,
+    readMoreText: 'Read more',
+    openInNewWindow: false,
+    pagination: 'none' as 'none' | 'numbers',
   },
   columns: {
     layout: '50-50' as ColumnLayoutKey,
@@ -275,12 +331,26 @@ export const BLOG_BLOCK_DEFAULTS = {
   contact_cta: { title: 'Get in touch', body: '', email: '', buttonLabel: 'Email us' },
   /** Simple price / services list. */
   price_list: { heading: '', items: [{ label: '', price: '', detail: '' }] },
-  /** Popover overlay (uses Popover API — no inline JS). */
+  /** Lightbox overlay (Popover API — no post link). */
   modal_popup: {
     triggerLabel: 'Open',
     title: '',
     body: '',
-    alignTrigger: 'left' as 'left' | 'center' | 'right',
+    paragraphs: [] as string[],
+    alignTrigger: 'center' as 'left' | 'center' | 'right',
+    brandFace: true,
+    align: 'left' as 'left' | 'center' | 'right' | 'justify',
+    fontFamily: '',
+    fontSize: '',
+    fontWeight: '',
+    lineHeight: '',
+    letterSpacing: '',
+    textColor: '',
+    hoverTextColor: '',
+    paragraphSpacing: 0,
+    textShadow: { horizontal: 0, vertical: 0, blur: 0, color: 'rgba(0,0,0,0.25)' },
+    marginTop: 0,
+    marginBottom: 0,
   },
   /** CSS-only animated headline (fade-up words, gradient sweep, or underline draw). */
   animated_headline: {
@@ -446,6 +516,10 @@ export const BLOG_EDITOR_PICKER_TYPES: BlogBlockType[] = [
   'contact_cta',
   'price_list',
   'newsletter',
+  'progress',
+  'news_ticker',
+  'dual_button',
+  'review',
   'modal_popup',
   'animated_headline',
   ...KIT_BLOCK_TYPES,
@@ -463,7 +537,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   spacer: 'Spacer',
   columns: 'Container',
   tabs: 'Tabs',
-  accordion: 'Accordion',
+  accordion: 'How I Use AI (Accordion)',
   slideshow: 'Slideshow',
   gallery: 'Gallery',
   carousel: 'Carousel',
@@ -483,7 +557,10 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   team: 'Team',
   newsletter: 'Newsletter',
   poll: 'Poll',
-  progress: 'Progress',
+  progress: 'Skill bar',
+  news_ticker: 'News ticker',
+  dual_button: 'Dual button',
+  review: 'Review',
   galaxy: 'Galaxy',
   audio: 'Audio',
   file_download: 'File',
@@ -494,7 +571,7 @@ export const BLOG_BLOCK_LABELS: Record<BlogBlockType, string> = {
   post_teasers: 'Latest posts',
   contact_cta: 'Contact CTA',
   price_list: 'Price list',
-  modal_popup: 'Popup / modal',
+  modal_popup: 'Lightbox',
   animated_headline: 'Animated headline',
   kit_hero: 'Kit hero + signup',
   kit_contents: 'Contents section',
@@ -539,6 +616,7 @@ import {
   Minus,
   MousePointer,
   Music,
+  Newspaper,
   PanelTop,
   Pilcrow,
   Presentation,
@@ -546,7 +624,9 @@ import {
   Send,
   Share2,
   Sparkles as SparklesIcon,
+  Split,
   SquareStack,
+  Star,
   Table as TableIcon,
   Timer,
   TrendingUp,
@@ -590,6 +670,9 @@ export const BLOG_BLOCK_ICONS: Record<BlogBlockType, LucideIcon> = {
   newsletter: Mail,
   poll: Vote,
   progress: TrendingUp,
+  news_ticker: Newspaper,
+  dual_button: Split,
+  review: Star,
   galaxy: SparklesIcon,
   audio: AudioLines,
   file_download: Download,
@@ -617,11 +700,14 @@ export const BLOG_EDITOR_PICKER_CATEGORIES: Record<string, BlogBlockType[]> = {
   VettaJimale: [...BRAND_BLOCK_TYPES],
   Text: ['paragraph', 'heading', 'animated_headline', 'quote', 'callout', 'code', 'table'],
   Media: ['image', 'video', 'youtube', 'social_embed', 'slideshow', 'gallery', 'carousel', 'video_playlist'],
-  Layout: ['columns', 'divider', 'spacer', 'tabs', 'accordion', 'button', 'banner', 'card', 'icon_box', 'modal_popup'],
+  Layout: ['columns', 'divider', 'spacer', 'tabs', 'accordion', 'button', 'dual_button', 'banner', 'card', 'icon_box', 'modal_popup'],
   Marketing: [
     'stats',
     'countdown',
     'testimonial',
+    'review',
+    'progress',
+    'news_ticker',
     'price_list',
     'contact_cta',
     'newsletter',

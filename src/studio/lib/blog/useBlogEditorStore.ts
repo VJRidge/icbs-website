@@ -2,11 +2,19 @@ import { create } from 'zustand';
 import { nanoid } from 'nanoid';
 import { BLOG_BLOCK_DEFAULTS, BLOG_BLOCK_LABELS, type BlogBlock, type BlogBlockType } from './blogBlockTypes';
 import { normalizeColumnZones } from './columnLayouts';
-import { deleteBlockFromTree, updateBlockInTree, moveNestedWithinColumn, relocateNestedBlock } from './blogBlockTree';
+import {
+  deleteBlockFromTree,
+  duplicateBlockInTree,
+  findBlockInTree,
+  moveNestedWithinColumn,
+  relocateNestedBlock,
+  updateBlockInTree,
+} from './blogBlockTree';
 import { sanitizeBlogBlockHtml, sanitizeBlogBlocksDeep } from './sanitizeBlogBlockHtml';
 import { cloneBlocks, pushHistory, type WidgetHistoryEntry } from './editorHistory';
 import { pasteStylePatch, regenerateBlockIds, stylePatchFor, type EditorDevice } from './blockStyle';
 import { keepAddedEmptySection, withoutUnusedEmptySections } from '../../../brand/sectionEmpty';
+import { useWidgetTray } from '../../../brand/widgetTray';
 
 export function createBlogBlock(type: BlogBlockType, data: Record<string, unknown> = {}): BlogBlock {
   const defaults = (BLOG_BLOCK_DEFAULTS as Record<string, Record<string, unknown>>)[type] ?? {
@@ -98,7 +106,9 @@ type State = {
   loadBlocks: (raw: unknown) => void;
   resetBlocks: () => void;
   addBlock: (type: BlogBlockType, at?: number | string | null, data?: Record<string, unknown>) => string;
-  updateBlock: (id: string, data: Record<string, unknown>) => void;
+  updateBlock: (id: string, data: Record<string, unknown>, historyLabel?: string) => void;
+  /** Record `snapshot` as the undo point for a style gesture that already wrote live. */
+  pushUndoSnapshot: (label: string, snapshot: BlogBlock[]) => void;
   deleteBlock: (id: string) => void;
   duplicateBlock: (id: string) => void;
   moveBlock: (oldIndex: number, newIndex: number) => void;
@@ -208,10 +218,16 @@ export const useBlogEditorStore = create<State>((set) => ({
     return block.id;
   },
 
-  updateBlock: (id, data) =>
+  updateBlock: (id, data, historyLabel) =>
     set((s) => ({
+      ...(historyLabel ? remembered(s, historyLabel) : { future: [] }),
       blocks: updateBlockInTree(s.blocks, id, data),
       isDirty: true,
+    })),
+
+  pushUndoSnapshot: (label, snapshot) =>
+    set((s) => ({
+      past: pushHistory(s.past, snapshot, label),
       future: [],
     })),
 
@@ -226,11 +242,11 @@ export const useBlogEditorStore = create<State>((set) => ({
 
   duplicateBlock: (id) =>
     set((s) => {
-      const idx = s.blocks.findIndex((b) => b.id === id);
-      if (idx === -1) return s;
-      const copy = regenerateBlockIds(s.blocks[idx]!);
-      const blocks = [...s.blocks];
-      blocks.splice(idx + 1, 0, copy);
+      const source = findBlockInTree(s.blocks, id);
+      if (!source) return s;
+      const copy = regenerateBlockIds(source);
+      const blocks = duplicateBlockInTree(s.blocks, id, copy);
+      if (blocks === s.blocks) return s;
       return { ...remembered(s, 'Duplicated'), blocks, isDirty: true, selectedBlockId: copy.id };
     }),
 
@@ -270,7 +286,10 @@ export const useBlogEditorStore = create<State>((set) => ({
 
   setBlocks: (blocks) => set({ blocks, isDirty: true }),
 
-  selectBlock: (id) => set({ selectedBlockId: id }),
+  selectBlock: (id) => {
+    useWidgetTray.getState().hide();
+    set({ selectedBlockId: id });
+  },
 
   openBlockEditModal: (id) => set({ blockEditModalId: id, selectedBlockId: id }),
 

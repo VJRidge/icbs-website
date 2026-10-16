@@ -16,6 +16,7 @@ export default function SignupForm({
 }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [needsResubscribe, setNeedsResubscribe] = useState(false)
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -32,11 +33,17 @@ export default function SignupForm({
           email: data.get('email'),
           company: data.get('company'), // honeypot: real people leave this empty
           utm: captureUtm(),
+          confirmResubscribe: needsResubscribe && data.get('confirmResubscribe') === 'yes',
         }),
       })
+      const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
         throw new Error(body.error || 'Something went wrong. Please try again.')
+      }
+      if (body.needsResubscribe) {
+        setNeedsResubscribe(true)
+        setBusy(false)
+        return
       }
       window.location.assign(thanksPath)
     } catch (err) {
@@ -57,6 +64,12 @@ export default function SignupForm({
         <label htmlFor={`${id}-company`}>Company</label>
         <input id={`${id}-company`} name="company" tabIndex={-1} autoComplete="off" />
       </div>
+      {needsResubscribe ? (
+        <label className="fine">
+          <input type="checkbox" name="confirmResubscribe" value="yes" required /> This address left the kit list
+          before. Check this box to get kit emails again. The PDF is still free on the thank-you page.
+        </label>
+      ) : null}
       {companion ? (
         <div className="form-actions">
           <button className="btn" type="submit" disabled={busy}>
@@ -71,7 +84,8 @@ export default function SignupForm({
       )}
       {error && <div className="err" role="alert">{error}</div>}
       <div className="fine">
-        {finePrint ?? 'Free PDF. You’ll also get a few emails about building with AI. Unsubscribe anytime.'}{' '}
+        {finePrint ??
+          'The kit PDF is free to download. Signing up also sends a few emails about building with AI. Unsubscribe anytime.'}{' '}
         <a href="/privacy">Privacy</a>
       </div>
     </form>

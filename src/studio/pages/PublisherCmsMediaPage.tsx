@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Check, Copy, ExternalLink, File, FileText, Images, Loader2, Music, Search, Trash2, Upload, Video } from 'lucide-react';
+import { Check, Copy, Crop, ExternalLink, File, FileText, Images, Loader2, Music, Search, Trash2, Upload, Video } from 'lucide-react';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
 import { CMS_LIST_PAGE_SIZE, paginateList, totalListPages } from '../lib/admin/cmsListPagination';
 import { uploadLandingMedia } from '../lib/landingEditorUploadShared';
@@ -12,6 +12,7 @@ import {
   isProbablyAudio,
   isProbablyDoc,
   isProbablyImage,
+  isProbablyRasterImage,
   isProbablyVideo,
   LANDING_MEDIA_UPLOAD_ACCEPT,
   listLandingMediaFiles,
@@ -23,6 +24,9 @@ import { clipboardCopy } from '../lib/clipboardCopy';
 import { supabase } from '../lib/supabase';
 import { DOWNLOAD_MAP_KEY } from '../../lib/site/siteManagedContent';
 import { parseDownloadMapDocument, sitePackagedMediaRows } from '../../lib/site/siteMediaRows';
+import { collectDroppedFiles, filesFromFileList } from '../lib/media/mediaDropFiles';
+import { assertImageUploadSize, assertVideoUploadSize } from '../lib/social/mediaUploadLimits';
+import { MediaImageEditor } from '../components/media/MediaImageEditor';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import CmsListPagination from '../components/admin/CmsListPagination';
 import type { UserProfile } from '../types';
@@ -65,6 +69,9 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
   const [sortMode, setSortMode] = useState<MediaSortMode>('date');
   const [page, setPage] = useState(1);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [editing, setEditing] = useState<LandingMediaFileRow | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -135,19 +142,32 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const onUpload = async (files: FileList | null) => {
-    if (!files?.length || !userId) return;
+  const onUpload = async (incoming: FileList | File[] | null) => {
+    const files = filesFromFileList(incoming);
+    if (!files.length || !userId) return;
     setUploading(true);
     setError(null);
+    const failed: string[] = [];
     try {
-      for (const file of Array.from(files)) {
-        await uploadLandingMedia(userId, file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]!;
+        setUploadProgress(`Uploading ${i + 1} of ${files.length}`);
+        try {
+          const video = file.type.startsWith('video/') || /\.(mp4|webm|mov|mpe?g)$/i.test(file.name);
+          if (video) assertVideoUploadSize(file);
+          else if (file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg|avif)$/i.test(file.name)) {
+            assertImageUploadSize(file);
+          }
+          await uploadLandingMedia(userId, file);
+        } catch (e) {
+          failed.push(`${file.name}: ${e instanceof Error ? e.message : 'Upload failed.'}`);
+        }
       }
       await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed.');
+      if (failed.length) setError(failed.join(' '));
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -188,6 +208,34 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
   }
 
   return (
+    <div
+      className="relative min-h-screen"
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setDragOver(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        setDragOver(true);
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+        setDragOver(false);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragOver(false);
+        void collectDroppedFiles(event.dataTransfer).then((files) => void onUpload(files));
+      }}
+    >
+      {dragOver ? (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-brand-blue/15">
+          <div className="rounded-2xl border-2 border-dashed border-brand-blue bg-white px-8 py-6 text-sm font-black uppercase tracking-widest text-brand-blue shadow-lg">
+            Drop files to upload
+          </div>
+        </div>
+      ) : null}
     <AdminCmsShell
       title="Media"
       titleIcon={<Images size={14} className="text-brand-yellow" />}
@@ -211,15 +259,16 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-3 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:bg-brand-yellow/90 disabled:opacity-50"
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            Upload
+            {uploadProgress ?? 'Upload files'}
           </button>
         </>
       }
     >
-      <div className="mx-auto max-w-6xl p-6 md:p-10">
+      <div className="relative mx-auto max-w-6xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">Media library</h1>
         <p className="mt-2 max-w-2xl text-sm font-medium text-slate-600">
-          Uploads live in <span className="font-mono text-brand-blue">{LANDING_MEDIA_BUCKET}</span>. Site PDFs and
+          Drag files or a folder from your desktop, or use Upload files for bulk add. Uploads live in{' '}
+          <span className="font-mono text-brand-blue">{LANDING_MEDIA_BUCKET}</span>. Site PDFs and
           template Markdown that already ship under <span className="font-mono text-brand-blue">/downloads</span> also
           appear under <span className="font-semibold text-slate-800">Docs</span> (labeled Site). Use{' '}
           <Link to="/admin/templates" className="font-semibold text-brand-blue hover:underline">
@@ -317,12 +366,28 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                 <li key={row.storagePath} className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80">
                   <div className="relative aspect-square w-full bg-slate-200/80">
                     {isProbablyImage(row.name) ? (
-                      <img
-                        src={row.publicUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
+                      row.origin !== 'site' && isProbablyRasterImage(row.name) ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditing(row)}
+                          className="h-full w-full"
+                          title="Edit image"
+                        >
+                          <img
+                            src={`${row.publicUrl}${row.createdAt ? `?t=${new Date(row.createdAt).getTime()}` : ''}`}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        </button>
+                      ) : (
+                        <img
+                          src={`${row.publicUrl}${row.createdAt ? `?t=${new Date(row.createdAt).getTime()}` : ''}`}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      )
                     ) : isProbablyVideo(row.name) ? (
                       <div className="flex h-full items-center justify-center px-2 text-center text-[10px] font-black uppercase tracking-wider text-slate-600">
                         Video
@@ -381,6 +446,16 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
                       >
                         <ExternalLink size={12} />
                       </a>
+                      {row.origin !== 'site' && isProbablyRasterImage(row.name) ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditing(row)}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+                          title="Edit image"
+                        >
+                          <Crop size={12} />
+                        </button>
+                      ) : null}
                       {row.origin !== 'site' ? (
                         <button
                           type="button"
@@ -407,6 +482,20 @@ export default function PublisherCmsMediaPage({ userProfile }: { userProfile: Us
           />
         </div>
       </div>
+      {editing && userId ? (
+        <MediaImageEditor
+          userId={userId}
+          fileName={editing.name}
+          publicUrl={editing.publicUrl}
+          storagePath={editing.storagePath}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            void load();
+          }}
+        />
+      ) : null}
     </AdminCmsShell>
+    </div>
   );
 }

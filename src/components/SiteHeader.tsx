@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SITE_CHROME, loadSiteChromeOnce, type SiteChrome } from '../lib/siteChrome'
+import { siteNavIsActive } from '../lib/siteNavActive'
 import SiteBackButton from './SiteBackButton'
 import SiteSocial from './SiteSocial'
-
-function isActive(href: string, path: string): boolean {
-  if (href === '/') return path === '/'
-  return path === href || path.startsWith(`${href}/`)
-}
 
 export default function SiteHeader() {
   const [chrome, setChrome] = useState<SiteChrome>(DEFAULT_SITE_CHROME)
@@ -36,7 +32,7 @@ export default function SiteHeader() {
             {chrome.header.length > 0 ? (
               <nav className="site-header-links" aria-label="Site">
                 {chrome.header.map((item) => (
-                  <a key={item.id} href={item.href} aria-current={isActive(item.href, path) ? 'page' : undefined}>
+                  <a key={item.id} href={item.href} aria-current={siteNavIsActive(item.href, path) ? 'page' : undefined}>
                     {item.label}
                   </a>
                 ))}

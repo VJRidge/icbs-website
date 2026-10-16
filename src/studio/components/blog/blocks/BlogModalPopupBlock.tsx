@@ -1,118 +1,161 @@
-import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
+import '../../../../brand/brand.css';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import {
+  LIGHTBOX_WORD_MAX,
+  countLightboxWords,
+  lightboxCopyStyle,
+  lightboxHtml,
+  lightboxPlainText,
+} from '../../../lib/blog/lightboxNote';
+import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
+import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
+import BlogParagraphBlock from './BlogParagraphBlock';
+import SurfaceBackgroundLayers from '../SurfaceBackgroundLayers';
+import { hasSurfaceLayers, readSurfaceBackground, surfaceShellStyle } from '../../../lib/blog/surfaceBackground';
 
 function popoverSafeId(blockId: string): string {
   return `blog-pop-${blockId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 }
 
-const aligns = ['left', 'center', 'right'] as const;
+export function LightboxEditFields({ block }: { block: BlogBlock }) {
+  const updateBlock = useBlogEditorStore((s) => s.updateBlock);
+  const words = countLightboxWords(lightboxPlainText(block.data));
+  return (
+    <div
+      className="space-y-3"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <p className="text-[11px] leading-snug text-slate-500">
+        Highlight text in the lightbox, then use the toolbar for weight, size, color, lists, and links. Maximum{' '}
+        {LIGHTBOX_WORD_MAX} words.
+      </p>
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Button</span>
+        <input
+          value={String(block.data.triggerLabel ?? 'Open')}
+          onChange={(e) => updateBlock(block.id, { triggerLabel: e.target.value })}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        />
+      </label>
+      <label className="block text-xs text-slate-700">
+        <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Title</span>
+        <input
+          value={String(block.data.title ?? '')}
+          onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+          placeholder="Lightbox heading"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        />
+      </label>
+      <div data-paragraph-editor>
+        <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">Text</p>
+        <BlogParagraphBlock block={block} isEditing toolbarSource htmlKey="body" />
+      </div>
+      <span className={`block text-[10px] font-bold ${words >= LIGHTBOX_WORD_MAX ? 'text-amber-700' : 'text-slate-400'}`}>
+        {words} / {LIGHTBOX_WORD_MAX} words
+      </span>
+    </div>
+  );
+}
 
 export default function BlogModalPopupBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
-  const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const triggerLabel = String(block.data.triggerLabel ?? 'Open');
+  const selectedBlockId = useBlogEditorStore((s) => s.selectedBlockId);
+  const triggerLabel = String(block.data.triggerLabel ?? 'Open') || 'Open';
   const title = String(block.data.title ?? '');
-  const body = String(block.data.body ?? '');
+  const html = sanitizeBlogBlockHtml(lightboxHtml(block.data));
   const alignTrigger = ['left', 'center', 'right'].includes(String(block.data.alignTrigger))
     ? String(block.data.alignTrigger)
-    : 'left';
+    : 'center';
   const justify = alignTrigger === 'center' ? 'justify-center' : alignTrigger === 'right' ? 'justify-end' : 'justify-start';
   const popId = popoverSafeId(block.id);
+  const brandFace = block.data.brandFace !== false;
+  const triggerClass = brandFace
+    ? 'vj-btn'
+    : 'blog-modal-trigger inline-flex items-center justify-center rounded-xl bg-brand-blue px-6 py-3 text-xs font-black uppercase tracking-widest text-brand-yellow shadow-md transition hover:brightness-105';
+  const selected = isEditing && selectedBlockId === block.id;
 
-  if (!isEditing) {
+  const copyStyle = lightboxCopyStyle(block.data);
+  const surface = readSurfaceBackground(block.data);
+  const surfaceStyle = surfaceShellStyle(surface);
+  const cream = surface.color || surface.type ? '' : ' bg-[#F3EDE3]';
+  const panel = (
+    <div
+      className={`vj-surface flex min-h-[min(22rem,60vh)] flex-col rounded-2xl border border-slate-200 p-6 shadow-2xl sm:p-8${cream}`}
+      style={surfaceStyle}
+    >
+      {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+      {title.trim() ? (
+        <h3 className="font-serif text-2xl font-black text-slate-900" style={{ color: copyStyle.color, textAlign: copyStyle.textAlign }}>
+          {title}
+        </h3>
+      ) : null}
+      <div
+        className={`blog-paragraph-block blog-lightbox-copy prose prose-slate max-w-none ${title.trim() ? 'mt-4 flex-1' : 'flex-1'}`}
+        style={copyStyle}
+        dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+      />
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          className="rounded-xl border-2 border-slate-900 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 hover:bg-slate-50"
+          popoverTarget={popId}
+          popoverTargetAction="hide"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isEditing) {
     return (
-      <>
-        <div className={`my-6 flex ${justify}`}>
-          <button
-            type="button"
-            className="blog-modal-trigger inline-flex items-center justify-center rounded-xl bg-brand-blue px-6 py-3 text-xs font-black uppercase tracking-widest text-brand-yellow shadow-md transition hover:brightness-105"
-            popoverTarget={popId}
-            popoverTargetAction="toggle"
-          >
+      <div className="w-full space-y-3">
+        <div className={`flex w-full ${justify}`}>
+          <span className={triggerClass} data-lightbox-trigger="">
             {triggerLabel}
-          </button>
+          </span>
         </div>
-        <div id={popId} popover="auto" className="blog-modal-popover max-h-[min(90vh,560px)] w-[min(32rem,92vw)] overflow-auto border-0 bg-transparent p-0 shadow-none">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-            {title.trim() ? <h3 className="text-xl font-black text-brand-blue">{title}</h3> : null}
-            <div className="mt-3 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-700">{body}</div>
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                className="rounded-xl border-2 border-brand-blue bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-brand-blue hover:bg-slate-50"
-                popoverTarget={popId}
-                popoverTargetAction="hide"
-              >
-                Close
-              </button>
-            </div>
+        {selected ? (
+          <div
+            className={`vj-surface rounded-2xl border border-slate-200 p-4 shadow-sm sm:p-6${cream}`}
+            style={{ ...copyStyle, ...surfaceStyle }}
+          >
+            {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+            {title.trim() ? (
+              <h3 className="mb-3 font-serif text-2xl font-black text-slate-900" style={{ color: copyStyle.color }}>
+                {title}
+              </h3>
+            ) : null}
+            <BlogParagraphBlock block={block} isEditing toolbarSource={false} canvasSurface htmlKey="body" />
           </div>
-        </div>
-      </>
+        ) : (
+          <div
+            className={`vj-surface rounded-2xl border border-dashed border-slate-200 p-4${cream || ' bg-[#F3EDE3]/80'}`}
+            style={{ ...copyStyle, ...surfaceStyle }}
+          >
+            {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+            {title.trim() ? <h3 className="mb-3 font-serif text-xl font-black text-slate-900">{title}</h3> : null}
+            <div
+              className="blog-paragraph-block blog-lightbox-copy prose prose-slate max-w-none"
+              dangerouslySetInnerHTML={{ __html: html || '<p></p>' }}
+            />
+            <p className="mt-3 text-center text-[10px] text-slate-400">Select this lightbox to edit the text.</p>
+          </div>
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-      <p className="text-[11px] leading-snug text-slate-500">
-        Uses the browser <strong className="text-slate-700">Popover API</strong> (no scripts). Readers tap the button to open; backdrop tap closes in supporting browsers.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {aligns.map((a) => (
-          <button
-            key={a}
-            type="button"
-            onClick={() => updateBlock(block.id, { alignTrigger: a })}
-            className={`rounded-lg px-2 py-1 text-xs capitalize ${alignTrigger === a ? 'bg-brand-blue text-brand-yellow' : 'bg-white text-slate-600'}`}
-          >
-            {a}
-          </button>
-        ))}
-      </div>
-      <input
-        value={triggerLabel}
-        onChange={(e) => updateBlock(block.id, { triggerLabel: e.target.value })}
-        placeholder="Button label"
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-black"
-      />
-      <input
-        value={title}
-        onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-        placeholder="Popup title (optional)"
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-black"
-      />
-      <textarea
-        value={body}
-        onChange={(e) => updateBlock(block.id, { body: e.target.value })}
-        placeholder="Popup body text"
-        rows={5}
-        className="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm"
-      />
-      <div className={`flex ${justify} border-t border-slate-200 pt-4`}>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-xl bg-brand-blue px-6 py-3 text-xs font-black uppercase tracking-widest text-brand-yellow shadow-md"
-          popoverTarget={popId}
-          popoverTargetAction="toggle"
-        >
-          {triggerLabel || 'Preview'}
+    <>
+      <div className={`my-3 flex w-full ${justify}`}>
+        <button type="button" className={triggerClass} popoverTarget={popId} popoverTargetAction="toggle">
+          {triggerLabel}
         </button>
       </div>
-      <div id={popId} popover="auto" className="blog-modal-popover max-h-[min(85vh,480px)] w-[min(28rem,94vw)] overflow-auto border-0 bg-transparent p-0">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-          {title.trim() ? <h3 className="text-lg font-black text-brand-blue">{title}</h3> : null}
-          <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{body || '…'}</div>
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-black uppercase text-slate-600"
-              popoverTarget={popId}
-              popoverTargetAction="hide"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+      <div id={popId} popover="auto" className="blog-modal-popover overflow-auto border-0 bg-transparent p-0 shadow-none">
+        {panel}
       </div>
-    </div>
+    </>
   );
 }

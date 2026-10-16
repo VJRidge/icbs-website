@@ -20,6 +20,7 @@ import { Gapcursor } from '@tiptap/extension-gapcursor';
 import CharacterCount from '@tiptap/extension-character-count';
 
 import { FontSize } from '../tiptapFontSize';
+import { FontWeight } from '../tiptapFontWeight';
 import { BlogLink } from './blogLinkExtend';
 import { LetterSpacing } from './blogLetterSpacing';
 import { BlogFlowAttributes } from './blogFlowAttributes';
@@ -60,6 +61,7 @@ export function blogParagraphExtensions(placeholder: string) {
     TextStyle,
     FontFamily,
     FontSize.configure({ types: ['textStyle'] }),
+    FontWeight,
     LetterSpacing,
     Color,
     Highlight.configure({ multicolor: true }),

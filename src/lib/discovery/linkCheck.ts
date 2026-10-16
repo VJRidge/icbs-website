@@ -31,11 +31,16 @@ export const STATIC_PUBLIC_PATHS = new Set([
   '/blog',
   '/search',
   '/contact',
+  '/faq',
   '/free',
   '/free/thanks',
   '/privacy',
   '/terms',
   '/refunds',
+  '/copyright',
+  '/unsubscribed',
+  '/unsubscribe-error',
+  '/prefs',
 ]);
 
 const HREF_ATTR = /href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;

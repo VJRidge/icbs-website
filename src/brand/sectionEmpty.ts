@@ -20,6 +20,10 @@ export function keepAddedEmptySection(id: string | null) {
   keptEmptySectionId = id
 }
 
+export function peekKeptEmptySection() {
+  return keptEmptySectionId
+}
+
 export function withoutUnusedEmptySections(blocks: BlogBlock[], keepId = keptEmptySectionId): BlogBlock[] {
   if (blocks.every((block) => !isReusableEmptySection(block) || block.id === keepId)) return blocks
   return blocks.filter((block) => !isReusableEmptySection(block) || block.id === keepId)

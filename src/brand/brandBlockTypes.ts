@@ -3,6 +3,7 @@ import {
   BookOpen,
   Columns,
   Download,
+  FileText,
   GalleryHorizontal,
   LayoutGrid,
   Mail,
@@ -32,6 +33,7 @@ export const BRAND_BLOCK_TYPES = [
   'brand_faq',
   'brand_thanks',
   'brand_article',
+  'brand_note',
 ] as const
 
 export function isBrandBlockType(type: string): boolean {
@@ -105,6 +107,7 @@ export const BRAND_BLOCK_DEFAULTS = {
     resourcesHref: '/resources',
   },
   brand_article: { eyebrow: '', heading: '', lede: '', items: [item], bookHref: '/products/i-call-bs', bookLabel: 'The complete book' },
+  brand_note: { eyebrow: '', heading: '', anchor: '', items: [{ title: '', text: '' }] },
 } as const
 
 export const BRAND_BLOCK_LABELS: Record<(typeof BRAND_BLOCK_TYPES)[number], string> = {
@@ -124,6 +127,7 @@ export const BRAND_BLOCK_LABELS: Record<(typeof BRAND_BLOCK_TYPES)[number], stri
   brand_faq: 'Questions',
   brand_thanks: 'Kit download',
   brand_article: 'Resource article',
+  brand_note: 'Build note',
 }
 
 export const BRAND_BLOCK_ICONS: Record<(typeof BRAND_BLOCK_TYPES)[number], LucideIcon> = {
@@ -143,4 +147,5 @@ export const BRAND_BLOCK_ICONS: Record<(typeof BRAND_BLOCK_TYPES)[number], Lucid
   brand_faq: Megaphone,
   brand_thanks: Download,
   brand_article: Users,
+  brand_note: FileText,
 }

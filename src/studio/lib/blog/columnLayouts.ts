@@ -105,6 +105,28 @@ export function gridTemplateFromWidths(widths: number[]): string {
   return widths.map((w) => `${Math.max(1, w)}fr`).join(' ');
 }
 
+export const COLUMN_GUTTER_PX = 12;
+
+/** `50fr 50fr` plus a 12px drag track between the columns. */
+export function gridTemplateWithGutters(widths: number[], gutterPx = COLUMN_GUTTER_PX): string {
+  return gutteredGridTemplate(gridTemplateFromWidths(widths), gutterPx);
+}
+
+/** Insert a pixel track between each CSS grid column so in-flow resize handles have a home. */
+export function gutteredGridTemplate(template: string, gutterPx = COLUMN_GUTTER_PX): string {
+  const trimmed = template.trim();
+  const repeat = trimmed.match(/^repeat\(\s*(\d+)\s*,\s*(.+)\)$/i);
+  if (repeat) {
+    const n = Number(repeat[1]);
+    const track = repeat[2].trim();
+    if (!Number.isInteger(n) || n < 1) return trimmed;
+    return Array.from({ length: n }, (_, i) => (i < n - 1 ? `${track} ${gutterPx}px` : track)).join(' ');
+  }
+  const tracks = trimmed.split(/\s+/).filter(Boolean);
+  if (tracks.length < 2) return trimmed;
+  return tracks.map((t, i) => (i < tracks.length - 1 ? `${t} ${gutterPx}px` : t)).join(' ');
+}
+
 function roundWidth(n: number): number {
   return Math.round(n * 10) / 10;
 }

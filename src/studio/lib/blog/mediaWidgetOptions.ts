@@ -1,4 +1,29 @@
+import { safeHref } from './safeHref';
+
 export type NavMode = 'arrows_dots' | 'arrows' | 'dots' | 'none';
+
+/** Click target for a carousel slide: per-item link, else widget link mode. */
+export function carouselSlideHref(
+  item: { url?: string; link?: string; href?: string },
+  data: Record<string, unknown>,
+): string {
+  const own = safeHref(item.link ?? item.href) ?? '';
+  if (own) return own;
+  const mode = String(data.linkMode ?? 'none');
+  if (mode === 'media') return safeHref(item.url) ?? '';
+  if (mode === 'custom') return safeHref(data.customUrl) ?? '';
+  return '';
+}
+
+/** Empty dropped carousel has a blank items row, so the canvas would collapse to nothing. */
+export function mediaCarouselIsEmpty(block: { type: string; data: Record<string, unknown> }): boolean {
+  if (block.type !== 'carousel') return false;
+  const items = Array.isArray(block.data.items) ? block.data.items : [];
+  return !items.some((row) => {
+    const item = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
+    return Boolean(String(item.url ?? '').trim() || String(item.videoUrl ?? '').trim());
+  });
+}
 
 export function readNavigation(data: Record<string, unknown>): NavMode {
   const raw = String(data.navigation ?? '');

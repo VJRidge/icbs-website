@@ -11,6 +11,7 @@ import {
   canManageImports,
   canManageSegments,
   canReadPurchases,
+  canResendPurchases,
   canManageNewsletter,
   canReadAnalytics,
   canManageShortLinks,
@@ -163,6 +164,8 @@ describe('non-content admin capabilities', () => {
     expect(canManageSegments('author', approved)).toBe(false);
     expect(canReadPurchases('author', approved)).toBe(true);
     expect(canReadPurchases('author')).toBe(false);
+    expect(canResendPurchases('author', approved)).toBe(false);
+    expect(canResendPurchases('editor', approved)).toBe(true);
   });
 
   it('lets authors create short links but not retarget them', () => {

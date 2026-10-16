@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import BlogBlockEditor from '../components/blog/editor/BlogBlockEditor';
+import { ActiveEditorProvider } from '../contexts/ActiveEditorContext';
 import { supabase } from '../lib/supabase';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
 import { canManageNewsletter } from '../lib/cms/authorization';
@@ -1029,7 +1030,9 @@ export default function NewsletterEditorPage({ userProfile }: { userProfile: Use
                 </p>
               ) : null}
               {editorReady ? (
-                <BlogBlockEditor userId={userProfile?.id ?? null} palette="email" />
+                <ActiveEditorProvider>
+                  <BlogBlockEditor userId={userProfile?.id ?? null} palette="email" />
+                </ActiveEditorProvider>
               ) : null}
             </section>
           </div>

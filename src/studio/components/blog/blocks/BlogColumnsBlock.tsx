@@ -15,11 +15,19 @@ import {
   layoutForColumnCount,
   normalizeColumnZones,
 } from '../../../lib/blog/columnLayouts';
+import { canvasWidgetEmptyIsMedia, canvasWidgetEmptyLabel } from '../../../lib/blog/canvasWidgetEmpty';
 import { carouselPreset } from '../../../lib/blog/mediaWidgetOptions';
 import { safeHref } from '../../../lib/blog/safeHref';
 import LayoutChooser from '../../../../brand/LayoutChooser';
 import ColumnLayoutFields from '../../../../brand/ColumnLayoutFields';
 import ColumnWidthSliders from '../../../../brand/ColumnWidthSliders';
+import SurfaceBackgroundInspector from '../editor/SurfaceBackgroundInspector';
+import {
+  readColumnSurface,
+  readSurfaceBackground,
+  surfaceBackgroundPatch,
+  withColumnSurface,
+} from '../../../lib/blog/surfaceBackground';
 import { columnStackAttrs, readColumnGap } from '../../../../brand/columnLayout';
 import { COLUMN_WIDGETS, WIDGET_DRAG } from '../../../../brand/columnWidgets';
 import { setSectionLayout, useColumnPick, type ColumnMode } from '../../../../brand/sectionActions';
@@ -145,6 +153,29 @@ export default function BlogColumnsBlock({
             />
           </label>
         </BlogInspectorSection>
+        <SurfaceBackgroundInspector
+          blockId={block.id}
+          title="Section background"
+          value={readSurfaceBackground(block.data)}
+          onChange={(next) => updateBlock(block.id, surfaceBackgroundPatch(next))}
+        />
+        {zones.map((_, index) => (
+          <SurfaceBackgroundInspector
+            key={`col-bg-${index}`}
+            blockId={block.id}
+            columnIndex={index}
+            title={
+              columnPick?.parentId === block.id && columnPick.column === index
+                ? `Column ${index + 1} background (selected)`
+                : `Column ${index + 1} background`
+            }
+            value={readColumnSurface(block.data, index)}
+            onChange={(next) => updateBlock(block.id, withColumnSurface(block.data, zones.length, index, next))}
+          />
+        ))}
+        <p className="text-[11px] leading-snug text-slate-500">
+          Click the padding inside a column to select it. Each column can have its own color, image, or video.
+        </p>
       </div>
     );
   }
@@ -266,6 +297,7 @@ export default function BlogColumnsBlock({
             <div
               key={nested.id}
               data-nested-id={nested.id}
+              data-block-id={nested.id}
               onClick={(e) => {
                 e.stopPropagation();
                 selectBlock(nested.id);
@@ -308,17 +340,23 @@ export default function BlogColumnsBlock({
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {nested.type === 'image' && !String(nested.data.url ?? '').trim() ? (
-                <div className="flex min-h-[120px] items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-400">
-                  Choose an image
+              {canvasWidgetEmptyLabel(nested) &&
+              !(nested.type === 'heading' || (nested.type === 'paragraph' && selectedBlockId === nested.id)) ? (
+                <div
+                  className={
+                    canvasWidgetEmptyIsMedia(nested.type)
+                      ? 'flex min-h-[120px] items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-400'
+                      : 'flex min-h-[48px] items-center rounded-md px-3 text-xs uppercase tracking-wide text-slate-400'
+                  }
+                >
+                  {canvasWidgetEmptyLabel(nested)}
                 </div>
               ) : (
                 <BlogBlockRenderer
                   block={nested}
                   isEditing={
                     nested.type === 'heading' ||
-                    nested.type === 'slideshow' ||
-                    nested.type === 'carousel' ||
+                    nested.type === 'modal_popup' ||
                     (nested.type === 'paragraph' && selectedBlockId === nested.id)
                   }
                 />
@@ -350,7 +388,7 @@ export default function BlogColumnsBlock({
     <BlogResizableColumns
       widths={columnWidths}
       gap={rowGap}
-      showHandles={isEditing && zones.length > 1 && block.data.columnMode !== 'grid'}
+      showHandles={isEditing && zones.length > 1}
       onWidthsChange={isEditing ? setColumnWidths : undefined}
     >
       {columnPanels}

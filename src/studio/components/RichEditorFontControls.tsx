@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import type { Editor } from '@tiptap/core';
 import { cn } from '../lib/utils';
-import { EDITOR_FONT_FAMILY_OPTIONS, EDITOR_FONT_SIZE_OPTIONS } from '../lib/editorFontChoices';
+import { EDITOR_FONT_FAMILY_OPTIONS, EDITOR_FONT_SIZE_OPTIONS, EDITOR_FONT_WEIGHT_OPTIONS } from '../lib/editorFontChoices';
 import {
   applyEditorFontFamily,
   applyEditorFontSize,
+  applyEditorFontWeight,
   freezeToolbarEditorSelection,
   saveToolbarEditorSelection,
 } from '../lib/tiptapTextStyleCommands';
@@ -260,6 +261,7 @@ function EditorFontControls({
   const attrs = editor.getAttributes('textStyle') as {
     fontFamily?: string;
     fontSize?: string;
+    fontWeight?: string;
   };
   const rawFf = attrs.fontFamily as string | undefined;
   const ffStored = rawFf?.replace(/\s*,\s*/g, ', ').trim() ?? '';
@@ -436,6 +438,27 @@ function EditorFontControls({
           {sizeNeedsCustomOption ? (
             <option value={sizeSelectValue}>{currentSizeLabel}</option>
           ) : null}
+        </select>
+        <label className="sr-only" htmlFor="rich-editor-font-weight">
+          Weight
+        </label>
+        <select
+          id="rich-editor-font-weight"
+          className={cn(selectClass, 'min-w-[5rem] max-w-[7.5rem]')}
+          disabled={disabled}
+          title="Font weight applies to the highlighted text"
+          value={String(attrs.fontWeight ?? '')}
+          onPointerDown={() => lockSelectionForControl()}
+          onChange={(e) => {
+            applyEditorFontWeight(editor, e.target.value);
+            bump((n) => n + 1);
+          }}
+        >
+          {EDITOR_FONT_WEIGHT_OPTIONS.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
         <div
           data-toolbar-text-input

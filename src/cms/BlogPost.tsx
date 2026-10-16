@@ -4,6 +4,7 @@ import { applyPublicContentSeo } from './applyPublicContentSeo'
 import SiteHeader from '../components/SiteHeader'
 import { supabaseBrowser } from '../lib/supabaseBrowser'
 import { PUBLISHED_CONTENTS_VIEW } from '../lib/publishedContent'
+import { categoryFacesFromLinks } from '../studio/lib/blog/postTeaserCategory'
 
 type Taxonomy = { kind: string; slug: string; name: string }
 
@@ -39,7 +40,7 @@ export default function BlogPost({ slug }: { slug: string }) {
     ;(async () => {
       const { data } = await sb
         .from(PUBLISHED_CONTENTS_VIEW)
-        .select('title, seo_title, seo_description, published_at, updated_at, published_document, taxonomies')
+        .select('id, title, seo_title, seo_description, published_at, updated_at, published_document, taxonomies')
         .eq('kind', 'post')
         .eq('slug', slug)
         .eq('status', 'published')
@@ -60,9 +61,19 @@ export default function BlogPost({ slug }: { slug: string }) {
           updatedAt: data.updated_at,
         })
         const taxonomies = (data.taxonomies ?? []) as unknown as Taxonomy[]
-        const categories = taxonomies
+        let categories = taxonomies
           .filter((t) => t.kind === 'category')
           .map(({ slug: s, name }) => ({ slug: s, name }))
+        const contentId = String((data as { id?: string }).id ?? '')
+        if (contentId) {
+          const { data: links } = await sb
+            .from('content_taxonomies')
+            .select('is_primary, taxonomies(kind, name, slug)')
+            .eq('content_id', contentId)
+          if (gone) return
+          const live = categoryFacesFromLinks((links ?? []) as { is_primary?: boolean; taxonomies?: unknown }[])
+          if (live.length) categories = live
+        }
         setNode(
           <PublicPage
             title={title}

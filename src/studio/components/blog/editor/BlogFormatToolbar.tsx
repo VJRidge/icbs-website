@@ -40,11 +40,15 @@ import {
   applyEditorHighlight,
   freezeToolbarEditorSelection,
   isBoldActiveInSelection,
+  restoreToolbarEditorSelection,
   saveToolbarEditorSelection,
+  toggleListAtCaret,
 } from '../../../lib/tiptapTextStyleCommands';
 import BlogToolbarTextColorPicker from './BlogToolbarTextColorPicker';
 import BlogLinkDialog from './BlogLinkDialog';
 import BlogFindReplaceDialog from './BlogFindReplaceDialog';
+import StudioHistoryButtons from './StudioHistoryButtons';
+import { applyEditorTextCase, TEXT_CASE_OPTIONS, type TextCaseOption } from '../../../lib/blog/textCase';
 
 const LINE_HEIGHTS: { label: string; value: string }[] = [
   { label: 'Default', value: '' },
@@ -93,18 +97,19 @@ export default function BlogFormatToolbar() {
   const selectedBlock = selectedBlockId ? findBlockInTree(blocks, selectedBlockId) : null;
   const headingEditor = selectedBlock?.type === 'heading';
 
-  const ed = useMemo(() => {
+  const liveEd = (): Editor | null => {
     if (selectedBlockId) {
       const block = findBlockInTree(blocks, selectedBlockId);
-      if (block?.type === 'paragraph' || block?.type === 'heading') {
-        const canvasEditor = getBlogParagraphEditor(selectedBlockId);
-        if (canvasEditor && !canvasEditor.isDestroyed) return canvasEditor;
+      if (block?.type === 'paragraph' || block?.type === 'heading' || block?.type === 'modal_popup') {
+        const found = getBlogParagraphEditor(selectedBlockId);
+        if (found && !found.isDestroyed) return found;
       }
     }
-    const candidate = activeEditor;
-    if (!candidate || candidate.isDestroyed) return null;
-    return candidate;
-  }, [blocks, selectedBlockId, getBlogParagraphEditor, activeEditor, blogParagraphEditorVersion]);
+    if (activeEditor && !activeEditor.isDestroyed) return activeEditor;
+    return null;
+  };
+
+  const ed = useMemo(() => liveEd(), [blocks, selectedBlockId, getBlogParagraphEditor, activeEditor, blogParagraphEditorVersion]);
 
   const [, tick] = useState(0);
   const [toolbarUserId, setToolbarUserId] = useState<string | null>(null);
@@ -143,9 +148,17 @@ export default function BlogFormatToolbar() {
     if (!ed) return;
     const root = document.querySelector('[data-blog-editor-chrome]');
     if (!root) return;
-    const captureSelection = () => {
-      saveToolbarEditorSelection(ed);
-      freezeToolbarEditorSelection(ed);
+    const captureSelection = (event: Event) => {
+      const current = liveEd() ?? ed;
+      if (current) {
+        saveToolbarEditorSelection(current);
+        freezeToolbarEditorSelection(current);
+      }
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest('input, textarea, select, option, [data-toolbar-text-input]')) return;
+      if (target.closest('[data-toolbar-popover-panel], [data-blog-toolbar-color]')) return;
+      event.preventDefault();
     };
     root.addEventListener('mousedown', captureSelection, true);
     root.addEventListener('pointerdown', captureSelection, true);
@@ -153,7 +166,7 @@ export default function BlogFormatToolbar() {
       root.removeEventListener('mousedown', captureSelection, true);
       root.removeEventListener('pointerdown', captureSelection, true);
     };
-  }, [ed]);
+  }, [ed, selectedBlockId, getBlogParagraphEditor, activeEditor]);
 
   const counts =
     ed?.storage.characterCount && typeof ed.storage.characterCount === 'object'
@@ -172,7 +185,7 @@ export default function BlogFormatToolbar() {
   }: {
     label: string;
     active?: boolean;
-    onPress: () => void;
+    onPress: (editor: Editor) => void;
     children: ReactNode;
     disabled?: boolean;
   }) => {
@@ -185,9 +198,11 @@ export default function BlogFormatToolbar() {
         tabIndex={inactive ? -1 : undefined}
         onMouseDown={(e) => {
           e.preventDefault();
-          if (inactive || !ed) return;
-          saveToolbarEditorSelection(ed);
-          onPress();
+          const current = liveEd();
+          if (inactive || !current) return;
+          saveToolbarEditorSelection(current);
+          restoreToolbarEditorSelection(current);
+          onPress(current);
         }}
         className={`rounded border px-1.5 py-1 text-xs font-bold transition-all select-none ${
           inactive
@@ -240,6 +255,8 @@ export default function BlogFormatToolbar() {
         onMouseDown={onToolbarChromeMouseDown}
       >
         <ToolRow>
+          <StudioHistoryButtons tone="light" />
+          {divider}
           {ed ? (
             <RichEditorFontControls editor={ed} compact />
           ) : (
@@ -262,38 +279,59 @@ export default function BlogFormatToolbar() {
               tick((n) => n + 1);
             }}
           />
+          <select
+            disabled={!ed}
+            aria-label="Change case"
+            title="Change case"
+            value=""
+            onChange={(event) => {
+              const value = event.target.value as TextCaseOption;
+              const current = liveEd();
+              if (!current || !TEXT_CASE_OPTIONS.some((option) => option.value === value)) return;
+              applyEditorTextCase(current, value);
+              tick((n) => n + 1);
+            }}
+            className={selectCls}
+          >
+            <option value="">Change case</option>
+            {TEXT_CASE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           {divider}
-          <Btn label="Left" active={ed?.isActive({ textAlign: 'left' })} onPress={() => ed!.chain().focus().setTextAlign('left').run()}>
+          <Btn label="Left" active={ed?.isActive({ textAlign: 'left' })} onPress={(editor) => editor.chain().focus().setTextAlign('left').run()}>
             <AlignLeft size={13} />
           </Btn>
           <Btn
             label="Center"
             active={ed?.isActive({ textAlign: 'center' })}
-            onPress={() => ed!.chain().focus().setTextAlign('center').run()}
+            onPress={(editor) => editor.chain().focus().setTextAlign('center').run()}
           >
             <AlignCenter size={13} />
           </Btn>
-          <Btn label="Right" active={ed?.isActive({ textAlign: 'right' })} onPress={() => ed!.chain().focus().setTextAlign('right').run()}>
+          <Btn label="Right" active={ed?.isActive({ textAlign: 'right' })} onPress={(editor) => editor.chain().focus().setTextAlign('right').run()}>
             <AlignRight size={13} />
           </Btn>
           <Btn
             label="Justify"
             active={ed?.isActive({ textAlign: 'justify' })}
-            onPress={() => ed!.chain().focus().setTextAlign('justify').run()}
+            onPress={(editor) => editor.chain().focus().setTextAlign('justify').run()}
           >
             <AlignJustify size={13} />
           </Btn>
           {divider}
-          <Btn label="Bold" active={ed ? isBoldActiveInSelection(ed) : false} onPress={() => ed!.chain().focus().toggleBold().run()}>
+          <Btn label="Bold" active={ed ? isBoldActiveInSelection(ed) : false} onPress={(editor) => editor.chain().focus().toggleBold().run()}>
             <span className="font-black">B</span>
           </Btn>
-          <Btn label="Italic" active={ed?.isActive('italic')} onPress={() => ed!.chain().focus().toggleItalic().run()}>
+          <Btn label="Italic" active={ed?.isActive('italic')} onPress={(editor) => editor.chain().focus().toggleItalic().run()}>
             <span className="italic font-semibold">I</span>
           </Btn>
-          <Btn label="Underline" active={ed?.isActive('underline')} onPress={() => ed!.chain().focus().toggleUnderline().run()}>
+          <Btn label="Underline" active={ed?.isActive('underline')} onPress={(editor) => editor.chain().focus().toggleUnderline().run()}>
             <Underline size={13} strokeWidth={2.5} />
           </Btn>
-          <Btn label="Strikethrough" active={ed?.isActive('strike')} onPress={() => ed!.chain().focus().toggleStrike().run()}>
+          <Btn label="Strikethrough" active={ed?.isActive('strike')} onPress={(editor) => editor.chain().focus().toggleStrike().run()}>
             <Strikethrough size={13} />
           </Btn>
           {divider}
@@ -309,8 +347,8 @@ export default function BlogFormatToolbar() {
           <Btn
             label="Unlink"
             disabled={!ed || !selectionTouchesLink(ed)}
-            onPress={() => {
-              ed!.chain().focus().extendMarkRange('link').unsetLink().run();
+            onPress={(editor) => {
+              editor.chain().focus().extendMarkRange('link').unsetLink().run();
             }}
           >
             <Unlink size={13} />
@@ -357,35 +395,34 @@ export default function BlogFormatToolbar() {
           <Btn
             label="Indent paragraph"
             active={false}
-            onPress={() => ed!.chain().focus().bumpBlogParagraphIndent(1.5).run()}
+            onPress={(editor) => editor.chain().focus().bumpBlogParagraphIndent(1.5).run()}
           >
             <Indent size={13} />
           </Btn>
           <Btn
             label="Outdent paragraph"
             active={false}
-            onPress={() => ed!.chain().focus().bumpBlogParagraphIndent(-1.5).run()}
+            onPress={(editor) => editor.chain().focus().bumpBlogParagraphIndent(-1.5).run()}
           >
             <Outdent size={13} />
           </Btn>
           {divider}
-          <Btn label="Bullet list" active={ed?.isActive('bulletList')} onPress={() => ed!.chain().focus().toggleBulletList().run()}>
+          <Btn label="Bullet list" active={ed?.isActive('bulletList')} onPress={(editor) => toggleListAtCaret(editor, 'bulletList')}>
             <List size={13} />
           </Btn>
-          <Btn label="Ordered list" active={ed?.isActive('orderedList')} onPress={() => ed!.chain().focus().toggleOrderedList().run()}>
+          <Btn label="Ordered list" active={ed?.isActive('orderedList')} onPress={(editor) => toggleListAtCaret(editor, 'orderedList')}>
             <ListOrdered size={13} />
           </Btn>
-          <Btn label="Task list" active={ed?.isActive('taskList')} onPress={() => ed!.chain().focus().toggleTaskList().run()}>
+          <Btn label="Task list" active={ed?.isActive('taskList')} onPress={(editor) => toggleListAtCaret(editor, 'taskList')}>
             <ListChecks size={13} />
           </Btn>
           <Btn
             label="List indent"
             active={false}
-            onPress={() => {
-              const e = ed!;
-              const chain = e.chain().focus();
-              if (e.can().sinkListItem('taskItem')) chain.sinkListItem('taskItem').run();
-              else if (e.can().sinkListItem('listItem')) chain.sinkListItem('listItem').run();
+            onPress={(editor) => {
+              const chain = editor.chain().focus();
+              if (editor.can().sinkListItem('taskItem')) chain.sinkListItem('taskItem').run();
+              else if (editor.can().sinkListItem('listItem')) chain.sinkListItem('listItem').run();
             }}
           >
             <Indent size={13} />
@@ -393,39 +430,38 @@ export default function BlogFormatToolbar() {
           <Btn
             label="List outdent"
             active={false}
-            onPress={() => {
-              const e = ed!;
-              const chain = e.chain().focus();
-              if (e.can().liftListItem('taskItem')) chain.liftListItem('taskItem').run();
-              else if (e.can().liftListItem('listItem')) chain.liftListItem('listItem').run();
+            onPress={(editor) => {
+              const chain = editor.chain().focus();
+              if (editor.can().liftListItem('taskItem')) chain.liftListItem('taskItem').run();
+              else if (editor.can().liftListItem('listItem')) chain.liftListItem('listItem').run();
             }}
           >
             <Outdent size={13} />
           </Btn>
           {divider}
-          <Btn label="Subscript" active={ed?.isActive('subscript')} onPress={() => ed!.chain().focus().toggleSubscript().run()}>
+          <Btn label="Subscript" active={ed?.isActive('subscript')} onPress={(editor) => editor.chain().focus().toggleSubscript().run()}>
             <SubIcon size={13} />
           </Btn>
-          <Btn label="Superscript" active={ed?.isActive('superscript')} onPress={() => ed!.chain().focus().toggleSuperscript().run()}>
+          <Btn label="Superscript" active={ed?.isActive('superscript')} onPress={(editor) => editor.chain().focus().toggleSuperscript().run()}>
             <SupIcon size={13} />
           </Btn>
-          <Btn label="Inline code" active={ed?.isActive('code')} onPress={() => ed!.chain().focus().toggleCode().run()}>
+          <Btn label="Inline code" active={ed?.isActive('code')} onPress={(editor) => editor.chain().focus().toggleCode().run()}>
             <Code size={13} />
           </Btn>
           {divider}
-          <Btn label="Block quote" active={ed?.isActive('blockquote')} onPress={() => ed!.chain().focus().toggleBlockquote().run()}>
+          <Btn label="Block quote" active={ed?.isActive('blockquote')} onPress={(editor) => editor.chain().focus().toggleBlockquote().run()}>
             <Quote size={13} />
           </Btn>
-          <Btn label="Horizontal rule" active={false} onPress={() => ed!.chain().focus().setHorizontalRule().run()}>
+          <Btn label="Horizontal rule" active={false} onPress={(editor) => editor.chain().focus().setHorizontalRule().run()}>
             <Minus size={13} />
           </Btn>
-          <Btn label="Line break" active={false} onPress={() => ed!.chain().focus().setHardBreak().run()}>
+          <Btn label="Line break" active={false} onPress={(editor) => editor.chain().focus().setHardBreak().run()}>
             <WrapText size={13} />
           </Btn>
           <Btn
             label="Table"
             active={false}
-            onPress={() => ed!.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+            onPress={(editor) => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
           >
             <Table size={13} />
           </Btn>

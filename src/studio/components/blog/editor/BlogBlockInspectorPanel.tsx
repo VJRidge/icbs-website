@@ -1,5 +1,6 @@
 import { BLOG_BLOCK_LABELS, type BlogBlock, type BlogBlockType } from '../../../lib/blog/blogBlockTypes';
 import BlogParagraphBlock from '../blocks/BlogParagraphBlock';
+import { LightboxEditFields } from '../blocks/BlogModalPopupBlock';
 import BlogFormatToolbar from './BlogFormatToolbar';
 import { isBrandBlockType } from '../../../../brand/brandBlockTypes';
 import { useSelectedPiece } from '../../../../brand/BrandPiecePanel';
@@ -18,6 +19,16 @@ function inspectorContentPanel(block: BlogBlock) {
       </div>
     );
   }
+  if (block.type === 'modal_popup') {
+    return (
+      <div data-paragraph-editor>
+        <BlogFormatToolbar />
+        <div className="p-3">
+          <LightboxEditFields block={block} />
+        </div>
+      </div>
+    );
+  }
   return <BlogBlockInspectorTabContent block={block} tab="content" />;
 }
 
@@ -26,6 +37,7 @@ const EDIT_LABELS: Partial<Record<BlogBlockType, string>> = {
   carousel: 'Media carousel',
   columns: 'Container',
   paragraph: 'Text Editor',
+  modal_popup: 'Lightbox',
   heading: 'Heading',
   image: 'Image',
   video: 'Video',

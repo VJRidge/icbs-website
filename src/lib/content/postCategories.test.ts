@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  newCategoryInsertPayload,
   normalizeCategoryLinks,
   toggleAdditionalCategory,
   withPrimaryCategory,
@@ -47,5 +48,15 @@ describe('postCategories', () => {
     expect(toggleAdditionalCategory(base, 'b', false)).toEqual([
       { taxonomyId: 'a', isPrimary: true },
     ]);
+  });
+
+  it('builds an insert payload only when the category has a name', () => {
+    expect(newCategoryInsertPayload('  ', 2, 'x')).toBeNull();
+    expect(newCategoryInsertPayload(' Vibe Coding ', 2, 'vibe-coding')).toEqual({
+      name: 'Vibe Coding',
+      slug: 'vibe-coding',
+      description: '',
+      sort_order: 30,
+    });
   });
 });

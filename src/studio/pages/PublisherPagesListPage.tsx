@@ -1,7 +1,7 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Eye, FileText, Plus, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, GripVertical, Pin, Plus, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { slugifyTitle } from '../lib/slugifyTitle';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
@@ -10,8 +10,19 @@ import AdminCmsShell from '../components/admin/AdminCmsShell';
 import CmsListPagination from '../components/admin/CmsListPagination';
 import { CONTENT_KINDS, type ContentKind, type ContentKindConfig } from '../lib/contentKinds';
 import { restoreFromTrashPatch, trashPatch } from '../lib/cms/pageLifecycle';
+import { pageListViewIsLive, previewPayloadFromListRow } from '../lib/cms/pageListView';
+import { writeCmsPreview } from '../lib/cmsPreview';
 import { recordActivity } from '../lib/cms/activityLog';
 import { managedPublicPageBySlug } from '../../lib/site/managedPublicPages';
+import { viewLivePath } from '../lib/cms/viewSite';
+import {
+  comparePostGridOrder,
+  dropTargetPostId,
+  moveIdAt,
+  pinListOrder,
+  ranksFromIds,
+  readListOrder,
+} from '../lib/cms/postGridOrder';
 import type { PublisherSitePage, UserProfile } from '../types';
 
 function normalizePageListStatus(raw: unknown): 'draft' | 'published' | 'trash' {
@@ -35,6 +46,7 @@ function RowActions({
   onQuickEdit,
   onTrash,
   onRestore,
+  onPreview,
 }: {
   page: PublisherSitePage;
   cfg: ContentKindConfig;
@@ -42,6 +54,7 @@ function RowActions({
   onQuickEdit: () => void;
   onTrash: () => void;
   onRestore: () => void;
+  onPreview: () => void;
 }) {
   const sep = <span className="text-slate-300" aria-hidden> | </span>;
   if (trashView) {
@@ -55,26 +68,26 @@ function RowActions({
   }
   const managed = cfg.kind === 'page' ? managedPublicPageBySlug(page.slug) : null;
   const editTo = managed?.adminEditPath ?? `${cfg.adminBase}/${page.id}`;
-  const viewHref = managed?.publicPath ?? cfg.publicPath(page.slug);
-  const showView = page.status === 'published' || !!managed;
+  const viewHref = managed?.publicPath ?? viewLivePath({ slug: page.slug, kind: cfg.kind });
+  const viewLive = pageListViewIsLive(page.status, !!managed);
   const showEdit = !managed || !!managed.adminEditPath;
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-0 gap-y-0.5 text-xs">
-      {showView ? (
-        <>
-          <a
-            href={viewHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-brand-blue hover:underline"
-          >
-            <Eye size={12} />
-            View
-          </a>
-          {sep}
-        </>
-      ) : null}
+      <a
+        href={viewLive ? viewHref : '/preview'}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => {
+          if (viewLive) return;
+          e.preventDefault();
+          onPreview();
+        }}
+        className="font-semibold text-brand-blue hover:underline"
+      >
+        View
+      </a>
+      {sep}
       {showEdit ? (
         <>
           <Link to={editTo} className="font-semibold text-brand-blue hover:underline">
@@ -116,6 +129,10 @@ export default function PublisherPagesListPage({
   const [page, setPage] = useState(1);
   const [quickEdit, setQuickEdit] = useState<QuickEditState | null>(null);
   const [quickSaving, setQuickSaving] = useState(false);
+  const [dragPostId, setDragPostId] = useState<string | null>(null);
+  const [dropPostId, setDropPostId] = useState<string | null>(null);
+  const [orderSaving, setOrderSaving] = useState(false);
+  const dragPostIdRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     let query = supabase.from('contents').select('*').eq('kind', cfg.kind).order('updated_at', { ascending: false });
@@ -151,8 +168,13 @@ export default function PublisherPagesListPage({
         (r) => (r.title || '').toLowerCase().includes(q) || (r.slug || '').toLowerCase().includes(q),
       );
     }
-    return list;
-  }, [rows, listSearchQuery, listStatusFilter]);
+    if (!isPost || q) return list;
+    const published = list
+      .filter((r) => normalizePageListStatus(r.status) === 'published')
+      .sort(comparePostGridOrder);
+    const rest = list.filter((r) => normalizePageListStatus(r.status) !== 'published');
+    return [...published, ...rest];
+  }, [rows, listSearchQuery, listStatusFilter, isPost]);
 
   const totalPages = totalListPages(filteredPages.length);
   const pagedPages = useMemo(() => paginateList(filteredPages, page), [filteredPages, page]);
@@ -271,6 +293,87 @@ export default function PublisherPagesListPage({
     }
   };
 
+  const publishedOrderIds = useMemo(
+    () =>
+      filteredPages
+        .filter((r) => normalizePageListStatus(r.status) === 'published')
+        .map((r) => r.id),
+    [filteredPages],
+  );
+
+  const canReorderPosts =
+    isPost && !listSearchQuery.trim() && listStatusFilter !== 'trash' && listStatusFilter !== 'draft';
+
+  const persistPublishedOrder = async (ids: string[]) => {
+    if (!ids.length) return;
+    const ranks = ranksFromIds(ids);
+    setRows((prev) =>
+      prev.map((row) => {
+        const hit = ranks.find((rank) => rank.id === row.id);
+        return hit ? { ...row, list_order: hit.list_order } : row;
+      }),
+    );
+    setOrderSaving(true);
+    try {
+      for (const rank of ranks) {
+        const { error } = await supabase
+          .from('contents')
+          .update({ list_order: rank.list_order })
+          .eq('kind', 'post')
+          .eq('id', rank.id);
+        if (error) throw error;
+      }
+    } catch (err: unknown) {
+      window.alert(err instanceof Error ? err.message : 'Could not save post order.');
+      await load();
+    } finally {
+      setOrderSaving(false);
+    }
+  };
+
+  const movePublishedPost = (fromId: string, toId: string) => {
+    if (!canReorderPosts || fromId === toId || orderSaving) return;
+    const next = moveIdAt(publishedOrderIds, publishedOrderIds.indexOf(fromId), publishedOrderIds.indexOf(toId));
+    if (next.join() === publishedOrderIds.join()) return;
+    void persistPublishedOrder(next);
+  };
+
+  const nudgePublishedPost = (id: string, direction: -1 | 1) => {
+    const index = publishedOrderIds.indexOf(id);
+    if (index < 0) return;
+    const to = publishedOrderIds[index + direction];
+    if (!to) return;
+    movePublishedPost(id, to);
+  };
+
+  const togglePinPost = async (row: PublisherSitePage) => {
+    if (!canReorderPosts || orderSaving) return;
+    const current = readListOrder(row.list_order);
+    const nextOrder =
+      current < 0
+        ? 0
+        : pinListOrder(
+            publishedOrderIds
+              .filter((id) => id !== row.id)
+              .map((id) => readListOrder(rows.find((r) => r.id === id)?.list_order)),
+          );
+    setOrderSaving(true);
+    try {
+      const { error } = await supabase
+        .from('contents')
+        .update({ list_order: nextOrder })
+        .eq('kind', 'post')
+        .eq('id', row.id);
+      if (error) throw error;
+      setRows((prev) => prev.map((item) => (item.id === row.id ? { ...item, list_order: nextOrder } : item)));
+    } catch (err: unknown) {
+      window.alert(err instanceof Error ? err.message : 'Could not pin post.');
+      await load();
+    } finally {
+      setOrderSaving(false);
+    }
+  };
+
   const statusCounts = useMemo(() => {
     const all = rows.length;
     const published = rows.filter((r) => normalizePageListStatus(r.status) === 'published').length;
@@ -306,7 +409,7 @@ export default function PublisherPagesListPage({
               <a href="/blog" target="_blank" rel="noreferrer" className="font-semibold text-brand-blue hover:underline">
                 blog
               </a>{' '}
-              newest first.
+              in this list order. Drag to rearrange, or pin one to keep it first. Publish date stays the same.
             </>
           ) : (
             <>
@@ -377,22 +480,40 @@ export default function PublisherPagesListPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <tr>
+                {isPost ? <th className="w-14 px-2 py-3">Order</th> : null}
                 <th className="px-4 py-3">Title</th>
                 <th className="hidden px-4 py-3 sm:table-cell">Slug</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 md:table-cell">Date</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody
+              onDragOver={(event) => {
+                if (!canReorderPosts || !dragPostIdRef.current) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                const overId = dropTargetPostId(event.target);
+                if (overId && overId !== dropPostId) setDropPostId(overId);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const fromId = dragPostIdRef.current || event.dataTransfer.getData('text/plain');
+                const toId = dropTargetPostId(event.target);
+                dragPostIdRef.current = null;
+                setDragPostId(null);
+                setDropPostId(null);
+                if (fromId && toId) movePublishedPost(fromId, toId);
+              }}
+            >
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={isPost ? 5 : 4} className="px-4 py-12 text-center text-slate-500">
                     Loading {nouns}…
                   </td>
                 </tr>
               ) : pagedPages.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={isPost ? 5 : 4} className="px-4 py-12 text-center text-slate-500">
                     {rows.length === 0 ? (
                       <>
                         No {nouns} yet.{' '}
@@ -409,7 +530,63 @@ export default function PublisherPagesListPage({
               ) : (
                 pagedPages.map((row) => (
                   <Fragment key={row.id}>
-                    <tr className="border-b border-slate-50 align-top hover:bg-slate-50/80">
+                    <tr
+                      data-post-id={
+                        canReorderPosts && normalizePageListStatus(row.status) === 'published' ? row.id : undefined
+                      }
+                      className={`border-b border-slate-50 align-top hover:bg-slate-50/80 ${
+                        dragPostId === row.id ? 'bg-brand-yellow/20' : ''
+                      } ${dropPostId === row.id && dragPostId !== row.id ? 'bg-brand-blue/10' : ''}`}
+                    >
+                      {isPost ? (
+                        <td className="px-2 py-3">
+                          {canReorderPosts && normalizePageListStatus(row.status) === 'published' ? (
+                            <div className="flex items-center gap-0.5">
+                              <span
+                                draggable
+                                title="Drag to reorder the blog grid"
+                                aria-label={`Drag to reorder ${row.title || 'post'}`}
+                                className="inline-flex cursor-grab rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 active:cursor-grabbing"
+                                onDragStart={(event) => {
+                                  dragPostIdRef.current = row.id;
+                                  setDragPostId(row.id);
+                                  event.dataTransfer.effectAllowed = 'move';
+                                  event.dataTransfer.setData('text/plain', row.id);
+                                }}
+                                onDragEnd={() => {
+                                  window.setTimeout(() => {
+                                    dragPostIdRef.current = null;
+                                    setDragPostId(null);
+                                    setDropPostId(null);
+                                  }, 0);
+                                }}
+                              >
+                                <GripVertical size={14} />
+                              </span>
+                              <button
+                                type="button"
+                                disabled={orderSaving}
+                                title="Move up"
+                                aria-label="Move up"
+                                className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-40"
+                                onClick={() => nudgePublishedPost(row.id, -1)}
+                              >
+                                <ChevronUp size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={orderSaving}
+                                title="Move down"
+                                aria-label="Move down"
+                                className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-40"
+                                onClick={() => nudgePublishedPost(row.id, 1)}
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                            </div>
+                          ) : null}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3">
                         {listStatusFilter === 'trash' ? (
                           <span className="font-bold text-slate-800">{row.title || 'Untitled'}</span>
@@ -446,7 +623,24 @@ export default function PublisherPagesListPage({
                           onQuickEdit={() => openQuickEdit(row)}
                           onTrash={() => void onTrash(row)}
                           onRestore={() => void onRestore(row)}
+                          onPreview={() => {
+                            writeCmsPreview(previewPayloadFromListRow(row, cfg.kind));
+                            window.open(`${window.location.origin}/preview`, '_blank', 'noopener,noreferrer');
+                          }}
                         />
+                        {canReorderPosts && normalizePageListStatus(row.status) === 'published' ? (
+                          <div className="mt-1">
+                            <button
+                              type="button"
+                              disabled={orderSaving}
+                              onClick={() => void togglePinPost(row)}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-blue hover:underline disabled:opacity-40"
+                            >
+                              <Pin size={11} />
+                              {readListOrder(row.list_order) < 0 ? 'Unpin' : 'Pin to top'}
+                            </button>
+                          </div>
+                        ) : null}
                       </td>
                       <td className="hidden px-4 py-3 font-mono text-xs text-slate-500 sm:table-cell">{cfg.publicPath(row.slug)}</td>
                       <td className="px-4 py-3">
@@ -457,6 +651,11 @@ export default function PublisherPagesListPage({
                         >
                           {normalizePageListStatus(row.status)}
                         </span>
+                        {isPost && readListOrder(row.list_order) < 0 ? (
+                          <span className="ml-1 rounded-full bg-brand-yellow/80 px-2 py-0.5 text-[10px] font-black uppercase text-brand-blue">
+                            Pinned
+                          </span>
+                        ) : null}
                       </td>
                       <td className="hidden px-4 py-3 text-slate-500 md:table-cell">
                         {format(new Date(row.updated_at || row.created_at), 'MMM d, yyyy')}
@@ -464,7 +663,7 @@ export default function PublisherPagesListPage({
                     </tr>
                     {quickEdit?.id === row.id ? (
                       <tr className="border-b border-slate-100 bg-slate-50/90">
-                        <td colSpan={4} className="px-4 py-4">
+                        <td colSpan={isPost ? 5 : 4} className="px-4 py-4">
                           <div className="grid gap-3 sm:grid-cols-3">
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
                               Title

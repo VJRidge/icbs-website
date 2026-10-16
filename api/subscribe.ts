@@ -2,11 +2,12 @@ import { env, supabase, sendEmail } from './_lib.js'
 import { kitEmail } from './_emails.js'
 import { rateLimited, requestAddress } from './_rateLimit.js'
 import { recordConversionEvent } from './_analytics.js'
+import { kitSubscribeNeedsConfirm, shouldClearKitUnsubscribe } from '../src/lib/kit/kitResubscribe.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
 
-// POST /api/subscribe  { firstName, email, company (honeypot), utm }
+// POST /api/subscribe  { firstName, email, company (honeypot), utm, confirmResubscribe? }
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -24,30 +25,46 @@ export default async function handler(req: any, res: any) {
   if (!firstName) return res.status(400).json({ error: 'Please enter your first name.' })
 
   const utm = body.utm && typeof body.utm === 'object' ? body.utm : {}
+  const confirmResubscribe = body.confirmResubscribe === true || body.confirmResubscribe === 'true'
 
   try {
-    // Insert, or update if this email signed up before. Signing up again also
-    // re-subscribes someone who had unsubscribed. Tags are left alone so a
-    // 'buyer' tag is never lost.
+    const existingRows = await supabase(
+      `subscribers?email=eq.${encodeURIComponent(email)}&select=id,unsubscribed_at,unsubscribe_token&limit=1`,
+    )
+    const existing = existingRows?.[0] as { unsubscribed_at?: string | null; unsubscribe_token?: string } | undefined
+    const priorUnsub = existing?.unsubscribed_at ?? null
+
+    if (kitSubscribeNeedsConfirm(priorUnsub, confirmResubscribe)) {
+      return res.status(200).json({
+        ok: true,
+        needsResubscribe: true,
+        kitUrl: `${env('SITE_URL').replace(/\/$/, '')}/downloads/I-Call-BS-Free-Starter-Kit.pdf`,
+      })
+    }
+
+    const payload: Record<string, unknown> = {
+      email,
+      first_name: firstName,
+      utm_source: clip(utm.utm_source, 120) || null,
+      utm_medium: clip(utm.utm_medium, 120) || null,
+      utm_campaign: clip(utm.utm_campaign, 120) || null,
+      utm_content: clip(utm.utm_content, 120) || null,
+      consent_at: new Date().toISOString(),
+      last_email_at: new Date().toISOString(),
+    }
+    if (shouldClearKitUnsubscribe(priorUnsub, confirmResubscribe)) {
+      payload.unsubscribed_at = null
+    }
+
     const rows = await supabase('subscribers?on_conflict=email', {
       method: 'POST',
       prefer: 'resolution=merge-duplicates,return=representation',
-      body: JSON.stringify({
-        email,
-        first_name: firstName,
-        utm_source: clip(utm.utm_source, 120) || null,
-        utm_medium: clip(utm.utm_medium, 120) || null,
-        utm_campaign: clip(utm.utm_campaign, 120) || null,
-        utm_content: clip(utm.utm_content, 120) || null,
-        consent_at: new Date().toISOString(),
-        unsubscribed_at: null,
-        last_email_at: new Date().toISOString(),
-      }),
+      body: JSON.stringify(payload),
     })
     const sub = rows?.[0]
     if (!sub) throw new Error('Subscriber row was not returned')
 
-    const site = env('SITE_URL')
+    const site = env('SITE_URL').replace(/\/$/, '')
     const mail = kitEmail({
       firstName,
       kitUrl: `${site}/downloads/I-Call-BS-Free-Starter-Kit.pdf`,

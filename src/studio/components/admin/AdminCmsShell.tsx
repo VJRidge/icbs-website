@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, Shield, ShieldCheck } from 'lucide-react';
 import AdminCmsNav from '../AdminCmsNav';
+import ViewSiteButton from './ViewSiteButton';
 import type { UserProfile } from '../../types';
 import { isSuperAdminProfile } from '../../lib/adminPermissions';
 import { supabase } from '../../lib/supabase';
@@ -79,16 +80,9 @@ export default function AdminCmsShell({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2 px-3">
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-brand-yellow"
-            title="View site"
-            aria-label="View site"
-          >
+          <ViewSiteButton className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-brand-yellow">
             <Eye size={18} strokeWidth={2.25} aria-hidden />
-          </a>
+          </ViewSiteButton>
           {showRolePill ? (
             <span
               className={

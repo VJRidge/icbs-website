@@ -19,6 +19,10 @@ export function sanitizeBlogBlocksDeep(blocks: BlogBlock[]): BlogBlock[] {
       data.text = sanitizeBlogBlockHtml(data.text);
     }
 
+    if (block.type === 'modal_popup' && typeof data.body === 'string') {
+      data.body = sanitizeBlogBlockHtml(data.body);
+    }
+
     if (block.type === 'tabs' && Array.isArray(data.tabs)) {
       data.tabs = data.tabs.map((tab) => {
         if (!tab || typeof tab !== 'object') return tab;

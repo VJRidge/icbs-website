@@ -1,18 +1,29 @@
-import { useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { Copy, GripVertical, Trash2 } from 'lucide-react'
+import { Children, useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import BlogBlockRenderer from '../studio/components/blog/BlogBlockRenderer'
 import BlogHeadingBlock from '../studio/components/blog/blocks/BlogHeadingBlock'
 import BlogParagraphBlock from '../studio/components/blog/blocks/BlogParagraphBlock'
-import type { BlogBlock } from '../studio/lib/blog/blogBlockTypes'
+import type { BlogBlock, BlogBlockType } from '../studio/lib/blog/blogBlockTypes'
 import { findBlockInTree } from '../studio/lib/blog/blogBlockTree'
 import { normalizeColumnZones } from '../studio/lib/blog/columnLayouts'
 import { safeHref } from '../studio/lib/blog/safeHref'
-import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
-import { topLevelForSelection } from '../studio/lib/blog/blockStyle'
+import { carouselPreset } from '../studio/lib/blog/mediaWidgetOptions'
+import { canvasWidgetEmptyIsMedia, canvasWidgetEmptyLabel, canvasWidgetShowsEmpty } from '../studio/lib/blog/canvasWidgetEmpty'
+import { createBlogBlock, useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { BrandFlexibleColumns, sectionIsEmpty } from './BrandCanvasControls'
 import { BrandColumnGrid } from './BrandColumnGrid'
+import { previewScreen } from './previewScreen'
 import { columnStackAttrs } from './columnLayout'
+import SurfaceBackgroundLayers from '../studio/components/blog/SurfaceBackgroundLayers'
+import {
+  hasSurfaceLayers,
+  readColumnSurface,
+  readSurfaceBackground,
+  surfaceShellStyle,
+} from '../studio/lib/blog/surfaceBackground'
 import { BoxResizeHandles, ImageCornerHandles, imageFrameStyle, textBoxStyle, meetCardStyle, meetPhotoImgStyle, meetPhotoStyle } from './ImageCornerHandles'
 import LayoutChooser from './LayoutChooser'
+import ColumnWidgetPicker from './ColumnWidgetPicker'
 import { sectionBoxStyle, useSectionPadDrop } from './BrandSectionGap'
 import { WIDGET_DRAG, blockFromWidgetToken } from './columnWidgets'
 import {
@@ -25,7 +36,7 @@ import {
   setSectionLayout,
   useColumnPick,
 } from './sectionActions'
-import { clickIsOnWidget } from './sectionClick'
+import { clickSelectsWidget, columnPickFromNode } from './sectionClick'
 import './brand.css'
 
 export { chunkBrandSections }
@@ -50,18 +61,21 @@ export function brandSectionOffsets(blocks: BlogBlock[]) {
 }
 
 function Visual({ block, editing = false, live = false }: { block: BlogBlock; editing?: boolean; live?: boolean }) {
-  if (block.type === 'image' && !String(block.data.url ?? '').trim()) {
-    if (!editing) return null
-    const label = String(block.data.alt ?? '').trim() || 'Choose an image'
+  const emptyLabel = canvasWidgetEmptyLabel(block)
+  if (editing && emptyLabel && !(live && (block.type === 'heading' || block.type === 'paragraph'))) {
+    const media = canvasWidgetEmptyIsMedia(block.type)
     return (
-      <div className="vj-media" style={{ minHeight: 140, fontSize: 16 }}>
-        {label}
+      <div className={media ? 'vj-media' : 'vj-widget-empty-label'} style={media ? { minHeight: 140, fontSize: 16 } : undefined}>
+        {emptyLabel}
       </div>
     )
   }
   if (live && block.type === 'heading') return <BlogHeadingBlock block={block} isEditing canvasEdit />
   if (live && block.type === 'paragraph') {
-    return <BlogParagraphBlock block={block} isEditing toolbarSource={false} canvasSurface autoFocus />
+    return <BlogParagraphBlock block={block} isEditing toolbarSource={false} canvasSurface />
+  }
+  if (editing && (block.type === 'modal_popup' || block.type === 'spacer')) {
+    return <BlogBlockRenderer block={block} isEditing toolbarSource={false} />
   }
   return <BlogBlockRenderer block={block} isEditing={false} toolbarSource={false} />
 }
@@ -85,8 +99,10 @@ function Piece({
 }) {
   const selectBlock = useBlogEditorStore((s) => s.selectBlock)
   const deleteBlock = useBlogEditorStore((s) => s.deleteBlock)
+  const duplicateBlock = useBlogEditorStore((s) => s.duplicateBlock)
   const selected = useBlogEditorStore((s) => s.selectedBlockId === block.id)
   const host = useRef<HTMLDivElement>(null)
+  const emptyCopy = canvasWidgetShowsEmpty(block)
   const frame = pieceFrame(block)
   if (!editing) {
     if (!frame) return <Visual block={block} />
@@ -117,9 +133,11 @@ function Piece({
       data-nested-id={nested ? block.id : undefined}
       data-stack-id={stacked ? block.id : undefined}
       data-widget-box=""
-      className={`${selected ? 'vj-canvas-on' : 'vj-canvas-piece'}${insertClass}`}
+      data-block-id={block.id}
+      data-empty-widget={emptyCopy ? '' : undefined}
+      className={`${selected ? 'vj-canvas-on' : 'vj-canvas-piece'}${emptyCopy ? ' vj-widget-empty' : ''}${insertClass}`}
       style={frame}
-      draggable={!selected}
+      draggable
       onPointerDown={armDrag}
       onDragStart={(event) => {
         if (event.target instanceof Element && event.target.closest('.vj-img-handle, [contenteditable="true"]')) {
@@ -130,6 +148,7 @@ function Piece({
         if (event.currentTarget.dataset.stackId) event.currentTarget.dataset.dragging = '1'
         event.stopPropagation()
         event.dataTransfer.setData(MOVE_DRAG, block.id)
+        event.dataTransfer.setData('text/plain', block.id)
         event.dataTransfer.effectAllowed = 'move'
       }}
       onDragEnd={(event) => {
@@ -137,16 +156,23 @@ function Piece({
       }}
       onClick={(event) => {
         event.stopPropagation()
-        if (!clickIsOnWidget(event.target)) {
-          const top = topLevelForSelection(useBlogEditorStore.getState().blocks, block.id)
-          selectBlock(top?.type === 'columns' ? top.id : block.id)
+        if (!clickSelectsWidget(event)) {
+          const pick = columnPickFromNode(event.currentTarget)
+          if (pick) {
+            selectBlock(pick.parentId)
+            useColumnPick.getState().setPick(pick)
+            return
+          }
+          useColumnPick.getState().setPick(null)
+          selectBlock(block.id)
           return
         }
+        useColumnPick.getState().setPick(null)
         const typing = textTarget(event.target)
         selectBlock(block.id)
         if (typing) return
         event.preventDefault()
-        if (block.type !== 'heading' && block.type !== 'paragraph') return
+        if (block.type !== 'heading' && block.type !== 'paragraph' && block.type !== 'modal_popup') return
         const node = event.currentTarget
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -158,27 +184,30 @@ function Piece({
       {selected ? (
         <span className="vj-canvas-bar" onClick={(event) => event.stopPropagation()}>
           <span
-            data-drag-handle
-            className="vj-drag-handle"
-            title="Drag"
-            aria-label="Drag widget"
-            draggable
-            onDragStart={(event) => {
-              event.stopPropagation()
-              const stack = event.currentTarget.closest('[data-stack-id]')
-              if (stack instanceof HTMLElement && stack.dataset.stackId === block.id) stack.dataset.dragging = '1'
-              event.dataTransfer.setData(MOVE_DRAG, block.id)
-              event.dataTransfer.effectAllowed = 'move'
-            }}
-            onDragEnd={(event) => {
-              const stack = event.currentTarget.closest('[data-stack-id]')
-              if (stack instanceof HTMLElement && stack.dataset.stackId === block.id) delete stack.dataset.dragging
-            }}
+            data-drag-handle=""
+            title="Drag to move this widget"
+            role="button"
+            tabIndex={0}
+            aria-label="Drag to move this widget"
           >
-            Drag
+            <GripVertical size={12} />
           </span>
-          <button type="button" onClick={() => deleteBlock(block.id)}>
-            Delete
+          <button
+            type="button"
+            title="Duplicate widget"
+            aria-label="Duplicate widget"
+            onClick={() => duplicateBlock(block.id)}
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            type="button"
+            className="is-danger"
+            title="Delete widget"
+            aria-label="Delete widget"
+            onClick={() => deleteBlock(block.id)}
+          >
+            <Trash2 size={12} />
           </button>
         </span>
       ) : null}
@@ -384,6 +413,24 @@ function useColumnDrop(parentId: string, colIndex: number) {
   }
 }
 
+function addWidgetToColumn(parentId: string, colIndex: number, type: BlogBlockType, preset?: string) {
+  const parent = findBlockInTree(useBlogEditorStore.getState().blocks, parentId)
+  if (!parent || parent.type !== 'columns') return
+  const created = createBlogBlock(type, carouselPreset(preset))
+  const zones = zonesOf(parent).map((zone) => ({ blocks: [...zone.blocks] }))
+  const dest = zones[colIndex]
+  if (!dest) return
+  dest.blocks.push(created)
+  const { blocks, commitBlocks } = useBlogEditorStore.getState()
+  commitBlocks(
+    blocks.map((item) =>
+      item.id === parentId ? { ...parent, data: { ...parent.data, columns: zones, structureChosen: true } } : item,
+    ),
+    'Added widget',
+    created.id,
+  )
+}
+
 function DropColumn({
   parentId,
   colIndex,
@@ -403,23 +450,61 @@ function DropColumn({
   const picked = useColumnPick((s) => s.pick?.parentId === parentId && s.pick.column === colIndex)
   const setPick = useColumnPick((s) => s.setPick)
   const selectBlock = useBlogEditorStore((s) => s.selectBlock)
+  const [pickerOn, setPickerOn] = useState(false)
   const stack = columnStackAttrs(layoutData, colIndex)
-  const cls = `${className}${stack.className ? ` ${stack.className}` : ''}`
-  if (!editing) return <div className={cls} style={stack.style}>{children}</div>
+  const surface = readColumnSurface(layoutData, colIndex)
+  const surfaceStyle = surfaceShellStyle(surface)
+  const host = surface.type ? ' vj-surface' : ''
+  const cls = `${className}${stack.className ? ` ${stack.className}` : ''}${host}`
+  const style = { ...stack.style, ...surfaceStyle }
+  if (!editing) {
+    return (
+      <div className={cls} style={style}>
+        {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+        {children}
+      </div>
+    )
+  }
   return (
     <div
       data-col-drop=""
+      data-col-parent={parentId}
+      data-col-index={String(colIndex)}
       className={`${cls}${drop.over ? ' vj-canvas-drop' : ''}${picked ? ' vj-col-on' : ''}${editing ? ' vj-col-drop' : ''}`}
-      style={stack.style}
+      style={style}
       {...drop.bind}
       onClick={(event) => {
-        if (clickIsOnWidget(event.target)) return
+        if (clickSelectsWidget(event)) return
         event.stopPropagation()
         selectBlock(parentId)
         setPick({ parentId, column: colIndex })
       }}
     >
+      {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
       {children}
+      {Children.count(children) === 0 ? (
+        <button
+          type="button"
+          className="vj-col-add"
+          aria-label={`Add widget to column ${colIndex + 1}`}
+          onClick={(event) => {
+            event.stopPropagation()
+            setPickerOn(true)
+          }}
+        >
+          +
+        </button>
+      ) : null}
+      {pickerOn ? (
+        <ColumnWidgetPicker
+          columnLabel={`column ${colIndex + 1}`}
+          onClose={() => setPickerOn(false)}
+          onPick={(type, preset) => {
+            addWidgetToColumn(parentId, colIndex, type, preset)
+            setPickerOn(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
@@ -442,6 +527,7 @@ function heroCopy(blocks: BlogBlock[], editing: boolean) {
 function MeetCard({ image, button, editing }: { image: BlogBlock; button: BlogBlock; editing: boolean }) {
   const selectBlock = useBlogEditorStore((s) => s.selectBlock)
   const deleteBlock = useBlogEditorStore((s) => s.deleteBlock)
+  const duplicateBlock = useBlogEditorStore((s) => s.duplicateBlock)
   const selectedId = useBlogEditorStore((s) => s.selectedBlockId)
   const href = safeHref(button.data.url) ?? '#'
   const url = String(image.data.url ?? '').trim()
@@ -488,8 +574,11 @@ function MeetCard({ image, button, editing }: { image: BlogBlock; button: BlogBl
       >
         {photoOn ? (
           <span className="vj-canvas-bar" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => deleteBlock(image.id)}>
-              Delete
+            <button type="button" title="Duplicate" aria-label="Duplicate" onClick={() => duplicateBlock(image.id)}>
+              <Copy size={12} />
+            </button>
+            <button type="button" className="is-danger" title="Delete" aria-label="Delete" onClick={() => deleteBlock(image.id)}>
+              <Trash2 size={12} />
             </button>
           </span>
         ) : null}
@@ -525,8 +614,11 @@ function MeetCard({ image, button, editing }: { image: BlogBlock; button: BlogBl
       >
         {labelOn ? (
           <span className="vj-canvas-bar" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => deleteBlock(button.id)}>
-              Delete
+            <button type="button" title="Duplicate" aria-label="Duplicate" onClick={() => duplicateBlock(button.id)}>
+              <Copy size={12} />
+            </button>
+            <button type="button" className="is-danger" title="Delete" aria-label="Delete" onClick={() => deleteBlock(button.id)}>
+              <Trash2 size={12} />
             </button>
           </span>
         ) : null}
@@ -553,16 +645,22 @@ export function BrandPageCanvas({ children, frameWidth = PAGE_WIDTH }: { childre
     return () => observer.disconnect()
   }, [frameWidth, children])
 
+  const narrow = frameWidth < PAGE_WIDTH
   return (
     <div
       ref={outer}
-      className="-ml-6 -mr-2 overflow-hidden bg-white"
+      className={narrow ? '-ml-6 -mr-2 flex justify-center bg-slate-200 py-3' : '-ml-6 -mr-2 overflow-hidden bg-white'}
       onClickCapture={(event) => {
         const link = (event.target as HTMLElement).closest('a')
         if (link && !(event.target as HTMLElement).closest('[contenteditable="true"]')) event.preventDefault()
       }}
     >
-      <div ref={inner} className="vj vj-canvas" style={{ width: frameWidth, zoom: scale }}>
+      <div
+        ref={inner}
+        className="vj vj-canvas shrink-0"
+        data-vj-screen={previewScreen(frameWidth)}
+        style={{ width: frameWidth, zoom: scale }}
+      >
         {children}
       </div>
     </div>
@@ -592,9 +690,8 @@ function zoneClass(base: string, count: number, editing: boolean) {
   return `${base}${editing && count === 0 ? ' vj-canvas-empty' : ''}`.trim()
 }
 
-function flowColumnClass(editing: boolean, mode: 'flex' | 'grid', count: number) {
-  const box = editing ? `vj-col-box${mode === 'grid' ? ' is-grid' : ''}` : ''
-  return zoneClass(box, count, editing)
+function flowColumnClass(editing: boolean, _mode: 'flex' | 'grid', count: number) {
+  return zoneClass('', count, editing)
 }
 
 function columnBody(block: BlogBlock, skin: string, editing: boolean) {
@@ -700,9 +797,16 @@ export default function BrandWidgetSection({ blocks, editing = false }: { blocks
   const split = skin === 'hero' || skin === 'product'
   const sectionOn = Boolean(editing && columns && sectionSelected === columns.id)
   const anchor = blocks.find((block) => block.id === sectionAnchorId(blocks)) ?? columns
-  const spaceStyle = { ...(sectionBoxStyle(anchor?.data, editing) ?? {}), ...(textBoxStyle(columns?.data.width) ?? {}) }
+  const sectionSurface = columns ? readSurfaceBackground(columns.data) : null
+  const spaceStyle = {
+    ...(sectionBoxStyle(anchor?.data, editing) ?? {}),
+    ...(textBoxStyle(columns?.data.width) ?? {}),
+    ...(sectionSurface ? surfaceShellStyle(sectionSurface) : {}),
+  }
   const dropClass = pad.edge === 'before' ? ' vj-drop-inside is-before' : pad.edge === 'after' ? ' vj-drop-inside is-after' : ''
-  const className = `${SKIN_CLASS[skin] ?? 'vj-sec'}${editing ? ' vj-canvas-sec' : ''}${sectionOn ? ' vj-sec-on' : ''}${dropClass}`
+  const className = `${SKIN_CLASS[skin] ?? 'vj-sec'}${editing ? ' vj-canvas-sec' : ''}${sectionOn ? ' vj-sec-on' : ''}${dropClass}${
+    sectionSurface?.type ? ' vj-surface' : ''
+  }`
   const total = before.length + (columns ? 1 : 0) + after.length
   const columnSlot = before.length
   const inner = (
@@ -742,13 +846,14 @@ export default function BrandWidgetSection({ blocks, editing = false }: { blocks
       onClick={
         editing && columns
           ? (event) => {
-              if (clickIsOnWidget(event.target)) return
+              if (clickSelectsWidget(event)) return
               setPick(null)
               selectBlock(columns.id)
             }
           : undefined
       }
     >
+      {sectionSurface && hasSurfaceLayers(sectionSurface) ? <SurfaceBackgroundLayers bg={sectionSurface} /> : null}
       {editing ? (
         <div data-sec-body {...stack.bind}>
           {inner}
@@ -756,7 +861,6 @@ export default function BrandWidgetSection({ blocks, editing = false }: { blocks
       ) : (
         inner
       )}
-      {sectionOn && columns ? <BoxResizeHandles blockId={columns.id} /> : null}
     </section>
   )
 }

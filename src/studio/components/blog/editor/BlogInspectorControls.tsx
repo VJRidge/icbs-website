@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight } from 'lucide-react';
 import BlogInspectorSection from './BlogInspectorSection';
+import BlogInspectorBoxSpacing from './BlogInspectorBoxSpacing';
 
 export function blogDataNum(data: Record<string, unknown>, key: string, fallback: number): number {
   const v = Number(data[key]);
@@ -130,17 +131,11 @@ export function BlogInspectorAdvancedPanel({
   onPatch: (id: string, patch: Record<string, unknown>) => void;
   extra?: ReactNode;
 }) {
-  const marginTop = blogDataNum(data, 'marginTop', 0);
-  const marginBottom = blogDataNum(data, 'marginBottom', 0);
   const customClass = String(data.customClass ?? '');
 
   return (
     <div className="space-y-3">
-      <BlogInspectorSpacing
-        marginTop={marginTop}
-        marginBottom={marginBottom}
-        onChange={(p) => onPatch(blockId, p)}
-      />
+      <BlogInspectorBoxSpacing data={data} onChange={(patch) => onPatch(blockId, patch)} />
       <BlogInspectorSection title="CSS">
         <label className="block text-xs text-slate-700">
           <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Custom CSS class</span>

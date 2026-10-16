@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { BLOG_BLOCK_LABELS, type BlogBlock, type BlogBlockType } from '../studio/lib/blog/blogBlockTypes'
 import { normalizeColumnZones } from '../studio/lib/blog/columnLayouts'
 import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
-import { addSectionAfterSelection, useColumnPick } from './sectionActions'
+import { useColumnPick } from './sectionActions'
+import { useWidgetTray } from './widgetTray'
 
 function widgetLabel(block: BlogBlock) {
   if (block.type === 'carousel' && block.data.kind === 'image') return 'Image carousel'
@@ -139,11 +140,11 @@ export default function EditorSideChrome() {
       <div className="flex items-center gap-0.5">
         <button
           type="button"
-          title="Add a section under the current one"
-          aria-label="Add section"
+          title="Add a widget"
+          aria-label="Add a widget"
           onClick={() => {
             setPanel(null)
-            addSectionAfterSelection()
+            useWidgetTray.getState().show()
           }}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
         >

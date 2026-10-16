@@ -3,7 +3,10 @@ import { trackPublicEvent } from './lib/analytics/trackClient'
 import FreeThanks from './pages/FreeThanks'
 import BuyThanks from './pages/BuyThanks'
 import Legal from './pages/Legal'
+import UnsubscribeStatusPage from './pages/UnsubscribeStatusPage'
+import EmailPrefsPage from './pages/EmailPrefsPage'
 import Contact from './pages/Contact'
+import FaqPage from './pages/FaqPage'
 import UpdatesSignup from './pages/UpdatesSignup'
 import AdminApp from './admin/AdminApp'
 import HomeOrKit from './cms/HomeOrKit'
@@ -62,7 +65,7 @@ function ToLanding() {
 
 function PublicRoutes({ path }: { path: string }) {
   if (import.meta.env.DEV) {
-    if (path === '/') return <BrandPage id="home" />
+    if (path === '/') return <HomeOrKit />
     if (path === '/resources') return <BrandPage id="resources" />
     if (path === '/resources/ai-and-technology') return <BrandPage id="topicAi" />
     if (path === '/resources/creative-tools') return <BrandPage id="topicCreative" />
@@ -93,6 +96,7 @@ function PublicRoutes({ path }: { path: string }) {
   if (path === '/buy/thanks') return <BuyThanks />
   if (path === '/free') return <ToLanding />
   if (path === '/contact') return <Contact />
+  if (path === '/faq') return <FaqPage />
   if (path === '/updates') return <UpdatesSignup />
   if (path === '/resources/builder-quick-reference') return <BuilderQuickReferencePage />
   if (path === '/resources/templates') return <TemplatesPage />
@@ -102,9 +106,12 @@ function PublicRoutes({ path }: { path: string }) {
   if (path === '/resources/tools-and-updates') return <ToolsAndUpdatesPage />
   if (path === '/resources/vibe-coding-literacy-check') return <LiteracyCheckPage />
   if (path === '/book/updates') return <BookUpdatesPage />
-  if (path === '/privacy' || path === '/terms' || path === '/refunds') {
-    return <CmsBySlug slug={path.slice(1)} fallback={<Legal page={path.slice(1)} />} />
+  if (path === '/privacy' || path === '/terms' || path === '/refunds' || path === '/copyright') {
+    return <Legal page={path.slice(1)} />
   }
+  if (path === '/unsubscribed') return <UnsubscribeStatusPage kind="ok" />
+  if (path === '/unsubscribe-error') return <UnsubscribeStatusPage kind="error" />
+  if (path === '/prefs') return <EmailPrefsPage />
   if (path === '/') return <HomeOrKit />
   return <CmsBySlug slug={path.replace(/^\//, '')} />
 }

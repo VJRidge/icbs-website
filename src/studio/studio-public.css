@@ -2,7 +2,7 @@
  * Public CMS pages: Tailwind theme + utilities only. Preflight is replaced by a reset
  * scoped to `.studio-public` so the kit, header and footer keep their own styles.
  */
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600;700;900&display=swap');
+/* Public CMS pages use device fonts. Do not load Google Fonts here. */
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);

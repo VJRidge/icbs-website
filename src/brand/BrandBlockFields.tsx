@@ -24,6 +24,7 @@ const TEXT: Record<string, string[]> = {
   brand_faq: ['heading'],
   brand_thanks: ['headerLabel', 'headerHref', 'heading', 'text', 'downloadLabel', 'downloadHref', 'bookTitle', 'bookText', 'bookPrice', 'bookLabel', 'bookHref', 'bookNote', 'resourcesLabel', 'resourcesHref'],
   brand_article: ['headerLabel', 'headerHref', 'eyebrow', 'heading', 'lede', 'bookLabel', 'bookHref'],
+  brand_note: ['eyebrow', 'heading', 'anchor'],
 }
 
 const MEDIA = new Set(['photoUrl', 'mediaUrl', 'bookCover', 'coverUrl', 'videoUrl'])
@@ -49,6 +50,7 @@ const LABELS: Record<string, string> = {
   price: 'Price',
   linkLabel: 'Button',
   linkHref: 'Button link',
+  anchor: 'In-page link id',
 }
 
 type ItemField = { key: string; label: string; hint?: string; media?: boolean; multiline?: boolean }
@@ -59,7 +61,11 @@ const ITEM_FIELDS: Record<string, ItemField[]> = {
     { key: 'title', label: 'Title' },
     { key: 'text', label: 'Description', multiline: true },
     { key: 'href', label: 'Link', hint: 'The page this card opens, such as /resources/your-post.' },
+    { key: 'cta', label: 'Button', hint: 'Optional label on the card, such as Read the Build Note.' },
     { key: 'format', label: 'Kind', hint: 'Article, Tutorial, Video, or Download. The library uses this as a filter.' },
+  ],
+  brand_note: [
+    { key: 'text', label: 'Paragraph', multiline: true },
   ],
   brand_projects: [
     { key: 'title', label: 'Title' },
@@ -121,6 +127,7 @@ const ITEM_NAME: Record<string, string> = {
   brand_faq: 'Question',
   brand_article: 'Step',
   brand_contact: 'Topic',
+  brand_note: 'Paragraph',
 }
 
 const inputCls = 'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none'

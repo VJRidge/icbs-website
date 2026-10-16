@@ -3,7 +3,7 @@ import { CreditCard } from 'lucide-react';
 import AdminCmsShell from '../components/admin/AdminCmsShell';
 import { supabase } from '../lib/supabase';
 import { isAnyAdminProfile } from '../lib/adminPermissions';
-import { canReadPurchases } from '../lib/cms/authorization';
+import { canReadPurchases, canResendPurchases } from '../lib/cms/authorization';
 import type { UserProfile } from '../types';
 
 type PurchaseRow = {
@@ -32,10 +32,39 @@ export default function PurchasesListPage({ userProfile }: { userProfile: UserPr
   const [rows, setRows] = useState<PurchaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [resending, setResending] = useState<string | null>(null);
 
   const allowed = canReadPurchases(userProfile?.role, {
     staffApproved: isAnyAdminProfile(userProfile),
   });
+  const canResend = canResendPurchases(userProfile?.role, {
+    staffApproved: isAnyAdminProfile(userProfile),
+  });
+
+  async function resend(purchaseId: string) {
+    setResending(purchaseId);
+    setError(null);
+    setNotice(null);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('Sign in again to resend.');
+      const res = await fetch('/api/purchase-resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ purchaseId }),
+      });
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || 'Could not resend.');
+      setNotice('Download email sent.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not resend.');
+    } finally {
+      setResending(null);
+    }
+  }
 
   const load = useCallback(async () => {
     const { data, error: listError } = await supabase
@@ -79,9 +108,11 @@ export default function PurchasesListPage({ userProfile }: { userProfile: UserPr
       <div className="mx-auto max-w-5xl p-6 md:p-10">
         <h1 className="font-serif text-3xl font-black text-slate-900">Sales</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-600">
-          Stripe Checkout sessions for the book PDF. Fulfillment is webhook-driven; this list is read-only.
+          Stripe Checkout sessions for the book PDF. Fulfillment is webhook-driven. Editors can resend a
+          download email if the first send failed.
         </p>
         {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
+        {notice ? <p className="mt-4 text-sm text-emerald-800">{notice}</p> : null}
         {loading ? <p className="mt-6 text-sm text-slate-500">Loading…</p> : null}
         <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
           {rows.map((row) => (
@@ -97,6 +128,16 @@ export default function PurchasesListPage({ userProfile }: { userProfile: UserPr
                 <div className="text-right">
                   <div className="font-black text-slate-900">{formatMoney(row.amount_total, row.currency)}</div>
                   <div className="font-mono text-[10px] text-slate-400">{row.stripe_session_id}</div>
+                  {canResend ? (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs font-semibold text-slate-700 underline"
+                      disabled={resending === row.id}
+                      onClick={() => void resend(row.id)}
+                    >
+                      {resending === row.id ? 'Sending…' : 'Resend download'}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </li>

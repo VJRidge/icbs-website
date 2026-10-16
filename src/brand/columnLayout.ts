@@ -8,7 +8,7 @@ export const COLUMN_H_ALIGNS = ['left', 'center', 'right'] as const
 export type ColumnVAlign = (typeof COLUMN_V_ALIGNS)[number]
 export type ColumnHAlign = (typeof COLUMN_H_ALIGNS)[number]
 
-const SLOT_KEYS = ['columnVAlign', 'columnHAlign', 'columnWidgetGap'] as const
+const SLOT_KEYS = ['columnVAlign', 'columnHAlign', 'columnWidgetGap', 'columnSurfaces'] as const
 const GAP_MAX = 200
 
 function slotAt(raw: unknown, index: number): unknown {

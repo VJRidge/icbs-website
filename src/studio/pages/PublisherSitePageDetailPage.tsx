@@ -80,7 +80,7 @@ function LandingLayout({ blocks }: { blocks: BlogBlock[] }) {
           <section key={g.blocks[0].id} className="sec cream">
             <div className="wrap">
               <div className={`studio-public mx-auto max-w-3xl ${PROSE_CLASSES}`}>
-                <div className="not-prose space-y-8">
+                <div className="not-prose space-y-2.5">
                   {g.blocks.map((b) => (
                     <BlogBlockRenderer key={b.id} block={b} isEditing={false} />
                   ))}
@@ -119,6 +119,18 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
               >
                 {post ? '← I Call BS blog' : 'I Call BS'}
               </a>
+              {post?.categories?.length ? (
+                <p className="mt-4 font-mono text-[12px] font-bold uppercase tracking-[0.08em] text-[#b53d0d]">
+                  {post.categories.map((c, i) => (
+                    <span key={c.slug || c.name}>
+                      {i > 0 ? ' · ' : null}
+                      <a href={`/blog?category=${encodeURIComponent(c.slug)}`} className="hover:underline">
+                        {c.name}
+                      </a>
+                    </span>
+                  ))}
+                </p>
+              ) : null}
               <h1 className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>
               {post ? (
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-medium text-slate-600">
@@ -129,15 +141,6 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
                   ) : null}
                   {post.author && postDate ? <span aria-hidden>·</span> : null}
                   {postDate ? <time dateTime={post.publishedAt ?? undefined}>{postDate}</time> : null}
-                  {post.categories?.map((c) => (
-                    <a
-                      key={c.slug}
-                      href={`/blog?category=${encodeURIComponent(c.slug)}`}
-                      className="rounded-full bg-brand-blue/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-brand-blue hover:bg-brand-blue/20"
-                    >
-                      {c.name}
-                    </a>
-                  ))}
                 </div>
               ) : null}
             </div>
@@ -146,7 +149,8 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
                 <img
                   src={img}
                   alt={document.featured_image_alt?.trim() || title}
-                  className="max-h-[380px] w-full object-cover"
+                  className="w-full object-cover"
+                  style={{ aspectRatio: '16 / 9' }}
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -155,7 +159,7 @@ export default function PublisherSitePageDetailPage({ title, document, post }: P
 
           <div className={`${PROSE_CLASSES} py-10`}>
             {useBlockLayout ? (
-              <div className="not-prose space-y-8">
+              <div className="not-prose space-y-2.5">
                 {blockList.map((b) => (
                   <BlogBlockRenderer key={b.id} block={b} isEditing={false} />
                 ))}

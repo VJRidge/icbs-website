@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { blogParagraphExtensions } from '../../../lib/blog/blogParagraphExtensions';
 import {
@@ -9,6 +9,9 @@ import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import { useActiveEditor } from '../../../contexts/ActiveEditorContext';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { sanitizeBlogBlockHtml } from '../../../lib/blog/sanitizeBlogBlockHtml';
+import { lightboxCopyStyle, lightboxHtml } from '../../../lib/blog/lightboxNote';
+import SurfaceBackgroundLayers from '../SurfaceBackgroundLayers';
+import { hasSurfaceLayers, readSurfaceBackground, surfaceShellStyle } from '../../../lib/blog/surfaceBackground';
 import { attachToolbarSelectionMemory, freezeToolbarEditorSelection, saveToolbarEditorSelection } from '../../../lib/tiptapTextStyleCommands';
 import CanvasLiveText from '../../../../brand/CanvasLiveText';
 
@@ -41,28 +44,46 @@ function readablePlain(html: string): string {
   return spaced.replace(/[ \t]{2,}/g, ' ').trim();
 }
 
+function wrapParagraphSurface(data: Record<string, unknown>, htmlKey: string, node: ReactNode) {
+  if (htmlKey === 'body') return node;
+  const surface = readSurfaceBackground(data);
+  if (!surface.type) return node;
+  return (
+    <div className="vj-surface" style={surfaceShellStyle(surface)}>
+      {hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+      {node}
+    </div>
+  );
+}
+
 function BlogParagraphBlockEdit({
   block,
   toolbarSource = true,
   canvasSurface = false,
   autoFocus = false,
+  htmlKey = 'text',
 }: {
   block: BlogBlock;
   toolbarSource?: boolean;
   canvasSurface?: boolean;
   autoFocus?: boolean;
+  htmlKey?: string;
 }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
-  const { setActiveEditor, registerBlogParagraphEditor, unregisterBlogParagraphEditor } = useActiveEditor();
+  const { setActiveEditor, registerBlogParagraphEditor, unregisterBlogParagraphEditor, markBlogEditorFocused } =
+    useActiveEditor();
   const data = block.data as Record<string, unknown>;
   const hasBlockTextColor = Boolean(String(data.textColor ?? '').trim());
   /** Skip setContent when this editor instance just wrote block.data.text (prevents sync loops). */
   const skipExternalSyncRef = useRef(false);
+  const storedRaw = String(block.data[htmlKey] ?? block.data.text ?? '');
+  const htmlValue =
+    decodeSpaces(htmlKey === 'body' ? lightboxHtml({ body: storedRaw }) : storedRaw) || '<p></p>';
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: blogParagraphExtensions('Start writing…'),
-    content: decodeSpaces(String(block.data.text ?? '')) || '<p></p>',
+    content: htmlValue,
     editable: true,
     editorProps: {
       attributes: {
@@ -81,18 +102,19 @@ function BlogParagraphBlockEdit({
     },
     onUpdate: ({ editor: ed }) => {
       skipExternalSyncRef.current = true;
-      updateBlock(block.id, { text: ed.getHTML() });
+      const html = ed.getHTML();
+      updateBlock(block.id, htmlKey === 'body' ? { body: html, text: html, paragraphs: [] } : { text: html });
     },
   });
 
   useEffect(() => {
-    if (!editor || !toolbarSource) return;
+    if (!editor) return;
+    if (!toolbarSource && !canvasSurface) return;
     registerBlogParagraphEditor(block.id, editor);
     const detachSelectionMemory = attachToolbarSelectionMemory(editor);
 
     const rememberHighlight = () => {
-      const { from, to } = editor.state.selection;
-      if (from !== to) saveToolbarEditorSelection(editor);
+      if (editor.view.hasFocus()) saveToolbarEditorSelection(editor);
     };
     const dom = editor.view.dom;
     dom.addEventListener('mouseup', rememberHighlight);
@@ -105,16 +127,30 @@ function BlogParagraphBlockEdit({
         freezeToolbarEditorSelection(editor);
       }
     };
+    const onFocus = () => {
+      markBlogEditorFocused(block.id, editor);
+      saveToolbarEditorSelection(editor);
+    };
+    editor.on('focus', onFocus);
     dom.addEventListener('blur', onBlurToToolbar, true);
 
     return () => {
+      editor.off('focus', onFocus);
       dom.removeEventListener('mouseup', rememberHighlight);
       dom.removeEventListener('keyup', rememberHighlight);
       dom.removeEventListener('blur', onBlurToToolbar, true);
       detachSelectionMemory();
       unregisterBlogParagraphEditor(block.id, editor);
     };
-  }, [editor, block.id, toolbarSource, registerBlogParagraphEditor, unregisterBlogParagraphEditor]);
+  }, [
+    editor,
+    block.id,
+    toolbarSource,
+    canvasSurface,
+    registerBlogParagraphEditor,
+    unregisterBlogParagraphEditor,
+    markBlogEditorFocused,
+  ]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -127,7 +163,8 @@ function BlogParagraphBlockEdit({
     } catch {
       return;
     }
-    const next = decodeSpaces(String(block.data.text ?? '')) || '<p></p>';
+    const nextRaw = String(block.data[htmlKey] ?? block.data.text ?? '');
+    const next = decodeSpaces(htmlKey === 'body' ? lightboxHtml({ body: nextRaw }) : nextRaw) || '<p></p>';
     if (next === editor.getHTML()) return;
 
     // Preserve caret/highlight across external HTML sync so toolbar styles stick.
@@ -146,7 +183,7 @@ function BlogParagraphBlockEdit({
         /* ignore invalid restored ranges after structural HTML changes */
       }
     }
-  }, [editor, block.data.text]);
+  }, [editor, htmlKey, htmlValue]);
 
   useEffect(() => {
     if (!autoFocus || !editor || editor.isDestroyed) return;
@@ -155,20 +192,31 @@ function BlogParagraphBlockEdit({
 
   useEffect(() => {
     if (!editor) return;
-    const focus = () => setActiveEditor(editor);
+    const focus = () => {
+      setActiveEditor(editor);
+      markBlogEditorFocused(block.id, editor);
+    };
     editor.on('focus', focus);
     return () => {
       editor.off('focus', focus);
     };
-  }, [editor, setActiveEditor]);
+  }, [editor, block.id, setActiveEditor, markBlogEditorFocused]);
 
   useEffect(() => {
     if (!editor?.view.dom || !(editor.view.dom instanceof HTMLElement)) return;
     editor.view.dom.classList.toggle('text-slate-700', !hasBlockTextColor);
   }, [editor, hasBlockTextColor]);
 
+  const surface = htmlKey === 'body' ? null : readSurfaceBackground(data);
   return (
-    <div className={paragraphBlockWrapperClass(data)} style={paragraphBlockWrapperStyle(data)}>
+    <div
+      className={`${paragraphBlockWrapperClass(data)}${surface?.type ? ' vj-surface' : ''}`}
+      style={{
+        ...(htmlKey === 'body' ? lightboxCopyStyle(data) : paragraphBlockWrapperStyle(data)),
+        ...(surface ? surfaceShellStyle(surface) : {}),
+      }}
+    >
+      {surface && hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
       <EditorContent editor={editor} />
     </div>
   );
@@ -181,6 +229,7 @@ export default function BlogParagraphBlock({
   canvasEdit = false,
   canvasSurface = false,
   autoFocus = false,
+  htmlKey = 'text',
 }: {
   block: BlogBlock;
   isEditing: boolean;
@@ -188,33 +237,43 @@ export default function BlogParagraphBlock({
   canvasEdit?: boolean;
   canvasSurface?: boolean;
   autoFocus?: boolean;
+  htmlKey?: string;
 }) {
   if (!isEditing) {
     const data = block.data as Record<string, unknown>;
+    const storedHtml = String(block.data[htmlKey] ?? block.data.text ?? '');
     const role = String(data.role ?? '');
-    const plain = readablePlain(String(block.data.text ?? ''));
+    const plain = readablePlain(storedHtml);
     if (canvasEdit && (role === 'lede' || role === 'copy' || role === 'note')) {
-      return (
+      return wrapParagraphSurface(
+        data,
+        htmlKey,
         <CanvasLiveText
           blockId={block.id}
           text={plain}
           as="p"
           html
           className={role === 'lede' ? 'lede' : role === 'note' ? 'vj-note' : undefined}
-        />
+        />,
       );
     }
     if (role === 'lede' || role === 'copy' || role === 'note') {
       const className = role === 'lede' ? 'lede' : role === 'note' ? 'vj-note' : undefined;
-      return <p className={className}>{plain}</p>;
+      return wrapParagraphSurface(data, htmlKey, <p className={className}>{plain}</p>);
     }
     const hasBlockTextColor = Boolean(String(data.textColor ?? '').trim());
+    const surface = htmlKey === 'body' ? null : readSurfaceBackground(data);
     return (
       <div
-        className={`${paragraphBlockWrapperClass(data)} prose prose-slate max-w-none font-medium leading-relaxed prose-headings:font-black prose-headings:text-brand-blue prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-h4:text-xl prose-h5:text-lg prose-h6:text-base prose-p:text-[17px] prose-p:leading-[1.75]${hasBlockTextColor ? '' : ' text-slate-700'}`}
-        style={paragraphBlockWrapperStyle(data)}
-        dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(decodeSpaces(String(block.data.text ?? ''))) }}
-      />
+        className={`${paragraphBlockWrapperClass(data)} prose prose-slate max-w-none font-medium leading-relaxed prose-headings:font-black prose-headings:text-brand-blue prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-h4:text-xl prose-h5:text-lg prose-h6:text-base prose-p:text-[17px] prose-p:leading-[1.75]${hasBlockTextColor ? '' : ' text-slate-700'}${surface?.type ? ' vj-surface' : ''}`}
+        style={{ ...paragraphBlockWrapperStyle(data), ...(surface ? surfaceShellStyle(surface) : {}) }}
+      >
+        {surface && hasSurfaceLayers(surface) ? <SurfaceBackgroundLayers bg={surface} /> : null}
+        <div
+          className="blog-paragraph-html"
+          dangerouslySetInnerHTML={{ __html: sanitizeBlogBlockHtml(decodeSpaces(storedHtml)) }}
+        />
+      </div>
     );
   }
   return (
@@ -224,6 +283,7 @@ export default function BlogParagraphBlock({
       toolbarSource={toolbarSource}
       canvasSurface={canvasSurface}
       autoFocus={autoFocus}
+      htmlKey={htmlKey}
     />
   );
 }

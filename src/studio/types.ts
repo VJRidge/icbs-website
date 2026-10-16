@@ -19,6 +19,8 @@ export interface PublisherSitePage {
   featured_image_alt?: string | null;
   status: 'draft' | 'pending_review' | 'published' | 'scheduled' | 'trash';
   published_at: string | null;
+  /** Public blog grid rank. Lower is first. Default 0 keeps newest-first. */
+  list_order?: number | null;
   author_id: string;
   created_at: string;
   updated_at: string;

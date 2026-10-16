@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Tag } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { POST_CATEGORY_KIND } from '../../lib/contentKinds';
+import { slugifyTitle } from '../../lib/slugifyTitle';
 import {
+  newCategoryInsertPayload,
   toggleAdditionalCategory,
   withPrimaryCategory,
   type CategoryLink,
@@ -15,6 +17,7 @@ export default function PostCategoriesPanel({ postId }: { postId: string | null 
   const [all, setAll] = useState<Category[]>([]);
   const [links, setLinks] = useState<CategoryLink[]>([]);
   const [busy, setBusy] = useState(false);
+  const [newName, setNewName] = useState('');
 
   useEffect(() => {
     void supabase
@@ -102,6 +105,27 @@ export default function PostCategoriesPanel({ postId }: { postId: string | null 
     void persist(toggleAdditionalCategory(links, id, on));
   };
 
+  const onCreate = async () => {
+    const payload = newCategoryInsertPayload(newName, all.length, slugifyTitle(newName));
+    if (!payload || !postId || busy) return;
+    setBusy(true);
+    const { data, error } = await supabase
+      .from('taxonomies')
+      .insert({ kind: POST_CATEGORY_KIND, ...payload })
+      .select('id, name, slug')
+      .single();
+    if (error || !data) {
+      setBusy(false);
+      window.alert(error?.message || 'Could not add category.');
+      return;
+    }
+    const created = data as Category;
+    setAll((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewName('');
+    setBusy(false);
+    await persist(withPrimaryCategory(links, created.id));
+  };
+
   return (
     <div className="space-y-3">
       <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -152,6 +176,32 @@ export default function PostCategoriesPanel({ postId }: { postId: string | null 
           );
         })}
       </div>
+      <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">
+        Add category
+        <span className="mt-1 flex gap-1">
+          <input
+            value={newName}
+            disabled={!postId || busy}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void onCreate();
+              }
+            }}
+            placeholder="New category name"
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold normal-case tracking-normal text-slate-800 disabled:opacity-40"
+          />
+          <button
+            type="button"
+            disabled={!postId || busy || !newName.trim()}
+            onClick={() => void onCreate()}
+            className="shrink-0 rounded-lg bg-brand-blue px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand-yellow disabled:opacity-40"
+          >
+            Add
+          </button>
+        </span>
+      </label>
       <p className="text-[10px] text-slate-400">
         Manage categories under Content → Categories. Tags stay separate for finer detail.
       </p>

@@ -11,6 +11,17 @@ export const EDITOR_FONT_FAMILY_OPTIONS: { label: string; value: string }[] = [
   { label: 'Courier', value: '"Courier New", Courier, monospace' },
 ];
 
+export const EDITOR_FONT_WEIGHT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Default', value: '' },
+  { label: '300 Light', value: '300' },
+  { label: '400 Normal', value: '400' },
+  { label: '500 Medium', value: '500' },
+  { label: '600 Semibold', value: '600' },
+  { label: '700 Bold', value: '700' },
+  { label: '800 Extra bold', value: '800' },
+  { label: '900 Black', value: '900' },
+];
+
 export const EDITOR_FONT_SIZE_OPTIONS: { label: string; value: string }[] = [
   { label: 'Default', value: '' },
   { label: '12 px', value: '12px' },

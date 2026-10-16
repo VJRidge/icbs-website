@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import HomeOrKit from '../cms/HomeOrKit'
 import { parseBlogBlocks } from '../studio/lib/blog/useBlogEditorStore'
 import BrandBlockView from './BrandBlocks'
 import BrandChrome from './BrandChrome'
@@ -23,6 +24,11 @@ function pageFromDraft(raw: unknown, seed: BrandPageDoc): BrandPageDoc | null {
 }
 
 export default function BrandPage({ id }: { id: BrandPageId }) {
+  if (id === 'home') return <HomeOrKit />
+  return <SeedBrandPage id={id} />
+}
+
+function SeedBrandPage({ id }: { id: BrandPageId }) {
   const seed = brandPages[id]
   const [page, setPage] = useState(seed)
 

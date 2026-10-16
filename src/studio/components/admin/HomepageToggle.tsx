@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Gift, Home } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { emitHomepageChanged, withHomepageSlot } from '../../lib/cms/viewSite';
 
 type Target = 'home' | 'kit';
 
@@ -47,13 +48,19 @@ export default function HomepageToggle({
     if (!pageId) return;
     setBusy(true);
     const next = active ? null : pageId;
-    const { error } = await supabase.from('settings').update({ [field]: next }).eq('id', 1);
+    const { data: row } = await supabase.from('settings').select('draft_document').eq('id', 1).maybeSingle();
+    const draft = row?.draft_document as Record<string, unknown> | null;
+    const { error } = await supabase
+      .from('settings')
+      .update({ [field]: next, draft_document: withHomepageSlot(draft, field, next) })
+      .eq('id', 1);
     setBusy(false);
     if (error) {
       window.alert(error.message);
       return;
     }
     setCurrentId(next);
+    emitHomepageChanged();
   };
 
   return (

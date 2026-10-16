@@ -9,14 +9,16 @@ import { DEFAULT_SITE_CHROME, invalidateSiteChrome, loadSiteChrome, type SiteMen
 import type { UserProfile } from '../types';
 
 const PRESETS: SiteMenuItem[] = [
-  { id: 'home', label: 'The book', href: '/' },
+  { id: 'book', label: 'The book', href: '/products/i-call-bs' },
   { id: 'kit', label: 'Free Starter Kit', href: '/#kit' },
   { id: 'blog', label: 'Blog', href: '/blog' },
   { id: 'about', label: 'About', href: '/about' },
   { id: 'contact', label: 'Contact', href: '/contact' },
+  { id: 'faq', label: 'FAQ', href: '/faq' },
   { id: 'privacy', label: 'Privacy', href: '/privacy' },
   { id: 'terms', label: 'Terms', href: '/terms' },
   { id: 'refunds', label: 'Refunds', href: '/refunds' },
+  { id: 'copyright', label: 'Copyright', href: '/copyright' },
 ];
 
 type PageOpt = { kind: 'page' | 'post'; slug: string; title: string };

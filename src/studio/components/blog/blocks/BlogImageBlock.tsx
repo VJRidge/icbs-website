@@ -42,7 +42,10 @@ export default function BlogImageBlock({ block, isEditing }: { block: BlogBlock;
     );
     const sized = px != null;
     return (
-      <figure className={sized ? 'my-4' : `my-4 ${widthClass}`} style={sized ? { width: px, maxWidth: '100%', ...alignBoxStyle(align) } : undefined}>
+      <figure
+        className={sized ? 'my-4 mx-0' : `my-4 mx-0 ${widthClass}`}
+        style={sized ? { width: px, maxWidth: '100%', ...alignBoxStyle(align) } : undefined}
+      >
         {href ? (
           <a href={href} className="block">
             {img}

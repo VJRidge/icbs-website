@@ -22,7 +22,7 @@ See also: `PRODUCT.md`, `docs/cms/WORKFLOWS.md`, `docs/cms/IMPLEMENTATION.md`.
 | Content health dashboard | Relationships + media usage + verification dates available | **Complete** — dashboard checks for missing alt, stale tool-review verification, unused media, and empty drafts |
 | Global settings draft preview | Versioned settings snapshot publish path (`draft_document` + explicit publish) | **Complete** |
 | Import/migration jobs | Dry-run, mapping, idempotent batches, suppression preserved | **Open** — `import_jobs` / rows / `import_applied_keys`; kit→Contacts dry-run + commit via `/api/import-kit-subscribers`; studio `/admin/imports`; kit `subscribers` never mutated |
-| Stripe Checkout (book PDF) | Price + secret + webhook secret + download URL; webhook fulfillment; buyer tag | **Open** — `/api/checkout`, `/api/stripe-webhook`, `purchases` ledger, `/admin/sales`, `/buy/thanks`; keys optional until you paste them |
+| Stripe Checkout (book PDF) | Price + secret + webhook secret + private PDF path or download URL; webhook fulfillment; buyer tag | **Open** — `/api/checkout`, `/api/stripe-webhook`, `purchases` ledger, `/admin/sales` resend, `/buy/thanks`; prefer `BOOK_PRIVATE_PATH` signed URLs |
 
 ## Navigation policy
 

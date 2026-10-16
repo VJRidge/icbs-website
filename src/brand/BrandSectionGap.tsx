@@ -4,6 +4,7 @@ import { cloneBlocks, pushHistory } from '../studio/lib/blog/editorHistory'
 import { useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { WIDGET_DRAG, blockFromWidgetToken } from './columnWidgets'
 import { addSectionAt, chunkSectionId, insertOnStack, insertWidgetInsideSection, placeWidget } from './sectionActions'
+import { finiteSpace, spacingBoxStyle } from '../studio/lib/blog/boxSpacing'
 
 const MOVE_DRAG = 'application/x-icbs-move'
 
@@ -38,15 +39,9 @@ function insertTopLevel(block: BlogBlock, at: number) {
   useBlogEditorStore.getState().insertBlocks([block], at, 'Added section')
 }
 
-const MAX_GAP = 320
+const MAX_GAP = 800
 /** Matches .vj-sec padding so the toolbar stays above the heading. */
 export const SECTION_CHROME_PAD = 64
-
-function finiteSpace(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value)
-  return null
-}
 
 export function clampSectionSpace(value: unknown, min = 0): number {
   const n = finiteSpace(value)
@@ -84,15 +79,18 @@ export function resizeSectionGap(origin: GapParts, delta: number, edges: { upper
 
 export function sectionBoxStyle(data: Record<string, unknown> | undefined, editing = false): CSSProperties | undefined {
   if (!data) return undefined
+  const box = spacingBoxStyle(data)
   const style: CSSProperties = {}
-  const padTop = finiteSpace(data.padTop)
-  const padBottom = finiteSpace(data.padBottom)
-  const marginBottom = finiteSpace(data.marginBottom)
-  const marginTop = finiteSpace(data.marginTop)
-  if (padTop != null) style.paddingTop = clampSectionSpace(padTop, editing ? SECTION_CHROME_PAD : 0)
-  if (padBottom != null) style.paddingBottom = clampSectionSpace(padBottom, 0)
-  if (marginBottom != null) style.marginBottom = marginBottom > 0 ? clampSectionSpace(marginBottom, 0) : 0
-  if (marginTop != null && marginTop < 0) style.marginTop = 0
+  if (box.marginTop) style.marginTop = clampSectionSpace(box.marginTop, 0)
+  if (box.marginRight) style.marginRight = clampSectionSpace(box.marginRight, 0)
+  if (box.marginBottom) style.marginBottom = clampSectionSpace(box.marginBottom, 0)
+  if (box.marginLeft) style.marginLeft = clampSectionSpace(box.marginLeft, 0)
+  const minTop = editing ? SECTION_CHROME_PAD : 0
+  if (box.paddingTop) style.paddingTop = clampSectionSpace(box.paddingTop, minTop)
+  else if (editing && finiteSpace(data.padTop) != null) style.paddingTop = clampSectionSpace(data.padTop, minTop)
+  if (box.paddingRight) style.paddingRight = clampSectionSpace(box.paddingRight, 0)
+  if (box.paddingBottom) style.paddingBottom = clampSectionSpace(box.paddingBottom, 0)
+  if (box.paddingLeft) style.paddingLeft = clampSectionSpace(box.paddingLeft, 0)
   return Object.keys(style).length ? style : undefined
 }
 
@@ -229,6 +227,7 @@ export default function BrandSectionGap({
   anchorId,
   deleteId,
   lead = false,
+  trail = false,
   upperId = null,
   lowerId = null,
 }: {
@@ -236,12 +235,13 @@ export default function BrandSectionGap({
   anchorId: string
   deleteId: string | null
   lead?: boolean
+  trail?: boolean
   upperId?: string | null
   lowerId?: string | null
 }) {
   const [over, setOver] = useState(false)
 
-  const insertAt = () => indexBeforeAnchor(anchorId, at)
+  const insertAt = () => (trail ? useBlogEditorStore.getState().blocks.length : indexBeforeAnchor(anchorId, at))
 
   const onDragOver = (event: DragEvent) => {
     const kinds = dragKinds(event.dataTransfer)
@@ -262,7 +262,7 @@ export default function BrandSectionGap({
   }
 
   return (
-    <div className={`vj-sec-gap${lead ? ' vj-sec-gap-lead' : ' vj-sec-gap-between'}${deleteId ? ' is-selected' : ''}${over ? ' is-over' : ''}`}>
+    <div className={`vj-sec-gap${trail ? ' vj-sec-gap-trail' : lead ? ' vj-sec-gap-lead' : ' vj-sec-gap-between'}${deleteId ? ' is-selected' : ''}${over ? ' is-over' : ''}`}>
       <div
         className={`vj-sec-gap-hit${over ? ' vj-canvas-drop' : ''}`}
         onDragOver={onDragOver}
@@ -273,7 +273,7 @@ export default function BrandSectionGap({
         }}
         onDrop={onDrop}
       >
-        {!lead && (upperId || lowerId) ? (
+        {!lead && !trail && (upperId || lowerId) ? (
           <button
             type="button"
             className="vj-sec-gap-drag"
@@ -282,7 +282,13 @@ export default function BrandSectionGap({
             onPointerDown={(event) => startGapDrag(upperId, lowerId, event)}
           />
         ) : null}
-        <button type="button" className="vj-sec-gap-btn" aria-label="Add section" title="Add section under the section above" onClick={() => addSectionAt(insertAt())}>
+        <button
+          type="button"
+          className="vj-sec-gap-btn"
+          aria-label={trail ? 'Add section below' : lead ? 'Add section above' : 'Add section'}
+          title={trail ? 'Add a section under the last section' : lead ? 'Add a section above this one' : 'Add a section between these'}
+          onClick={() => addSectionAt(insertAt())}
+        >
           +
         </button>
       </div>

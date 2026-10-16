@@ -159,3 +159,13 @@ Status legend for screens: **Connected** (operable today) · **Specified** (acce
 - [x] Lead-capture form + `/api/form-submit` with durable rate limiting.
 - [x] Contacts identity + consent log + `/api/contact-unsubscribe` (**Open**).
 
+---
+
+## 6. Which URL is the public site
+
+**Production visitors** see `https://vettajimale.tech` — CMS HomeV2 (`settings.homepage_content_id`), published pages, and the Vite SPA fallbacks for `/privacy`, `/terms`, `/refunds`, `/copyright`, `/faq`, `/prefs`.
+
+**Local `npm run dev`** uses `HomeOrKit` on `/`. Brand draft (`/api/dev-brand-draft`) is preview only; it is not what production visitors get.
+
+**Launch QA** uses production (or a Vercel preview of this repo), not the Vite brand chrome. `/api/checkout` must exist on that host (not a static-only deploy).
+

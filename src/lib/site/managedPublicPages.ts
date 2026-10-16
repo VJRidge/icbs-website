@@ -57,6 +57,22 @@ export const MANAGED_PUBLIC_PAGES: ManagedPublicPage[] = [
     adminEditPath: '/admin/public-site/book-updates',
     excerpt: 'Publish real corrections and link updates here.',
   },
+  {
+    id: 'b1000001-0001-4000-8000-000000000006',
+    slug: 'faq',
+    title: 'FAQ',
+    publicPath: '/faq',
+    adminEditPath: '/admin/public-site',
+    excerpt: 'Public accordion at /faq. Questions live in src/lib/site/faqItems.ts until a studio editor lands.',
+  },
+  {
+    id: 'b1000001-0001-4000-8000-000000000007',
+    slug: 'copyright',
+    title: 'Copyright',
+    publicPath: '/copyright',
+    adminEditPath: '/admin/public-site',
+    excerpt: 'Public copyright and notice page at /copyright. Copy lives in src/pages/copyrightPolicy.ts.',
+  },
 ];
 
 export function managedPublicPageBySlug(slug: string | null | undefined): ManagedPublicPage | null {

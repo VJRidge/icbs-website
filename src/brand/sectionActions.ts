@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { BlogBlock, ColumnLayoutKey } from '../studio/lib/blog/blogBlockTypes'
+import type { BlogBlock, BlogBlockType, ColumnLayoutKey } from '../studio/lib/blog/blogBlockTypes'
+import { carouselPreset } from '../studio/lib/blog/mediaWidgetOptions'
 import { regenerateBlockIds, topLevelForSelection } from '../studio/lib/blog/blockStyle'
 import {
   columnCountForLayout,
@@ -9,7 +10,8 @@ import {
 } from '../studio/lib/blog/columnLayouts'
 import { createBlogBlock, useBlogEditorStore } from '../studio/lib/blog/useBlogEditorStore'
 import { shiftColumnLayout } from './columnLayout'
-import { keepAddedEmptySection, withoutUnusedEmptySections } from './sectionEmpty'
+import { keepAddedEmptySection, peekKeptEmptySection, withoutUnusedEmptySections } from './sectionEmpty'
+import { useWidgetTray } from './widgetTray'
 
 const LAYOUT_FOR_COUNT: Record<number, ColumnLayoutKey> = {
   1: '100',
@@ -100,6 +102,7 @@ export function addSectionAt(at: number) {
   const list = useBlogEditorStore.getState().blocks
   insertBlocks([block], Math.max(0, Math.min(at, list.length)), 'Added section')
   useColumnPick.getState().setPick(null)
+  useBlogEditorStore.setState({ selectedBlockId: null })
   return block.id
 }
 
@@ -421,4 +424,30 @@ export function insertOnStack(chunk: BlogBlock[], created: BlogBlock, index: num
   const start = anchor ? blocks.findIndex((block) => block.id === anchor.id) : -1
   const at = start < 0 ? blocks.length : start + Math.max(0, index)
   insertBlocks([placed], at, 'Added widget')
+}
+
+/** Drop a tray widget into the open column, or the empty section just added with +. */
+export function addWidgetFromTray(type: BlogBlockType, preset?: string) {
+  const { blocks, commitBlocks } = useBlogEditorStore.getState()
+  const pick = useColumnPick.getState().pick
+  const kept = peekKeptEmptySection()
+  const parent =
+    (pick?.parentId ? blocks.find((block) => block.id === pick.parentId && block.type === 'columns') : null) ??
+    (kept ? blocks.find((block) => block.id === kept && block.type === 'columns') : null) ??
+    [...blocks].reverse().find((block) => block.type === 'columns')
+  if (!parent) return
+  const zones = zonesOf(parent).map((zone) => ({ blocks: [...zone.blocks] }))
+  const column = Math.max(0, Math.min(pick?.parentId === parent.id ? pick.column : 0, zones.length - 1))
+  const dest = zones[column]
+  if (!dest) return
+  const created = createBlogBlock(type, carouselPreset(preset))
+  dest.blocks.push(created)
+  commitBlocks(
+    blocks.map((block) =>
+      block.id === parent.id ? { ...parent, data: { ...parent.data, columns: zones, structureChosen: true } } : block,
+    ),
+    'Added widget',
+    created.id,
+  )
+  useWidgetTray.getState().hide()
 }

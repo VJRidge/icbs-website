@@ -1,5 +1,6 @@
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
+import { quoteColumns, readQuoteCards } from '../../../lib/blog/marketingWidgets';
 
 export default function BlogTestimonialBlock({ block, isEditing }: { block: BlogBlock; isEditing: boolean }) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
@@ -8,6 +9,41 @@ export default function BlogTestimonialBlock({ block, isEditing }: { block: Blog
   const role = String(block.data.role ?? '');
   const imageUrl = String(block.data.imageUrl ?? '');
   const rating = Math.min(5, Math.max(0, Number(block.data.rating) || 5));
+  const cards = readQuoteCards(block.data as Record<string, unknown>);
+  const skin = String(block.data.skin ?? '') === 'cards' || cards.length > 1 ? 'cards' : 'quote';
+  const columns = quoteColumns(block.data as Record<string, unknown>, cards.length);
+
+  if (!isEditing && skin === 'cards') {
+    return (
+      <section className="blog-testimonial-grid my-8 grid gap-5" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+        {cards.map((item, index) => {
+          const on = item.emphasis || item.cardColor;
+          return (
+            <blockquote
+              key={`${item.name}-${index}`}
+              className={`flex h-full flex-col rounded-2xl p-6 shadow-sm ${on ? 'text-white' : 'border border-slate-200 bg-white'}`}
+              style={item.cardColor ? { backgroundColor: item.cardColor } : item.emphasis ? { backgroundColor: '#7c3aed' } : undefined}
+            >
+              <p className="flex-1 text-sm leading-relaxed">{item.quote}</p>
+              <footer className="mt-6 flex items-center gap-3">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" />
+                ) : (
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black ${on ? 'bg-white/20' : 'bg-slate-200'}`}>
+                    {(item.name || '?').slice(0, 1)}
+                  </span>
+                )}
+                <div>
+                  <cite className="block not-italic text-sm font-black">{item.name}</cite>
+                  {item.role ? <span className={`text-xs ${on ? 'text-white/70' : 'text-slate-500'}`}>{item.role}</span> : null}
+                </div>
+              </footer>
+            </blockquote>
+          );
+        })}
+      </section>
+    );
+  }
 
   if (!isEditing) {
     return (
@@ -34,6 +70,17 @@ export default function BlogTestimonialBlock({ block, isEditing }: { block: Blog
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+      <label className="flex items-center gap-2 text-xs text-slate-600">
+        Layout
+        <select
+          value={skin}
+          onChange={(e) => updateBlock(block.id, { skin: e.target.value })}
+          className="rounded border border-slate-200 px-2 py-1"
+        >
+          <option value="quote">Single quote</option>
+          <option value="cards">Card row</option>
+        </select>
+      </label>
       <textarea
         value={quote}
         onChange={(e) => updateBlock(block.id, { quote: e.target.value })}

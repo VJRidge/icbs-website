@@ -5,12 +5,20 @@ import type { BlogBlock } from '../../../lib/blog/blogBlockTypes';
 import { parseTextShadow, type BlogTextShadow } from '../../../lib/blog/blogParagraphBlockStyle';
 import { useBlogEditorStore } from '../../../lib/blog/useBlogEditorStore';
 import { useActiveEditor } from '../../../contexts/ActiveEditorContext';
-import { EDITOR_FONT_FAMILY_OPTIONS, EDITOR_FONT_SIZE_OPTIONS } from '../../../lib/editorFontChoices';
+import {
+  EDITOR_FONT_FAMILY_OPTIONS,
+  EDITOR_FONT_SIZE_OPTIONS,
+  EDITOR_FONT_WEIGHT_OPTIONS,
+} from '../../../lib/editorFontChoices';
+import { RichEditorFontControls } from '../../RichEditorFontControls';
 import {
   applyEditorBlockAlign,
   applyEditorFontFamily,
   applyEditorFontSize,
+  applyEditorFontWeight,
   collapseSelectionToCurrentTextblock,
+  freezeToolbarEditorSelection,
+  saveToolbarEditorSelection,
 } from '../../../lib/tiptapTextStyleCommands';
 import BlogInspectorColorControl from './BlogInspectorColorControl';
 import { BlogInspectorFieldRow, BlogInspectorIconButton } from './BlogInspectorFieldRow';
@@ -81,6 +89,7 @@ function TypographyPopover({
     fontFamily?: string;
     fontSize?: string;
     letterSpacing?: string;
+    fontWeight?: string;
   };
   const parent = editor.state.selection.$from.parent;
   const lineHeightRaw = (parent.attrs.lineHeight as string | null) ?? '';
@@ -155,18 +164,19 @@ function TypographyPopover({
         <label className="block text-xs text-slate-700">
           <span className="mb-0.5 block text-[11px] text-slate-600">Weight</span>
           <select
-            defaultValue={editor.isActive('bold') ? '700' : '400'}
-            onChange={(e) => {
-              withWholeBlockSelection(editor, () => {
-                const v = e.target.value;
-                if (v === '700') editor.chain().focus().setBold().run();
-                else editor.chain().focus().unsetBold().run();
-              });
+            value={String(attrs.fontWeight ?? '')}
+            onPointerDown={() => {
+              saveToolbarEditorSelection(editor);
+              freezeToolbarEditorSelection(editor);
             }}
+            onChange={(e) => applyEditorFontWeight(editor, e.target.value)}
             className="w-full rounded border border-slate-200 px-2 py-1.5 text-xs"
           >
-            <option value="400">Default</option>
-            <option value="700">Bold</option>
+            {EDITOR_FONT_WEIGHT_OPTIONS.map((o) => (
+              <option key={o.label} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </label>
         <label className="block text-xs text-slate-700">
@@ -249,11 +259,18 @@ function TextShadowPopover({
 }
 
 /** Elementor-style Style tab for paragraph / text editor blocks. */
-export default function BlogParagraphStyleInspector({ block }: { block: BlogBlock }) {
+export default function BlogParagraphStyleInspector({
+  block,
+  storage = 'editor',
+}: {
+  block: BlogBlock;
+  storage?: 'editor' | 'block';
+}) {
   const updateBlock = useBlogEditorStore((s) => s.updateBlock);
   const { getBlogParagraphEditor, blogParagraphEditorVersion } = useActiveEditor();
   const data = block.data as Record<string, unknown>;
-  const editor = getBlogParagraphEditor(block.id);
+  const editor = storage === 'editor' ? getBlogParagraphEditor(block.id) : null;
+  const blockOnly = storage === 'block';
 
   const [colorState, setColorState] = useState<ColorState>('normal');
   const [typographyOpen, setTypographyOpen] = useState(false);
@@ -289,33 +306,66 @@ export default function BlogParagraphStyleInspector({ block }: { block: BlogBloc
 
   return (
     <div className="space-y-0">
-      <p className="border-b border-slate-100 px-1 pb-2 text-[11px] font-bold text-slate-800">Text Editor</p>
+      <p className="border-b border-slate-100 px-1 pb-2 text-[11px] font-bold text-slate-800">
+        {blockOnly ? 'Lightbox text' : 'Text Editor'}
+      </p>
 
       <BlogInspectorFieldRow label="Alignment" responsive>
         <BlogInspectorAlignmentCompact value={align} onChange={setAlign} />
       </BlogInspectorFieldRow>
 
-      <BlogInspectorFieldRow label="Typography">
-        <div className="relative">
-          <BlogInspectorIconButton
-            title="Edit typography"
-            active={typographyOpen}
-            onClick={() => {
-              if (!hasEditor) return;
-              setTypographyOpen((o) => !o);
-              setShadowOpen(false);
+      {blockOnly ? (
+        <div className="border-b border-slate-100 px-1 py-3">
+          <p className="mb-2 text-[11px] font-semibold text-slate-700">Typography</p>
+          <RichEditorFontControls
+            block={{
+              fontFamily: String(data.fontFamily ?? ''),
+              fontSize: String(data.fontSize ?? ''),
+              families: EDITOR_FONT_FAMILY_OPTIONS,
+              onFontFamily: (fontFamily) => updateBlock(block.id, { fontFamily }),
+              onFontSize: (fontSize) => updateBlock(block.id, { fontSize }),
             }}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </BlogInspectorIconButton>
-          {typographyOpen && editor ? (
-            <TypographyPopover editor={editor} onClose={() => setTypographyOpen(false)} />
-          ) : null}
+          />
+          <label className="mt-3 block text-xs text-slate-700">
+            <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-slate-400">Font weight</span>
+            <select
+              value={String(data.fontWeight ?? '')}
+              onChange={(e) => updateBlock(block.id, { fontWeight: e.target.value })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              {EDITOR_FONT_WEIGHT_OPTIONS.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-      </BlogInspectorFieldRow>
-      {!hasEditor ? (
-        <p className="px-1 pb-2 text-[10px] text-slate-500">Select this block on the canvas to edit typography.</p>
-      ) : null}
+      ) : (
+        <>
+          <BlogInspectorFieldRow label="Typography">
+            <div className="relative">
+              <BlogInspectorIconButton
+                title="Edit typography"
+                active={typographyOpen}
+                onClick={() => {
+                  if (!hasEditor) return;
+                  setTypographyOpen((o) => !o);
+                  setShadowOpen(false);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </BlogInspectorIconButton>
+              {typographyOpen && editor ? (
+                <TypographyPopover editor={editor} onClose={() => setTypographyOpen(false)} />
+              ) : null}
+            </div>
+          </BlogInspectorFieldRow>
+          {!hasEditor ? (
+            <p className="px-1 pb-2 text-[10px] text-slate-500">Select this block on the canvas to edit typography.</p>
+          ) : null}
+        </>
+      )}
 
       <BlogInspectorFieldRow label="Text Shadow">
         <div className="relative flex items-center gap-1">
@@ -384,9 +434,11 @@ export default function BlogParagraphStyleInspector({ block }: { block: BlogBloc
         <BlogInspectorColorControl value={textColor} onChange={patchTextColor} title="Text color" />
       </BlogInspectorFieldRow>
 
-      <BlogInspectorFieldRow label="Link Color">
-        <BlogInspectorColorControl value={linkColor} onChange={patchLinkColor} title="Link color" />
-      </BlogInspectorFieldRow>
+      {blockOnly ? null : (
+        <BlogInspectorFieldRow label="Link Color">
+          <BlogInspectorColorControl value={linkColor} onChange={patchLinkColor} title="Link color" />
+        </BlogInspectorFieldRow>
+      )}
     </div>
   );
 }

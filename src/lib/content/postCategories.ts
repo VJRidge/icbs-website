@@ -53,3 +53,20 @@ export function toggleAdditionalCategory(
   }
   return normalizeCategoryLinks(links.filter((l) => l.taxonomyId !== taxonomyId));
 }
+
+/** Fields for inserting a category from the post editor. Null when the name is blank. */
+export function newCategoryInsertPayload(
+  name: string,
+  existingCount: number,
+  slug: string,
+): { name: string; slug: string; description: string; sort_order: number } | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const safeSlug = slug.trim().toLowerCase();
+  return {
+    name: trimmed,
+    slug: safeSlug || 'category',
+    description: '',
+    sort_order: (existingCount + 1) * 10,
+  };
+}

@@ -67,9 +67,11 @@ export default function BrandChrome({
           <nav aria-label="Footer">
             {LINKS.map((link) => <a key={link.href} href={link.href}>{link.label}</a>)}
             <a href="/blog">Blog</a>
+            <a href="/faq">FAQ</a>
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
             <a href="/refunds">Refunds</a>
+            <a href="/copyright">Copyright</a>
           </nav>
           {socials.length > 0 ? (
             <nav aria-label="Social">

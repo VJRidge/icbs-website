@@ -22,18 +22,29 @@ export default function BlogInspectorColorControl({
   onChange,
   title = 'Color',
   fallback = '',
+  showHex = false,
+  onPointerDown,
+  onPointerUp,
 }: {
   value: string;
   onChange: (hex: string) => void;
   title?: string;
   /** Color to show when none is stored, so an empty heading does not look black. */
   fallback?: string;
+  showHex?: boolean;
+  onPointerDown?: () => void;
+  onPointerUp?: () => void;
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const normalized = value.trim() ? normalizeHexColor(value, '#0f172a') : '';
   const fallbackHex = fallback.trim() ? normalizeHexColor(fallback, '#f7f7f2') : '';
   const preview = normalized || fallbackHex || '#ffffff';
+  const [hexDraft, setHexDraft] = useState(preview);
+
+  useEffect(() => {
+    setHexDraft(preview);
+  }, [preview]);
 
   useEffect(() => {
     if (!paletteOpen) return;
@@ -47,10 +58,11 @@ export default function BlogInspectorColorControl({
   const pick = (hex: string) => {
     onChange(hex);
     setPaletteOpen(false);
+    onPointerUp?.();
   };
 
   return (
-    <div className="relative flex items-center gap-1" ref={wrapRef}>
+    <div className="relative flex items-center gap-1" ref={wrapRef} data-studio-history="widgets">
       <BlogInspectorIconButton
         title="Theme colors"
         active={paletteOpen}
@@ -76,12 +88,34 @@ export default function BlogInspectorColorControl({
         )}
         <input
           type="color"
-          value={normalized || fallbackHex || '#0f172a'}
+          value={preview}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
           onChange={(e) => onChange(e.target.value)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           aria-label={title}
         />
       </label>
+      {showHex ? (
+        <input
+          value={hexDraft}
+          spellCheck={false}
+          onPointerDown={onPointerDown}
+          onChange={(e) => {
+            const next = e.target.value;
+            setHexDraft(next);
+            if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next.trim())) onChange(normalizeHexColor(next.trim(), preview));
+          }}
+          onBlur={(e) => {
+            const next = e.target.value.trim();
+            if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(next)) onChange(normalizeHexColor(next, preview));
+            else setHexDraft(preview);
+            onPointerUp?.();
+          }}
+          className="w-[4.75rem] rounded border border-slate-200 px-1.5 py-1 font-mono text-[11px] uppercase text-slate-700"
+          aria-label={`${title} hex`}
+        />
+      ) : null}
       {paletteOpen ? (
         <div className="absolute right-0 top-full z-[400] mt-1 w-[200px] rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
           <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">Theme</p>
@@ -97,6 +131,23 @@ export default function BlogInspectorColorControl({
               />
             ))}
           </div>
+          {showHex ? (
+            <>
+              <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">Canvas</p>
+              <div className="mb-2 flex flex-wrap gap-1">
+                {['#f7f7f2', '#F3EDE3', '#ffffff', '#1a5340'].map((hex) => (
+                  <button
+                    key={hex}
+                    type="button"
+                    title={hex}
+                    className={swatchBtn(hex)}
+                    style={{ backgroundColor: hex }}
+                    onClick={() => pick(hex)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
           <p className="mb-1 text-[10px] font-black uppercase tracking-wider text-slate-500">Standard</p>
           <div className="flex flex-wrap gap-1">
             {EDITOR_POST_BASIC_TEXT_COLORS.map((hex) => (
