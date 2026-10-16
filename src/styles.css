@@ -1,3 +1,5 @@
+@import "./selfHostedFonts.css";
+
 /* I Call BS site styles. Colors and type follow the book style guide:
    cover green, cover yellow, highlighter yellow, orange for structure. */
 :root {

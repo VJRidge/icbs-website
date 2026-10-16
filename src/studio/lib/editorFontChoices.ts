@@ -1,9 +1,9 @@
 /** Preset families (stacks omit extra quotes so they round-trip TipTap/HTML `font-family` parsing). */
 export const EDITOR_FONT_FAMILY_OPTIONS: { label: string; value: string }[] = [
   { label: 'Default', value: '' },
-  { label: 'Inter', value: 'Inter, ui-sans-serif, system-ui, sans-serif' },
-  { label: 'Lato', value: 'Lato, sans-serif' },
-  { label: 'Playfair', value: 'Playfair Display, Georgia, serif' },
+  { label: 'Anton', value: 'Anton, Impact, sans-serif' },
+  { label: 'Newsreader', value: 'Newsreader, Georgia, serif' },
+  { label: 'IBM Plex Mono', value: 'IBM Plex Mono, ui-monospace, monospace' },
   { label: 'Georgia', value: 'Georgia, "Times New Roman", serif' },
   { label: 'Times', value: '"Times New Roman", Times, serif' },
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },

@@ -2,7 +2,8 @@
  * Public CMS pages: Tailwind theme + utilities only. Preflight is replaced by a reset
  * scoped to `.studio-public` so the kit, header and footer keep their own styles.
  */
-/* Public CMS pages use device fonts. Do not load Google Fonts here. */
+/* Public CMS pages use self-hosted OFL files. Do not load Google Fonts here. */
+@import "../selfHostedFonts.css";
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);

@@ -1,5 +1,6 @@
 /* Full Tailwind (with preflight) — loaded only by the /admin studio chunk. */
-/* Studio uses device fonts. Do not load Google Fonts. */
+/* Studio uses self-hosted OFL files. Do not load Google Fonts. */
+@import "../selfHostedFonts.css";
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @import "./studio-theme.css";
