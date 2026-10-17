@@ -49,8 +49,9 @@ export default async function handler(req: any, res: any) {
     const message = err instanceof Error ? err.message : 'Checkout failed.'
     if (req.method === 'GET') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      const shown = message.replace(/</g, '&lt;').slice(0, 280)
       return res.status(500).send(
-        `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Georgia,serif;background:#F4EFE3;color:#0E0D0B;padding:48px 20px;text-align:center"><h1>Checkout unavailable</h1><p>Something went wrong starting payment. Please try again in a minute.</p><p><a href="/#buy">Back</a></p></body>`,
+        `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Georgia,serif;background:#F4EFE3;color:#0E0D0B;padding:48px 20px;text-align:center"><h1>Checkout unavailable</h1><p>Something went wrong starting payment.</p><p>${shown}</p><p><a href="/#buy">Back</a></p></body>`,
       )
     }
     return res.status(500).json({ error: message })

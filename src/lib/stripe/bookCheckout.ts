@@ -167,3 +167,15 @@ export function planBookPurchaseFulfillment(input: CheckoutFulfillInput): Checko
 export function stripeModuleRequiresLiveKeyAtBuild(): boolean {
   return false;
 }
+
+/** Strip a wrapping quote pair from Vercel-pasted env values. */
+export function clipStripeEnv(raw: string | undefined): string {
+  let value = (raw ?? '').trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
+    (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  return value;
+}

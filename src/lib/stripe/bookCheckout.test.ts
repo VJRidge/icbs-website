@@ -6,6 +6,7 @@ import {
   checkoutMarketingOptIn,
   planBookPurchaseFulfillment,
   sessionMatchesBookProduct,
+  clipStripeEnv,
   stripeModuleRequiresLiveKeyAtBuild,
 } from './bookCheckout';
 
@@ -175,6 +176,14 @@ describe('planBookPurchaseFulfillment', () => {
     expect(checkoutMarketingOptIn(undefined)).toBe(false);
     expect(checkoutMarketingOptIn([{ key: 'kit_mail', dropdown: { value: 'yes' } }])).toBe(true);
     expect(checkoutMarketingOptIn([{ key: 'kit_mail', dropdown: { value: 'no' } }])).toBe(false);
+  });
+});
+
+describe('clipStripeEnv', () => {
+  it('trims wrapping quotes from Vercel-pasted secrets and price ids', () => {
+    expect(clipStripeEnv('  "sk_live_abc"  ')).toBe('sk_live_abc');
+    expect(clipStripeEnv("'price_123'")).toBe('price_123');
+    expect(clipStripeEnv('price_123')).toBe('price_123');
   });
 });
 

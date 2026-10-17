@@ -9,6 +9,7 @@ import { bookPurchaseEmail } from './_emails.js'
 import { recordConversionEvent } from './_analytics.js'
 import { ensureContactTag } from './_segments.js'
 import { signPrivateMediaPath } from './_leadMagnets.js'
+import { clipStripeEnv } from '../src/lib/stripe/bookCheckout.js'
 import { BOOK_SIGNED_URL_EXPIRES, resolveBookDownloadSource } from '../src/lib/stripe/bookDownload.js'
 
 export const BOOK_PRODUCT_KEY = 'i_call_bs_book' as const
@@ -22,11 +23,11 @@ function normalizeEmail(raw: string): string | null {
 }
 
 export function stripeSecretConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY?.trim() && process.env.STRIPE_BOOK_PRICE_ID?.trim())
+  return Boolean(clipStripeEnv(process.env.STRIPE_SECRET_KEY) && clipStripeEnv(process.env.STRIPE_BOOK_PRICE_ID))
 }
 
 export function stripeWebhookConfigured(): boolean {
-  return Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim())
+  return Boolean(clipStripeEnv(process.env.STRIPE_WEBHOOK_SECRET))
 }
 
 export function bookDownloadUrl(): string {
@@ -46,7 +47,7 @@ export async function resolveFulfillmentDownloadUrl(): Promise<string> {
 }
 
 function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY?.trim()
+  const key = clipStripeEnv(process.env.STRIPE_SECRET_KEY)
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set.')
   return new Stripe(key, { apiVersion: '2026-09-30.endive' })
 }
@@ -106,13 +107,6 @@ function checkoutMarketingOptIn(customFields: unknown): boolean {
   return false
 }
 
-function randomSuffix(n = 8): string {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz'
-  let out = ''
-  for (let i = 0; i < n; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)]
-  return out
-}
-
 export async function createBookCheckoutSession(opts?: {
   customerEmail?: string | null
   successUrl?: string
@@ -123,7 +117,7 @@ export async function createBookCheckoutSession(opts?: {
   }
   const site = env('SITE_URL').replace(/\/$/, '')
   const stripe = getStripe()
-  const priceId = process.env.STRIPE_BOOK_PRICE_ID!.trim()
+  const priceId = clipStripeEnv(process.env.STRIPE_BOOK_PRICE_ID)
   const email = opts?.customerEmail ? normalizeEmail(opts.customerEmail) : null
 
   const session = await stripe.checkout.sessions.create({
@@ -148,9 +142,7 @@ export async function createBookCheckoutSession(opts?: {
         },
       },
     ],
-    // Tag for Dashboard comparison (API 2026-03-25+).
-    integration_identifier: `book_checkout_${randomSuffix()}`,
-  } as Stripe.Checkout.SessionCreateParams)
+  })
 
   if (!session.url) throw new Error('Stripe did not return a checkout URL.')
   return { url: session.url, sessionId: session.id }
@@ -164,7 +156,7 @@ export function constructStripeEvent(rawBody: Buffer | string, signature: string
   return stripe.webhooks.constructEvent(
     rawBody,
     signature,
-    process.env.STRIPE_WEBHOOK_SECRET!.trim(),
+    clipStripeEnv(process.env.STRIPE_WEBHOOK_SECRET),
   )
 }
 
